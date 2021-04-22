@@ -47,18 +47,6 @@ class TrackedObject(object):
         self.last_observed = observed_time
         self.lock = threading.Lock()
 
-    def checkLost(self,
-                  observed_time,
-                  threshold_lost):
-        
-        with self.lock:
-        
-            if (observed_time - self.last_observed).to_sec() > threshold_lost:
-                self.state = self.LOST
-                return True
-            else:
-                return False
-
     def update(self,
                observed_position,
                observed_time,
@@ -110,14 +98,13 @@ class Demo(object):
 
         # parameters for multi object trackers
         ## maximum number of tracking objects
-        self._num_max_track = rospy.get_param('~num_max_track', 10)
         ## threshold for MOT state update
         self._thresholds_distance = rospy.get_param('~thresholds_distance', {})
         self._threshold_angle = rospy.get_param('~threshold_angle', 0.8)
         self._threshold_lost = rospy.get_param('~threshold_lost_duration', 1.0)
         self._threshold_move = rospy.get_param('~threshold_move_velocity', 1.0)
         ##
-        self._threshold_tracking_switching_distance = rospy.get_param('~threshold_tracking_switching_distance',0.5)
+
         ##
         self._threshold_target_close_distance = rospy.get_param('~threshold_target_close_distance', 0.5)
         ##
@@ -134,8 +121,8 @@ class Demo(object):
         self._rate_control = rospy.get_param('~rate_control', 10.0)
 
         # members
-        self._lock_for_dict_objects = threading.RLock()
-        self._dict_objects = {}
+        self._lock_for_target_object = threading.RLock()
+        self._target_object = None
 
         # sound client
         self._sound_client = SoundClient(sound_action='robotsound', sound_topic='robotsound')
@@ -158,39 +145,20 @@ class Demo(object):
         self._pub_twist_command = rospy.Publisher('~twist_command',TwistStamped,queue_size=1)
 
         # Subscriber
-        rate = rospy.Rate(1)
-        while not rospy.is_shutdown():
-            try:
-                rospy.wait_for_message('~input_bbox_array', BoundingBoxArray, 3)
-                rospy.wait_for_message('~input_tracking_labels', LabelArray, 3)
-                break
-            except (rospy.ROSException, rospy.ROSInterruptException) as e:
-                rospy.logwarn(
-                    'subscribing topic seems not to be pulished. waiting... Error: {}'.format(e))
-            rate.sleep()
-        mf_sub_bbbox_array = message_filters.Subscriber('~input_bbox_array', BoundingBoxArray)
-        mf_sub_tracking_labels = message_filters.Subscriber('~input_tracking_labels', LabelArray)
-        ts = message_filters.TimeSynchronizer([mf_sub_bbbox_array, mf_sub_tracking_labels], 10)
-        ts.registerCallback(self._cb_object)
+        self.sub_image = rospy.Subscriber(rospy.resolve_name('~input_bbox_array'),
+                                          BoundingBoxArray, self._cb_object, queue_size=1)
 
         # service server
         self._flag_server = False
-        self._lock_for_flag_server = threading.Lock()
         self._server_trigger = rospy.Service('~follow_person',Trigger,self._handler)
 
-        rospy.loginfo('Node is successfully initialized')
+    def _cb_object(self, msg):
 
-    def _cb_object(self,
-                   msg_bbox_array,
-                   msg_tracking_labels):
-
-        rospy.loginfo('callback called')
-
-        if msg_bbox_array.header.frame_id != self._frame_fixed:
-            rospy.logerr('frame_id of bbox (which is {}) array must be the same `~frame_fixed` which is {}'.format(msg_bbox_array.header.frame_id,self._frame_fixed))
+        if msg.header.frame_id != self._frame_fixed:
+            rospy.logerr('frame_id of bbox (which is {}) array must be the same `~frame_fixed` which is {}'.format(msg.header.frame_id,self._frame_fixed))
             return
 
-        time_observed = msg_tracking_labels.header.stamp
+        time_observed = msg.header.stamp
 
         try:
             pykdl_transform_fixed_to_robot = tf2_geometry_msgs.transform_to_kdl(
@@ -205,86 +173,42 @@ class Demo(object):
             rospy.logerr('lookup transform failed. {}'.format(e))
             return
 
-        with self._lock_for_dict_objects:
+        with self._lock_for_target_object:
             # add new object and update existing object state
-            for bbox, tracking_label in zip(msg_bbox_array.boxes, msg_tracking_labels.labels):
+            bbox = msg.boxes[0]
 
-                if tracking_label.id not in self._dict_objects:
-                    if len(self._dict_objects) < self._num_max_track:
-                        self._dict_objects[tracking_label.id] = \
-                            TrackedObject(
-                                bbox.label,
-                                convert_msg_point_to_kdl_vector(bbox.pose.position),
-                                time_observed
-                            )
-                    else:
-                        rospy.logwarn('number of objects exceeds max track. dropped.')
-                else:
-                    self._dict_objects[tracking_label.id].update(
-                                convert_msg_point_to_kdl_vector(bbox.pose.position),
-                                time_observed,
-                                pykdl_transform_fixed_to_robot.p,
-                                self._threshold_move,
-                                self._threshold_angle,
-                                self._thresholds_distance[str(bbox.label)]
-                    )
-            # check if there is lost object
-            to_be_removed = []
-            for key in self._dict_objects:
-                is_lost = self._dict_objects[key].checkLost(
-                                time_observed,
-                                self._threshold_lost
-                                )
-                if is_lost:
-                    to_be_removed.append(key)
-            # remove lost object from dict
-            for key in to_be_removed:
-                self._dict_objects.pop(key)
+            if self._target_object is None:
+                self._target_object = TrackedObject(bbox.label,
+                                                    convert_msg_point_to_kdl_vector(bbox.pose.position),
+                                                    time_observed)
+
+            else:
+                self._target_object.update(
+                    convert_msg_point_to_kdl_vector(bbox.pose.position),
+                    time_observed,
+                    pykdl_transform_fixed_to_robot.p,
+                    self._threshold_move,
+                    self._threshold_angle,
+                    self._thresholds_distance[str(bbox.label)]
+                )
 
     def _handler(self,req):
 
-        with self._lock_for_flag_server:
-            self._flag_server = not self._flag_server
+        self._flag_server = not self._flag_server
+        if self._flag_server:
+            rospy.logwarn("start follow")
+        else:
+            rospy.logwarn("stop follow")
         return TriggerResponse(True,'Succeeded')
 
-    def getNearestTargetID(self):
-    
-        distance = 3.0 # 3.0m以内
-        target_id = None
 
-        try:
-            pykdl_transform_fixed_to_robot = tf2_geometry_msgs.transform_to_kdl(
-                self._tf_buffer.lookup_transform(
-                    self._frame_fixed,
-                    self._frame_robot,
-                    rospy.Time(),
-                    timeout=rospy.Duration(self._duration_timeout)
-                )
-            )
-        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
-            rospy.logwarn('{}'.format(e))
-            return None
-
-        with self._lock_for_dict_objects:
-            for key in self._dict_objects:
-                position_robotbased = pykdl_transform_fixed_to_robot.Inverse() * self._dict_objects[key].position
-                if distance == None and target_id == None:
-                    target_id = key
-                    distance = position_robotbased.Norm()
-                else:
-                    if position_robotbased.Norm() < distance:
-                        target_id = key
-                        distance = position_robotbased.Norm()
-        return target_id
-
-    def followTarget(self,
-                     target_id):
+    def followTarget(self):
 
         rate = rospy.Rate(self._rate_control)
         time_pre = rospy.Time.now()
 
-        rospy.loginfo('Began to follow a target with {}.'.format(target_id))
-        self._sound_client.say('I have begun to follow a target with {}.'.format(target_id))
+        rospy.loginfo('Began to follow a target.')
+        self._sound_client.say('I have begun to follow a target.')
 
         last_target_position_fixedbased = None
 
@@ -294,7 +218,7 @@ class Demo(object):
 
             time_current = rospy.Time.now()
 
-            # get cuurent robot position
+            # get current robot position
             try:
                 pykdl_transform_fixed_to_robot = tf2_geometry_msgs.transform_to_kdl(
                     self._tf_buffer.lookup_transform(
@@ -308,7 +232,6 @@ class Demo(object):
                 rospy.logwarn('{}'.format(e))
                 continue
 
-            #
             if not self._flag_server:
                 rospy.logerr('Stop following....')
                 self._sound_client.say('Stop following....')
@@ -316,27 +239,9 @@ class Demo(object):
                 self._pub_cmd_vel.publish(Twist())
                 return False
 
-            with self._lock_for_dict_objects:
-                if target_id not in self._dict_objects:
-                    flag_recovery = False
-                    if last_target_position_fixedbased is not None:
-                        for key in self._dict_objects:
-                            if (last_target_position_fixedbased - self._dict_objects[key].position).Norm() < self._threshold_tracking_switching_distance:
-                                rospy.loginfo('tracking id switched from {} to {}'.format(target_id,key))
-                                self._sound_client.say('tracking id switched from {} to {}'.format(target_id,key))
-                                target_id = key
-                                flag_recovery = True
-                                break
-
-                    if not flag_recovery:
-                        rospy.logerr('track id {} is lost..'.format(target_id))
-                        self._sound_client.say('I have lost the target with id {}'.format(target_id))
-                        self._action_client_go_pos.cancel_all_goals()
-                        self._pub_cmd_vel.publish(Twist())
-                        return False
-
-                last_target_position_fixedbased = self._dict_objects[target_id].position
-                predicted_target_object_position_fixedbased = self._dict_objects[target_id].position + (time_current - time_pre).to_sec() * self._dict_objects[target_id].velocity
+            with self._lock_for_target_object:
+                last_target_position_fixedbased = self._target_object.position
+                predicted_target_object_position_fixedbased = self._target_object.position + (time_current - time_pre).to_sec() * self._target_object.velocity # Comment: do we need to do prediction?
 
             #
             time_pre = time_current
@@ -433,16 +338,12 @@ def main():
     while not rospy.is_shutdown():
 
         rospy.sleep(1)
-        with demo._lock_for_flag_server:
-            if not demo._flag_server:
-                continue
-        target_id = demo.getNearestTargetID()
-        if target_id is not None:
-            demo.followTarget(target_id)
-        else:
-            rospy.logwarn('None target')
-        with demo._lock_for_flag_server:
-            demo._flag_server = False
+
+        if not demo._flag_server or demo._target_object is None:
+            continue
+        demo.followTarget()
+
+        demo._flag_server = False
 
 
 if __name__ == '__main__':

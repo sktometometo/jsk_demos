@@ -1,50 +1,102 @@
 <launch>
-    <node
-        pkg="spot_person_follower"
-        type="main.py"
-        name="spot_person_follower"
+  <arg name="INPUT_PANORAMA_IMAGE" default="/dual_fisheye_to_panorama/output/quater" />
+  <arg name="INPUT_PANORAMA_INFO" default="/dual_fisheye_to_panorama/panorama_info" />
+  <arg name="INIT_TRACKING_RECT" default="/trtr/init_rect" />
+  <arg name="INPUT_DECTECT_RECT" default="/spot_recognition/rects" />
+  <arg name="OUTPUT_TRACKING_RECT" default="/trtr/output_rect" />
+  <arg name="TRACKING_BBOX" default="/spot_recognition/track_bbox" />
+  <arg name="TOPIC_OBJ_CLASS" default="/spot_recognition/track_class" />
+  <arg name="DEVICE" default="1" /> <!-- tracking device: CPU:0; GPU:1 -->
+  <arg name="JOY_TOPIC" default="/joy_dualshock3" />
+
+  <!-- select good person (closest person) for visual tracking -->
+  <node pkg="spot_person_follower"
+        type="person_select.py"
+        name="person_select"
         output="screen"
         >
-        <rosparam>
-            frame_fixed: odom
-            frame_robot: body
-            duration_timeout: 0.05
-            num_max_track: 20
-            thresholds_distance:
-                '0': 5.0 # person 
-            threshold_angle: 0.8
-            threshold_lost_duration: 5.0
-            threshold_move_velocity: 1.0
-            threshold_tracking_switching_distance: 1.0
-            threshold_target_close_distance: 0.5
-            destination_offset_from_target_x: -0.5
-            destination_offset_from_target_y: 0
-            destination_offset_from_target_theta: 0
-            publish_bbox_array: True
-            use_trajectory: True
-            rate_control: 1
-        </rosparam>
+    <remap from="~input" to="$(arg INPUT_DECTECT_RECT)" />
+    <remap from="~select_person" to="/spot_person_follower/visual_track" />
+    <remap from="~panorama_image" to="$(arg INPUT_PANORAMA_IMAGE)" />
+    <remap from="~output_rect" to="$(arg INIT_TRACKING_RECT)" />
+  </node>
 
-        <remap from="~go_pos" to="/spot/trajectory" />
-        <remap from="~cmd_vel" to="/develop_input/cmd_vel" />
-        <remap from="~input_bbox_array" to="/spot_recognition/bbox_array" />
-        <remap from="~input_tracking_labels" to="/spot_recognition/tracking_labels" />
+  <!-- TRTR: visual tracking with Tansformer -->
+  <include file="$(find jsk_perception)/launch/trtr_tracker.launch">
+    <arg name="input_image_topic" value="$(arg INPUT_PANORAMA_IMAGE)" />
+    <arg name="input_rect_topic" value="$(arg INIT_TRACKING_RECT)" />
+    <arg name="output_rect_topic" default="$(arg OUTPUT_TRACKING_RECT)" />
+    <arg name="device" value="$(arg DEVICE)"/>
+  </include>
+  <param name="/trtr_tracker/size_lpf_factor" value="0" /> <!-- no lpf for tracking size -->
 
-    </node>
+  <!-- publish a classification result necessary for rect_array_in_panorama_to_bounding_box_array -->
+  <node name="generate_class_label"
+        pkg="topic_tools" type="transform"
+        args="$(arg INPUT_PANORAMA_INFO) $(arg TOPIC_OBJ_CLASS) jsk_recognition_msgs/ClassificationResult 'jsk_recognition_msgs.msg.ClassificationResult(header=m.header, labels=[0], label_names=[&quot;person&quot;])' --import jsk_recognition_msgs">
+  </node>
 
-    <node
-        pkg="spot_person_follower"
-        type="follow_on_button.py"
-        name="follow_on_button"
-        output="screen"
-        >
-        <rosparam>
-            duration_timeout: 10.0
-            follow_button: 6 # L2
-            duration_impersity: 1.0
-        </rosparam>
+  <!-- 2D rect to 3D bounding box -->
+  <node
+      pkg="jsk_perception"
+      type="rect_array_in_panorama_to_bounding_box_array.py"
+      name="tracker_rect_to_bounding_box"
+      output="screen"
+      >
+    <remap from="~panorama_image" to="$(arg INPUT_PANORAMA_IMAGE)" />
+    <remap from="~panorama_info" to="$(arg INPUT_PANORAMA_INFO)" />
+    <remap from="~input_class" to="$(arg TOPIC_OBJ_CLASS)" />
+    <remap from="~input_rects" to="$(arg OUTPUT_TRACKING_RECT)" />
+    <remap from="~bbox_array" to="$(arg TRACKING_BBOX)" />
+    <rosparam subst_value="true">
+        frame_fixed: "odom"
+        dimensions_labels:
+            person: [0.5, 0.5, 1.5]
+    </rosparam>
+  </node>
 
-        <remap from="~follow" to="/spot_person_follower/follow_person" />
-        <remap from="~joy" to="/spot_teleop/joy" />
-    </node>
+  <!-- follow motion -->
+  <node
+      pkg="spot_person_follower"
+      type="main.py"
+      name="spot_person_follower"
+      output="screen"
+      >
+    <rosparam>
+      frame_fixed: odom
+      frame_robot: body
+      duration_timeout: 0.05
+      thresholds_distance: {'0': 5.0} # person
+      threshold_angle: 0.8
+      threshold_lost_duration: 5.0
+      threshold_move_velocity: 1.0
+      threshold_target_close_distance: 1.0
+      destination_offset_from_target_x: -1.0 # 1.5 is OK, too far?
+      destination_offset_from_target_y: 0
+      destination_offset_from_target_theta: 0
+      use_trajectory: True
+      rate_control: 1
+    </rosparam>
+    <remap from="~go_pos" to="/spot/trajectory" />
+    <remap from="~cmd_vel" to="/develop_input/cmd_vel" />
+    <remap from="~input_bbox_array" to="$(arg TRACKING_BBOX)" />
+  </node>
+
+  <!-- follow trigger from joystick -->
+  <node
+      pkg="spot_person_follower"
+      type="follow_on_button.py"
+      name="follow_on_button"
+      output="screen"
+      >
+    <rosparam>
+      duration_timeout: 10.0
+      follow_button: 6 # L2
+      duration_impersity: 1.0
+    </rosparam>
+
+    <remap from="~follow" to="/spot_person_follower/follow_person" />
+    <remap from="~visual_track" to="/spot_person_follower/visual_track" />
+    <remap from="~joy" to="$(arg JOY_TOPIC)" /> 
+  </node>
 </launch>

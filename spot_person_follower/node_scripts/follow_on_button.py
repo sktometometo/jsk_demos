@@ -23,12 +23,17 @@ class Node(object):
         except Exception as e:
             rospy.logwarn('{}'.format(e))
             sys.exit(1)
-        self._service_proxy = rospy.ServiceProxy('~follow',Trigger)
+        self._follow_service_proxy = rospy.ServiceProxy('~follow',Trigger)
+
+        try:
+            rospy.wait_for_service('~visual_track', timeout=rospy.Duration(self._duration_timeout))
+        except Exception as e:
+            rospy.logwarn('{}'.format(e))
+            sys.exit(1)
+        self._track_service_proxy = rospy.ServiceProxy('~visual_track',Trigger)
 
         #
         self._sub_joy = rospy.Subscriber('~joy', Joy, self._callback)
-
-        rospy.loginfo('now inialized')
 
     def _callback(self,msg):
 
@@ -44,11 +49,13 @@ class Node(object):
                 # become not pressed
                 self._is_pressed = False
                 rospy.loginfo('button releaseed')
+                self.callService()
         else:
             rospy.logwarn('button id is out of range')
 
     def callService(self):
-        self._service_proxy()
+        self._follow_service_proxy()
+        self._track_service_proxy()
 
 if __name__ == '__main__':
     rospy.init_node('follow_on_button')
