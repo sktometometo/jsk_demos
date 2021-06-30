@@ -3,8 +3,11 @@ import roslaunch
 
 
 def load_behavior_class(class_string):
-    # TODO
-    return SimpleBehavior
+    package_name = class_string.split('.')[0]
+    module_name = class_string.split('.')[1]
+    class_name = class_string.split('.')[2]
+    behavior_class = getattr(getattr(__import__(package_name),module_name),class_name)
+    return behavior_class
 
 
 class BaseBehavior(object):

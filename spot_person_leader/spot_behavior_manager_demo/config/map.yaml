@@ -1,7 +1,7 @@
 edges:
   - from: '73B2'
     to: '73B1'
-    behavior_type: 'simple'
+    behavior_type: 'spot_behavior_manager.base_behavior.SimpleBehavior'
     cost: 10
     args:
       graph: '$(find spot_person_leader)/autowalk/eng2_7FElevator_to_2FElevator.walk'
