@@ -11,8 +11,8 @@ from spot_behavior_manager.support_behavior_graph import SupportBehaviorGraph
 from spot_behavior_manager.base_behavior import BaseBehavior, load_behavior_class
 
 from std_msgs.msg import String
-from spot_person_leader.msg import LeadPersonAction, LeadPersonFeedback, LeadPersonResult
-from spot_person_leader.srv import ResetCurrentNode, ResetCurrentNodeResponse
+from spot_behavior_manager_msgs.msg import LeadPersonAction, LeadPersonFeedback, LeadPersonResult
+from spot_behavior_manager_msgs.srv import ResetCurrentNode, ResetCurrentNodeResponse
 
 
 class BehaviorManagerNode(object):
@@ -80,9 +80,9 @@ class BehaviorManagerNode(object):
         rospy.loginfo('Lead Action started. goal: {}'.format(goal))
 
         # path calculation
-        path = self.map.calcPath( self.current_node_id, goal.target_node )
+        path = self.map.calcPath( self.current_node_id, goal.target_node_id )
         if path is None:
-            rospy.logerr('No path from {} to {}'.format(self.current_node_id,goal.target_node))
+            rospy.logerr('No path from {} to {}'.format(self.current_node_id,goal.target_node_id))
             self.sound_client.say('パスが見つかりませんでした')
             result = LeadPersonResult(success=False)
             self.server_lead_person.set_aborted(result)

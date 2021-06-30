@@ -17,6 +17,7 @@
   <exec_depend>rospy</exec_depend>
   <exec_depend>roslaunch</exec_depend>
   <exec_depend>sound_play</exec_depend>
+  <exec_depend>spot_behavior_manager_msgs</exec_depend>
   <exec_depend>spot_ros_client</exec_depend>
   <exec_depend>std_msgs</exec_depend>
 
