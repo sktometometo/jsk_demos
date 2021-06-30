@@ -1,6 +1,5 @@
 import rospy
 import roslaunch
-import rospkg
 
 
 
