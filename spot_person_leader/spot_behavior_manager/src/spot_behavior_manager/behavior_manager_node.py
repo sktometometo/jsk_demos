@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+
+import actionlib
 import rospy
 import roslaunch
 
@@ -64,7 +67,7 @@ class BehaviorManagerNode(object):
             self.pub_current_node_id.publish(String(data=self.current_node_id))
 
 
-    def handler_reset_current_node(self, req):
+    def handler_reset_current_node_id(self, req):
 
         rospy.loginfo('current_node_id is reset to {}'.format(req.current_node_id))
         self.current_node_id = req.current_node_id
@@ -77,7 +80,7 @@ class BehaviorManagerNode(object):
         rospy.loginfo('Lead Action started. goal: {}'.format(goal))
 
         # path calculation
-        path = self.map.calcPath( self.current_node_id, goal.target_node_id )
+        path = self.graph.calcPath( self.current_node_id, goal.target_node_id )
         if path is None:
             rospy.logerr('No path from {} to {}'.format(self.current_node_id,goal.target_node_id))
             self.sound_client.say('パスが見つかりませんでした')
@@ -128,19 +131,24 @@ class BehaviorManagerNode(object):
         # load behavior class
         try:
             behavior_class = load_behavior_class(edge.behavior_type)
-        except Exception as e:
-            rospy.logerr('Failed to load behavior class: {}'.format(e))
-            self.sound_client('行動クラスを読み込めませんでした')
-            return False
-
-        behavior = behavior_class(
+            behavior = behavior_class(
                         self.spot_client,
                         self.sound_client
                         )
+        except Exception as e:
+            rospy.logerr('Failed to load and initialize behavior class: {}'.format(e))
+            self.sound_client('行動クラスを読み込めませんでした')
+            return False
 
         node_from = self.graph.nodes[edge.node_id_from]
         node_to = self.graph.nodes[edge.node_id_to]
 
-        success = behavior.run(node_from,node_to,edge,self.pre_edge)
+        try:
+            behavior.run_initial( node_from, node_to, edge, self.pre_edge )
+            success = behavior.run_main( node_from, node_to, edge, self.pre_edge )
+            behavior.run_final( node_from, node_to, edge, self.pre_edge )
+        except Exception as e:
+            rospy.logerr('{}'.format(e))
+            return False
 
         return success

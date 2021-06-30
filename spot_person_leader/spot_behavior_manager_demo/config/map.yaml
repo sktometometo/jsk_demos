@@ -1,0 +1,20 @@
+edges:
+  - from: '73B2'
+    to: '73B1'
+    behavior_type: 'simple'
+    cost: 10
+    args:
+      graph: '$(find spot_person_leader)/autowalk/eng2_7FElevator_to_2FElevator.walk'
+  - from: '73B1'
+    to: '73B2'
+    behavior_type: 'simple'
+    cost: 10
+    args:
+      graph: '$(find spot_person_leader)/autowalk/eng2_7FElevator_to_2FElevator.walk'
+nodes:
+  '73B2':
+    name_en: '73B2'
+    name_jp: '73B2'
+  '73B1':
+    name_en: '73B1'
+    name_jp: '73B1'

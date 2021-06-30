@@ -33,14 +33,14 @@ class SupportBehaviorGraph:
         self.network = nx.DiGraph()
 
         edges = []
-        for key, raw_edge in raw_edges:
+        for raw_edge in raw_edges:
             edges.append( GraphEdge( raw_edge['from'],
                                      raw_edge['to'],
                                      raw_edge['behavior_type'],
                                      int(raw_edge['cost']),
                                      raw_edge['args'] ))
         nodes = {}
-        for key, raw_node in raw_nodes:
+        for key, raw_node in raw_nodes.items():
             nodes[key] = GraphNode( key, raw_node )
 
         for key, node in nodes.items():
@@ -59,6 +59,6 @@ class SupportBehaviorGraph:
         except nx.NetworkXNoPath as e:
             return None
         path = []
-        for index in range(len(node_list)-1):
+        for index in range(len(node_id_list)-1):
             path.append(self.edges[node_id_list[index],node_id_list[index+1]])
         return path
