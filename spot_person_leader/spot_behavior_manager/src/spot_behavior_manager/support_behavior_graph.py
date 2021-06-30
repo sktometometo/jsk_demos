@@ -26,29 +26,39 @@ class GraphNode:
 
 class SupportBehaviorGraph:
 
-    def __init__(self, edges={}, nodes={}):
+    def __init__(self, raw_edges=[], raw_nodes={}):
 
-        self._edges = {}
-        self._nodes = {}
-        self._network = nx.DiGraph()
+        self.edges = {}
+        self.nodes = {}
+        self.network = nx.DiGraph()
 
-        self.loadGraph( edges, nodes )
-
-    def loadGraph(self, edges, nodes):
-        """
-        """
+        edges = []
+        for key, raw_edge in raw_edges:
+            edges.append( GraphEdge( raw_edge['from'],
+                                     raw_edge['to'],
+                                     raw_edge['behavior_type'],
+                                     int(raw_edge['cost']),
+                                     raw_edge['args'] ))
+        nodes = {}
+        for key, raw_node in raw_nodes:
+            nodes[key] = GraphNode( key, raw_node )
 
         for key, node in nodes.items():
-            self._nodes[key] = node
-
+            self.nodes[key] = node
         for edge in edges:
-            self._edges[edge['from'],edge['to']] = edge
-            self._network.add_edge(edge['from'],edge['to'],weight=edge['cost'])
+            self.edges[edge.node_id_from,edge.node_id_to] = edge
+            self.network.add_edge(
+                                edge.node_id_from,
+                                edge.node_id_to,
+                                weight=edge.cost)
 
-    def calcPath(self, node_from, node_to):
+    def calcPath(self, node_id_from, node_id_to):
 
-        node_list = nx.shortest_path( self._network, node_from, node_to )
+        try:
+            node_id_list = nx.shortest_path( self.network, node_id_from, node_id_to )
+        except nx.NetworkXNoPath as e:
+            return None
         path = []
         for index in range(len(node_list)-1):
-            path.append(self._edges[node_list[index],node_list[index+1]])
+            path.append(self.edges[node_id_list[index],node_id_list[index+1]])
         return path

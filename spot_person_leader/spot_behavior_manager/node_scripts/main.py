@@ -2,85 +2,148 @@
 # -*- coding: utf-8 -*-
 
 import rospy
+import roslaunch
+
+from sound_play.libsoundplay import SoundClient
+from spot_ros_client.libspotros import SpotRosClient
 
 from spot_behavior_manager.support_behavior_graph import SupportBehaviorGraph
+from spot_behavior_manager.base_behavior import BaseBehavior, load_behavior_class
 
-class Demo(object):
+from std_msgs.msg import String
+from spot_person_leader.msg import LeadPersonAction, LeadPersonFeedback, LeadPersonResult
+from spot_person_leader.srv import ResetCurrentNode, ResetCurrentNodeResponse
+
+
+class BehaviorManagerNode(object):
 
     def __init__(self):
 
         # navigation dictonary
-        edges = rospy.get_param('~map/edges')
-        nodes = rospy.get_param('~map/nodes')
-        self._map = SupportBehaviorGraph(edges,nodes)
-        self._current_node = rospy.get_param('~initial_node')
-        self._pre_edge = None
+        raw_edges = rospy.get_param('~map/edges')
+        raw_nodes = rospy.get_param('~map/nodes')
+        self.graph = SupportBehaviorGraph(raw_edges,raw_nodes)
+        self.current_node_id = rospy.get_param('~initial_node_id')
+        self.pre_edge = None
 
-        # parameter
-        self._duration_visible_timeout = rospy.get_param('~duration_visible_timeout', 10.0)
-
-        #
-        self._spot_client = SpotRosClient();
-        self._sound_client = SoundClient(
+        # action clients
+        self.spot_client = SpotRosClient();
+        self.sound_client = SoundClient(
                                     blocking=False,
                                     sound_action='/robotsound_jp',
                                     sound_topic='/robotsound_jp'
                                     )
 
         # publisher
-        self._pub_current_node = rospy.Publisher('~/current_node',String,queue_size=1)
+        self.pub_current_node_id = rospy.Publisher('~current_node_id',String,queue_size=1)
 
         # reset service
-        self._service_reset = rospy.Service(
-                                    '~reset_current_node',
+        self.service_reset_current_node_id = rospy.Service(
+                                    '~reset_current_node_id',
                                     ResetCurrentNode,
-                                    self.handler_reset_current_node
+                                    self.handler_reset_current_node_id
                                     )
 
         #
         roslaunch.pmon._init_signal_handlers()
 
         # action server
-        self._server_lead_person = actionlib.SimpleActionServer(
+        self.server_lead_person = actionlib.SimpleActionServer(
                                         '~lead_person',
                                         LeadPersonAction,
                                         execute_cb=self.handler_lead_person,
                                         auto_start=False
                                         )
-        self._server_lead_person.start()
+        self.server_lead_person.start()
 
         rospy.loginfo('Initialized!')
 
 
+    def run(self):
+
+        rate = rospy.Rate(1)
+        while not rospy.is_shutdown():
+            rate.sleep()
+            self.pub_current_node_id.publish(String(data=self.current_node_id))
+
+
     def handler_reset_current_node(self, req):
 
-        rospy.loginfo('Lead Action started.')
+        rospy.loginfo('current_node_id is reset to {}'.format(req.current_node_id))
+        self.current_node_id = req.current_node_id
+        self.pre_edge = None
+        return ResetCurrentNodeResponse(success=True)
 
-        path = self._map.calcPath( self._current_node, goal.target_node )
 
-        self._sound_client.say('目的地に向かいます')
+    def handler_lead_person(self, goal):
 
+        rospy.loginfo('Lead Action started. goal: {}'.format(goal))
+
+        # path calculation
+        path = self.map.calcPath( self.current_node_id, goal.target_node )
+        if path is None:
+            rospy.logerr('No path from {} to {}'.format(self.current_node_id,goal.target_node))
+            self.sound_client.say('パスが見つかりませんでした')
+            result = LeadPersonResult(success=False)
+            self.server_lead_person.set_aborted(result)
+            return
+
+        # navigation of edges in the path
+        self.sound_client.say('目的地に向かいます')
         for edge in path:
+            rospy.loginfo('Navigating Edge {}...'.format(edge))
             try:
                 if self.navigate_edge(edge):
-                    rospy.loginfo('transition with edge {} succeeded'.format(edge))
-                    self._current_node = edge['to']
-                    self._pre_edge = edge
+                    rospy.loginfo('Edge {} succeeded.'.format(edge))
+                    self.current_node_id = edge.node_id_to
+                    self.pre_edge = edge
                 else:
-                    rospy.logerr('transition with edge {} failed'.format(edge))
+                    rospy.logerr('Edge {} failed'.format(edge))
+                    self.sound_client.say('目的地に到達できませんでした')
                     result = LeadPersonResult(success=False)
-                    self._sound_client.say('目的地に到達できませんでした'.format(goal.target_node),
-                               volume=1.0)
-                    self._server_lead_person.set_aborted(result)
+                    self.server_lead_person.set_aborted(result)
                     return
             except Exception as e:
-                rospy.logerr('Got an error with edge {}: {}'.format(edge, e))
-                self._sound_client.say('エラーが発生しました'.format(goal.target_node),
-                               volume=1.0)
+                rospy.logerr('Got an error while navigating edge {}: {}'.format(edge, e))
+                self.sound_client.say('エラーが発生しました')
+                result = LeadPersonResult(success=False)
+                self.server_lead_person.set_aborted(result)
                 return
 
-        self._sound_client.say('目的地に到着しました.'.format(goal.target_node),
-                               volume=1.0)
+        self.sound_client.say('目的地に到着しました.')
 
         result = LeadPersonResult(success=True)
-        self._server_lead_person.set_succeeded(result)
+        self.server_lead_person.set_succeeded(result)
+        return
+
+
+    def navigate_edge(self, edge):
+
+        # start node id validation
+        if self.current_node_id != edge.node_id_from:
+            rospy.logwarn(
+                    'current_node_id {} does not match node_id_from of edge ({})'.format(
+                        self.current_node_id,
+                        edge.node_id_from)
+                    )
+            return False
+
+        # load behavior class
+        try:
+            behavior_class = load_behavior_class(edge.behavior_type)
+        except Exception as e:
+            rospy.logerr('Failed to load behavior class: {}'.format(e))
+            self.sound_client('行動クラスを読み込めませんでした')
+            return False
+
+        behavior = behavior_class(
+                        self.spot_client,
+                        self.sound_client
+                        )
+
+        node_from = self.graph.nodes[edge.node_id_from]
+        node_to = self.graph.nodes[edge.node_id_to]
+
+        success = behavior.run(node_from,node_to,edge,self.pre_edge)
+
+        return success

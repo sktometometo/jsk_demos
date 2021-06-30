@@ -2,14 +2,16 @@ import rospy
 import roslaunch
 
 
+def load_behavior_class(class_string):
+    # TODO
+    return SimpleBehavior
 
 class BaseBehavior(object):
 
-    def __init__(self, spot_client, sound_client, name ):
+    def __init__(self, spot_client, sound_client):
 
         self.spot_client = spot_client
         self.sound_client = sound_client
-        self.name = name
 
     def __run_initial(self, start_node, end_node, edge, preedge ):
 
@@ -34,3 +36,18 @@ class BaseBehavior(object):
         except Exception as e:
             rospy.logerr('{}'.format(e))
             return False
+
+class SimpleBehavior(BaseBehavior):
+
+    def __run_initial(self, start_node, end_node, edge, preedge ):
+
+        rospy.loginfo('__run_initial() called')
+
+    def __run_main(self, start_node, end_node, edge, preedge ):
+
+        rospy.loginfo('__run_main() called')
+        return True
+
+    def __run_finalize(self, start_node, end_node, edge, preedge ):
+
+        rospy.loginfo('__run_finalize() called')
