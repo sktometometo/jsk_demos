@@ -59,8 +59,8 @@ edges:
     cost: 10
     args:
       graph: '$(find spot_autowalk_data)/autowalk/eng2_2FElevator_to_eng8_2FElevator.walk'
-  - from: 'eng8_Piloti_Center'
-    to: 'eng2_2FElevator'
+  - from: 'eng_TelephoneBox'
+    to: 'eng8_Piloti_Center'
     behavior_type: 'spot_basic_behaviors.walk_behavior.WalkBehavior'
     cost: 10
     args:

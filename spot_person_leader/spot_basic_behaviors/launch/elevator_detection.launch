@@ -194,7 +194,7 @@
             initial_pos: [1.5, 0, 0]
             initial_rot: [0, 0, 0]
             dimension_x: 1.0
-            dimension_y: 1.0
+            dimension_y: 0.5
             dimension_z: 0.5
             frame_id: body
         </rosparam>
