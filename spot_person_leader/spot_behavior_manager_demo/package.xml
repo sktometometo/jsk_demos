@@ -12,6 +12,8 @@
 
   <exec_depend>rospy</exec_depend>
   <exec_depend>spot_behavior_manager</exec_depend>
+  <exec_depend>spot_basic_behavior</exec_depend>
+  <exec_depend>spot_autowalk_data</exec_depend>
 
   <export>
   </export>

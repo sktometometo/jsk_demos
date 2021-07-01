@@ -13,7 +13,7 @@
             />
 
         <rosparam subst_value="true">
-            initial_node_id: '73B2'
+            initial_node_id: 'eng2_73B2'
         </rosparam>
     </node>
 </launch>
