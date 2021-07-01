@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from spot_behavior_manager.base_behavior import BaseBehavior
 
 import actionlib
@@ -28,7 +30,7 @@ class ElevatorBehavior(BaseBehavior):
         roslaunch_file = roslaunch.rlutil.resolve_launch_arguments(roslaunch_cli_args)
         self.roslaunch_parent = roslaunch.parent.ROSLaunchParent(
                                         uuid,
-                                        detection_roslaunch_file
+                                        roslaunch_file
                                         )
         self.roslaunch_parent.start()
 
@@ -93,8 +95,9 @@ class ElevatorBehavior(BaseBehavior):
                                     self.door_point_cloud_callback)
 
         # push button with switchbot
+        rospy.loginfo('calling elevator when riding...')
         if not self.action_client_switchbot.wait_for_server(rospy.Duration(10)):
-            rospy.logerr('switchbot client failed.')
+            rospy.logerr('switchbot server seems to fail.')
             return False
         else:
             switchbot_goal = SwitchBotCommandGoal()
@@ -107,7 +110,7 @@ class ElevatorBehavior(BaseBehavior):
             if not result.done:
                 rospy.logerr('switchbot calling failed.')
                 return False
-        rospy.loginfo('switchbot has succeeded')
+        rospy.loginfo('elevator calling when riding on has succeeded')
 
         # wait for elevator
         rate = rospy.Rate(2)
@@ -130,6 +133,24 @@ class ElevatorBehavior(BaseBehavior):
             self.spot_client.wait_for_navigate_to_result()
             return result.success
 
+        # call elevator from destination floor
+        rospy.loginfo('calling elevator when getting off...')
+        if not self.action_client_switchbot.wait_for_server(rospy.Duration(2)):
+            rospy.logerr('switchbot server seems to fail.')
+            return False
+        else:
+            switchbot_goal = SwitchBotCommandGoal()
+            switchbot_goal.device_name = end_node.properties['switchbot_device']
+            switchbot_goal.command = 'press'
+            self.action_client_switchbot.send_goal(switchbot_goal)
+            self.action_client_switchbot.wait_for_result()
+            result = self.action_client_switchbot.get_result()
+            rospy.loginfo('switchbot result: {}'.format(result))
+            if not result.done:
+                rospy.logerr('switchbot calling failed.')
+                return False
+        rospy.loginfo('elevator calling when getting off has succeeded')
+
         # start door openning check from inside
         self.subscriber_door_check = rospy.Subscriber(
                                         '/spot_recognition/elevator_door_inside_points',
@@ -143,23 +164,6 @@ class ElevatorBehavior(BaseBehavior):
             if not self.door_is_open:
                 break
         rospy.loginfo('elevator door closed')
-
-        # call elevator from destination floor
-        if not self.action_client_switchbot.wait_for_server(rospy.Duration(10)):
-            rospy.logerr('switchbot client failed.')
-            return False
-        else:
-            switchbot_goal = SwitchBotCommandGoal()
-            switchbot_goal.device_name = end_node.properties['switchbot_device']
-            switchbot_goal.command = 'press'
-            self.action_client_switchbot.send_goal(switchbot_goal)
-            self.action_client_switchbot.wait_for_result()
-            result = self.action_client_switchbot.get_result()
-            rospy.loginfo('switchbot result: {}'.format(result))
-            if not result.done:
-                rospy.logerr('switchbot calling failed.')
-                return False
-        rospy.loginfo('switchbot has succeeded')
 
         # check if the door is open
         rate = rospy.Rate(2)

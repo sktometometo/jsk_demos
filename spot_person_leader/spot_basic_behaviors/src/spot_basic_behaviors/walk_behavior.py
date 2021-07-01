@@ -1,4 +1,8 @@
+# -*- coding: utf-8 -*-
+
 from spot_behavior_manager.base_behavior import BaseBehavior
+
+import rospy
 
 class WalkBehavior(BaseBehavior):
 
@@ -26,7 +30,7 @@ class WalkBehavior(BaseBehavior):
 
         # graph uploading and localization
         if pre_edge is not None and \
-            graph_name == pre_edge['args']['graph']:
+            graph_name == pre_edge.properties['graph']:
             rospy.loginfo('graph upload and localization skipped.')
         else:
             # Upload

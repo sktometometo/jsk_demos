@@ -11,63 +11,63 @@ edges:
     args: {}
   - from: 'eng2_73B2'
     to: 'eng2_73A2'
-    behavior_type: 'spot_basic_behavior.walk_behavior.WalkBehavior'
+    behavior_type: 'spot_basic_behaviors.walk_behavior.WalkBehavior'
     cost: 10
     args:
       graph: '$(find spot_autowalk_data)/autowalk/eng2_73B2_to_7FElevator.walk'
   - from: 'eng2_73A2'
     to: 'eng2_73B2'
-    behavior_type: 'spot_basic_behavior.walk_behavior.WalkBehavior'
+    behavior_type: 'spot_basic_behaviors.walk_behavior.WalkBehavior'
     cost: 10
     args:
       graph: '$(find spot_autowalk_data)/autowalk/eng2_73B2_to_7FElevator.walk'
   - from: 'eng2_73B2'
     to: 'eng2_7FElevator'
-    behavior_type: 'spot_basic_behavior.walk_behavior.WalkBehavior'
+    behavior_type: 'spot_basic_behaviors.walk_behavior.WalkBehavior'
     cost: 10
     args:
       graph: '$(find spot_autowalk_data)/autowalk/eng2_73B2_to_7FElevator.walk'
   - from: 'eng2_7FElevator'
     to: 'eng2_73B2'
-    behavior_type: 'spot_basic_behavior.walk_behavior.WalkBehavior'
+    behavior_type: 'spot_basic_behaviors.walk_behavior.WalkBehavior'
     cost: 10
     args:
       graph: '$(find spot_autowalk_data)/autowalk/eng2_73B2_to_7FElevator.walk'
   - from: 'eng2_7FElevator'
     to: 'eng2_2FElevator'
-    behavior_type: 'spot_basic_behavior.elevator_behavior.ElevatorBehavior'
+    behavior_type: 'spot_basic_behaviors.elevator_behavior.ElevatorBehavior'
     cost: 10
     args:
       graph: '$(find spot_autowalk_data)/autowalk/eng2_elevator_7FElevator_to_2FElevator.walk'
       rest_waypoint_id: 'unsaid-collie-jvatvS.7KX9jpzQz61GL4A=='
   - from: 'eng2_2FElevator'
     to: 'eng2_7FElevator'
-    behavior_type: 'spot_basic_behavior.elevator_behavior.ElevatorBehavior'
+    behavior_type: 'spot_basic_behaviors.elevator_behavior.ElevatorBehavior'
     cost: 10
     args:
       graph: '$(find spot_autowalk_data)/autowalk/eng2_elevator_7FElevator_to_2FElevator.walk'
       rest_waypoint_id: 'unsaid-collie-jvatvS.7KX9jpzQz61GL4A=='
   - from: 'eng2_2FElevator'
     to: 'eng_TelephoneBox'
-    behavior_type: 'spot_basic_behavior.walk_behavior.WalkBehavior'
+    behavior_type: 'spot_basic_behaviors.walk_behavior.WalkBehavior'
     cost: 10
     args:
       graph: '$(find spot_autowalk_data)/autowalk/eng2_2FElevator_to_eng8_2FElevator.walk'
   - from: 'eng_TelephoneBox'
     to: 'eng2_2FElevator'
-    behavior_type: 'spot_basic_behavior.walk_behavior.WalkBehavior'
+    behavior_type: 'spot_basic_behaviors.walk_behavior.WalkBehavior'
     cost: 10
     args:
       graph: '$(find spot_autowalk_data)/autowalk/eng2_2FElevator_to_eng8_2FElevator.walk'
   - from: 'eng8_Piloti_Center'
     to: 'eng2_2FElevator'
-    behavior_type: 'spot_basic_behavior.walk_behavior.WalkBehavior'
+    behavior_type: 'spot_basic_behaviors.walk_behavior.WalkBehavior'
     cost: 10
     args:
       graph: '$(find spot_autowalk_data)/autowalk/eng2_2FElevator_to_eng8_2FElevator.walk'
   - from: 'eng8_Piloti_Center'
     to: 'eng_TelephoneBox'
-    behavior_type: 'spot_basic_behavior.walk_behavior.WalkBehavior'
+    behavior_type: 'spot_basic_behaviors.walk_behavior.WalkBehavior'
     cost: 10
     args:
       graph: '$(find spot_autowalk_data)/autowalk/eng2_2FElevator_to_eng8_2FElevator.walk'

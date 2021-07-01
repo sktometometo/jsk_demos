@@ -89,7 +89,7 @@ class BehaviorManagerNode(object):
             return
 
         # navigation of edges in the path
-        self.sound_client.say('目的地に向かいます')
+        self.sound_client.say('目的地に向かいます',blocking=True)
         for edge in path:
             rospy.loginfo('Navigating Edge {}...'.format(edge))
             try:
@@ -99,18 +99,18 @@ class BehaviorManagerNode(object):
                     self.pre_edge = edge
                 else:
                     rospy.logerr('Edge {} failed'.format(edge))
-                    self.sound_client.say('目的地に到達できませんでした')
+                    self.sound_client.say('目的地に到達できませんでした',blocking=True)
                     result = LeadPersonResult(success=False)
                     self.server_lead_person.set_aborted(result)
                     return
             except Exception as e:
                 rospy.logerr('Got an error while navigating edge {}: {}'.format(edge, e))
-                self.sound_client.say('エラーが発生しました')
+                self.sound_client.say('エラーが発生しました',blocking=True)
                 result = LeadPersonResult(success=False)
                 self.server_lead_person.set_aborted(result)
                 return
 
-        self.sound_client.say('目的地に到着しました.')
+        self.sound_client.say('目的地に到着しました.',blocking=True)
 
         result = LeadPersonResult(success=True)
         self.server_lead_person.set_succeeded(result)
@@ -137,7 +137,7 @@ class BehaviorManagerNode(object):
                         )
         except Exception as e:
             rospy.logerr('Failed to load and initialize behavior class: {}'.format(e))
-            self.sound_client('行動クラスを読み込めませんでした')
+            self.sound_client.say('行動クラスを読み込めませんでした',blocking=True)
             return False
 
         node_from = self.graph.nodes[edge.node_id_from]
@@ -148,7 +148,8 @@ class BehaviorManagerNode(object):
             success = behavior.run_main( node_from, node_to, edge, self.pre_edge )
             behavior.run_final( node_from, node_to, edge, self.pre_edge )
         except Exception as e:
-            rospy.logerr('{}'.format(e))
+            rospy.logerr('Got error while running a behavior: {}'.format(e))
+            self.sound_client.say('行動中にエラーが発生しました',blocking=True)
             return False
 
         return success
