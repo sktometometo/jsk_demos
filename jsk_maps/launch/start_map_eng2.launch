@@ -1,6 +1,7 @@
 <launch>
   <arg name="MACHINE" default="localhost" />
   <arg name="keepout" default="false" />
+  <arg name="launch_rviz" default="false" />
   <arg name="launch_map_server" default="true" />
   <arg name="use_machine" default="false" />
   <arg name="use_pictogram" default="false" />
