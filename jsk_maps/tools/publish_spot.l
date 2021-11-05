@@ -8,7 +8,7 @@
 
 (defun publish-spot ()
   (let* ((stamp (ros::time-now))
-         (header (instance std_msgs::header :init :stamp stamp :frame_id "map"))
+         (header (instance std_msgs::header :init :stamp stamp :frame_id "map")) ;; frame_id may be (format nil "/~A" *scene-name*)
          current-map-coords spots)
 
     ;; resolve /world -> /eng/2f
@@ -22,7 +22,7 @@
     (dolist (spot (send *scene* :spots))
       (when (substringp (concatenate string *current-map-id* "/") (send spot :name))
         (push (cons (send spot :name)
-                    (send (send current-map-coords :transformation spot) :worldcoords))
+                    (send spot :worldcoords))
               spots)))
 
     ;; publish spots
