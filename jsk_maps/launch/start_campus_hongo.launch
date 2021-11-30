@@ -78,6 +78,6 @@
   </node>
   <!-- rviz -->
   <node name="rviz" pkg="rviz" type="rviz"
-        args="-d $(find jsk_maps)/launch/config/hongo.rviz"
+        args="-d $(find jsk_maps)/config/hongo.rviz"
         if="$(arg launch_rviz)"/>
 </launch>
