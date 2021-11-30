@@ -2,7 +2,10 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(jsk_maps)
 
-find_package(catkin REQUIRED)
+find_package(catkin REQUIRED COMPONENTS
+    roscpp
+    rospy
+    message_generation)
 find_package(euslisp REQUIRED)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES Linux)
@@ -38,7 +41,16 @@ else (EXISTS ${euslisp_SOURCE_DIR}/jskeus/eus/${ARCHDIR}/bin/irteusgl)
   message(FATAL_ERROR "cannot find irteusgl")
 endif(EXISTS ${euslisp_SOURCE_DIR}/jskeus/eus/${ARCHDIR}/bin/irteusgl)
 
-catkin_package()
+add_service_files(
+    FILES
+    UpdateMapCenter.srv
+)
+
+generate_messages()
+
+catkin_package(
+    CATKIN_DEPENDS message_runtime
+)
 
 set(_generated_files
   ${PROJECT_SOURCE_DIR}/raw_maps/eng2-2f-0.05.yaml
