@@ -31,7 +31,7 @@ class StaticMapPublisher:
         self.map_type = rospy.get_param(
             '~map_type', 'osm')  # 'osm' or 'gsi_jp'
         self.initial_frame = rospy.get_param(
-            '~intial_frame', 'initial_frame')
+            '~initial_frame', 'initial_frame')
         self.static_map_frame = rospy.get_param(
             '~static_map_frame', 'static_map_frame')
 
