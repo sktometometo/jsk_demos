@@ -34,6 +34,6 @@
   </node>
   <!-- rviz -->
   <node name="rviz" pkg="rviz" type="rviz"
-        args="-d $(find jsk_maps)/launch/config/eng2.rviz"
+        args="-d $(find jsk_maps)/config/eng2.rviz"
         if="$(arg launch_rviz)"/>
 </launch>
