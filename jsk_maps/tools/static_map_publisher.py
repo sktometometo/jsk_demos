@@ -16,16 +16,16 @@ import math
 def calc_meters_per_pixel(latitude, zoom_level, earth_radius=6378137.000):
     # See https://wiki.openstreetmap.org/wiki/Zoom_levels
     earth_circumference = 2 * math.pi * earth_radius
-    return earth_circumference * math.cos(math.degrees(latitude)) / 2 ** (zoom_level+8)
+    return earth_circumference * math.cos(math.radians(latitude)) / 2 ** (zoom_level+8)
 
 
 class StaticMapPublisher:
 
     def __init__(self):
 
-        self.initial_latitude = rospy.get_param('~initial_latitude', 139.76060)
+        self.initial_latitude = rospy.get_param('~initial_latitude', 35.70751)
         self.initial_longitude = rospy.get_param(
-            '~initial_longitude', 35.70751)
+            '~initial_longitude', 139.76060)
         self.zoom_level = int(rospy.get_param('~zoom_level', 18))
         self.map_size = int(rospy.get_param('~map_size', 1000))
         self.map_type = rospy.get_param(
@@ -97,10 +97,11 @@ class StaticMapPublisher:
             self.center_latitude,
             self.zoom_level
         )
+        rospy.logwarn('map resolution is {}'.format(map_resolution))
         try:
             image = self.static_map.render(
                 zoom=self.zoom_level,
-                center=(self.center_latitude, self.center_longitude)
+                center=(self.center_longitude, self.center_latitude)
             )
         except RuntimeError:
             rospy.logerr('Failed to download map images')
@@ -113,11 +114,11 @@ class StaticMapPublisher:
         self.msg_map_meta_data.resolution = map_resolution
         self.msg_map_meta_data.width = self.map_size
         self.msg_map_meta_data.height = self.map_size
-        self.msg_map_meta_data.origin.position.x = self.map_size * map_resolution / 2
-        self.msg_map_meta_data.origin.position.y = -self.map_size * map_resolution / 2
+        self.msg_map_meta_data.origin.position.x = -self.map_size * map_resolution / 2
+        self.msg_map_meta_data.origin.position.y = self.map_size * map_resolution / 2
         self.msg_map_meta_data.origin.position.z = 0
-        self.msg_map_meta_data.origin.orientation.x = 0
-        self.msg_map_meta_data.origin.orientation.y = 1.0
+        self.msg_map_meta_data.origin.orientation.x = 1.0
+        self.msg_map_meta_data.origin.orientation.y = 0.0
         self.msg_map_meta_data.origin.orientation.z = 0.0
         self.msg_map_meta_data.origin.orientation.w = 0.0
 
