@@ -8,6 +8,8 @@ find_package(catkin REQUIRED COMPONENTS
     message_generation)
 find_package(euslisp REQUIRED)
 
+catkin_python_setup()
+
 if(${CMAKE_SYSTEM_NAME} MATCHES Linux)
   execute_process(COMMAND gcc -dumpmachine OUTPUT_VARIABLE GCC_MACHINE OUTPUT_STRIP_TRAILING_WHITESPACE)
   message("-- Set GCC_MACHINE to ${GCC_MACHINE}")
