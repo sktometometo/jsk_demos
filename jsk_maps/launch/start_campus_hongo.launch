@@ -9,14 +9,6 @@
   <machine name="localhost" address="localhost" if="$(arg use_machine)" />
 
   <!--
-  <node pkg="tf" type="static_transform_publisher" name="$(anon hongo_tf)"
-        args="-300 -300 0 0 0 0 /world /hongo 100"/>
-  <node name="$(anon map_server)" pkg="map_server" type="map_server"
-        args="$(find jsk_maps)/raw_maps/hongo-1.00.yaml" >
-    <remap from="map" to="/hongo"/>
-    <param name="frame_id" value="/hongo"/>
-  </node>
-
   <node name="publish_spot_hongo" pkg="roseus" type="roseus"
         args="$(find jsk_maps)/tools/publish_campus.l"
         machine="$(arg MACHINE)"
@@ -45,6 +37,7 @@
           to_frame_id: hongo_main_gate
           to_latitude: 35.712995049681204
           to_longitude: 139.75967053364684
+          diff_angle_from_to: 0.0
       </rosparam>
   </node>
 
@@ -56,13 +49,12 @@
           from_frame_id: world
           from_latitude: 35.713537979438996
           from_longitude: 139.762305151285
-          to_frame_id: eng2_raw
-          to_latitude: 35.7139315079361
-          to_longitude: 139.76161245284553
+          to_frame_id: eng2
+          to_latitude: 35.71443022192967
+          to_longitude: 139.7615547854118
+          diff_angle_from_to: 0.1
       </rosparam>
   </node>
-  <node pkg="tf" type="static_transform_publisher" name="$(anon eng2_tfA)"
-          args="0 0 0 0 0 0 /eng2_raw /eng2 100"/>
 
   <include file="$(find jsk_maps)/launch/include/start_map_eng2_main.xml">
     <arg name="prefix" value="eng2_" />
@@ -85,9 +77,17 @@
   <!--
   Eng. 8 Building Section
   -->
-  <!--
-  <node pkg="tf" type="static_transform_publisher" name="$(anon eng8_tfA)"
-      args="-140 220 10 1.74533 0 0 /world /eng8 100"/>
+  <node pkg="jsk_maps" type="static_lon_lat_transform_publisher.py" name="$(anon eng8_tfA_raw)">
+      <rosparam>
+          from_frame_id: world
+          from_latitude: 35.713537979438996
+          from_longitude: 139.762305151285
+          to_frame_id: eng8
+          to_latitude: 35.71573366462206
+          to_longitude: 139.76069828991388
+          diff_angle_from_to: 0.1
+      </rosparam>
+  </node>
 
   <include file="$(find jsk_maps)/launch/include/start_map_eng8_main.xml">
     <arg name="prefix" value="eng8_" />
@@ -106,7 +106,6 @@
     <param name="~scene" value="eng8" />
     <param name="~use_pictogram" value="$(arg use_pictogram)" />
   </node>
-  -->
 
   <!-- for initialpose topic -->
   <node name="initialpose3d" pkg="jsk_maps" type="initialpose3d.py">
