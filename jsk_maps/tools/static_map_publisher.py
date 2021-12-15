@@ -12,11 +12,7 @@ import cv2
 import staticmap
 import math
 
-
-def calc_meters_per_pixel(latitude, zoom_level, earth_radius=6378137.000):
-    # See https://wiki.openstreetmap.org/wiki/Zoom_levels
-    earth_circumference = 2 * math.pi * earth_radius
-    return earth_circumference * math.cos(math.radians(latitude)) / 2 ** (zoom_level+8)
+import jsk_maps
 
 
 class StaticMapPublisher:
@@ -80,20 +76,20 @@ class StaticMapPublisher:
         self.calc_transform()
         self.render_map()
 
-    def calc_transform(self, earth_radius=6378137.000):
+    def calc_transform(self):
         # 地球を球体と仮定して、intial周りを平面近似して計算
-        earth_circumference_on_equator = 2 * math.pi * earth_radius
-        earth_circumference_on_initial_latitude = 2 * math.pi * \
-            earth_radius * math.cos(math.radians(earth_radius))
-        diff_longitude = self.center_longitude - self.initial_longitude
-        diff_latitude = self.center_latitude - self.initial_latitude
-        self.transform_initial_to_static.transform.translation.x = \
-            earth_circumference_on_initial_latitude * (diff_longitude / 360)
-        self.transform_initial_to_static.transform.translation.y = \
-            earth_circumference_on_equator * (diff_latitude / 360)
+        diff_x_meter, diff_y_meter = jsk_maps.calc_transform_from_lon_lat(
+                self.initial_longitude,
+                self.initial_latitude,
+                self.center_longitude,
+                self.center_latitude,
+                self.zoom_level
+                )
+        self.transform_initial_to_static.transform.translation.x = diff_x_meter
+        self.transform_initial_to_static.transform.translation.y = diff_y_meter
 
     def render_map(self):
-        map_resolution = calc_meters_per_pixel(
+        map_resolution = jsk_maps.calc_meters_per_pixel(
             self.center_latitude,
             self.zoom_level
         )
