@@ -36,8 +36,8 @@ class StaticLonLatPublisher:
         transform.child_frame_id = self.to_frame_id
         transform.transform.translation.x = diff_x
         transform.transform.translation.y = diff_y
-        transform.transform.rotation.z = math.sin(self.diff_angle_from_to)
-        transform.transform.rotation.w = math.cos(self.diff_angle_from_to)
+        transform.transform.rotation.z = math.sin(self.diff_angle_from_to/2.0)
+        transform.transform.rotation.w = math.cos(self.diff_angle_from_to/2.0)
 
         self.tf_br.sendTransform(transform)
 
