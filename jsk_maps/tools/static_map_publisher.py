@@ -8,11 +8,12 @@ import tf2_ros
 from geometry_msgs.msg import TransformStamped
 
 import numpy as np
-import cv2
 import staticmap
-import math
 
-import jsk_maps
+from jsk_maps.srv import UpdateMapCenter
+from jsk_maps.srv import UpdateMapCenterResponse
+from jsk_maps import calc_transform_from_lon_lat
+from jsk_maps import calc_meters_per_pixel
 
 
 class StaticMapPublisher:
@@ -61,6 +62,10 @@ class StaticMapPublisher:
 
         self.render_map()
         self.publish_map()
+
+        self.srv_update_center = rospy.Service(
+            '~update_center', UpdateMapCenter, self.handler_update_center)
+
         rospy.loginfo('Initialized')
 
     def spin(self):
@@ -70,26 +75,39 @@ class StaticMapPublisher:
             self.publish_tf()
             rate.sleep()
 
+    def handler_update_center(self, req):
+        try:
+            self.update_center(req.center_latitude, req.center_longitude)
+            res = UpdateMapCenterResponse()
+            res.success = True
+            return res
+        except Exception as e:
+            res = UpdateMapCenterResponse()
+            res.success = False
+            res.message = '{}'.format(e)
+            return res
+
     def update_center(self, latitude, longitude):
         self.center_latitude = latitude
         self.center_longitude = longitude
-        self.calc_transform()
         self.render_map()
+        self.publish_map()
+        self.calc_transform()
 
     def calc_transform(self):
         # 地球を球体と仮定して、intial周りを平面近似して計算
-        diff_x_meter, diff_y_meter = jsk_maps.calc_transform_from_lon_lat(
-                self.initial_longitude,
-                self.initial_latitude,
-                self.center_longitude,
-                self.center_latitude,
-                self.zoom_level
-                )
+        diff_x_meter, diff_y_meter = calc_transform_from_lon_lat(
+            self.initial_longitude,
+            self.initial_latitude,
+            self.center_longitude,
+            self.center_latitude,
+            self.zoom_level
+        )
         self.transform_initial_to_static.transform.translation.x = diff_x_meter
         self.transform_initial_to_static.transform.translation.y = diff_y_meter
 
     def render_map(self):
-        map_resolution = jsk_maps.calc_meters_per_pixel(
+        map_resolution = calc_meters_per_pixel(
             self.center_latitude,
             self.zoom_level
         )
