@@ -52,7 +52,7 @@
           to_frame_id: eng2
           to_latitude: 35.71443022192967
           to_longitude: 139.7615547854118
-          diff_angle_from_to: 0.1
+          diff_angle_from_to: 0.2
       </rosparam>
   </node>
 
@@ -83,9 +83,9 @@
           from_latitude: 35.713537979438996
           from_longitude: 139.762305151285
           to_frame_id: eng8
-          to_latitude: 35.71573366462206
-          to_longitude: 139.76069828991388
-          diff_angle_from_to: 0.1
+          to_latitude: 35.71470007319424
+          to_longitude: 139.760512685666
+          diff_angle_from_to: 1.8
       </rosparam>
   </node>
 
