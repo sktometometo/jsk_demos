@@ -69,7 +69,7 @@
      (init-mail)
      ))
   (:upload-images ()
-                  (let (res (mail-body "Surveillance result ~%"))
+                  (let (res (mail-body (format nil "Surveillance result ~%")))
                     (dolist (upload-item list-upload-queue)
                       (ros::ros-info "Upload file ~A" (elt upload-item 0))
                       (setq res (upload-file (elt upload-item 0) (elt upload-item 1) :parents-path gdrive-parents-path))
