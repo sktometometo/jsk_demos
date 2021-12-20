@@ -18,10 +18,17 @@
       <remap from="/map" to="/static_map/map" />
       <remap from="/map_meta_data" to="/static_map/map_meta_data" />
 
+      <!-- parameters with dynamics reconfigure -->
+      <rosparam>
+          center_latitude: 35.713537979438996
+          center_longitude: 139.762305151285
+          zoom_level: 18
+      </rosparam>
+
+      <!-- parameters with rosparam -->
       <rosparam>
           initial_latitude: 35.713537979438996
           initial_longitude: 139.762305151285
-          zoom_level: 18
           map_size: 1500
           map_type: osm
           initial_frame: world
