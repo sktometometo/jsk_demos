@@ -5,7 +5,8 @@ project(jsk_maps)
 find_package(catkin REQUIRED COMPONENTS
     roscpp
     rospy
-    message_generation)
+    message_generation
+    dynamic_reconfigure)
 find_package(euslisp REQUIRED)
 
 catkin_python_setup()
@@ -49,6 +50,10 @@ add_service_files(
 )
 
 generate_messages()
+
+generate_dynamic_reconfigure_options(
+    cfg/StaticMapPublisher.cfg
+)
 
 catkin_package(
     CATKIN_DEPENDS message_runtime
