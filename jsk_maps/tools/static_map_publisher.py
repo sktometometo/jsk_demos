@@ -15,16 +15,38 @@ from jsk_maps.srv import UpdateMapCenterResponse
 from jsk_maps import calc_transform_from_lon_lat
 from jsk_maps import calc_meters_per_pixel
 
+from dynamic_reconfigure.server import Server
+from jsk_maps.cfg import StaticMapPublisherConfig
+
 
 class StaticMapPublisher:
 
+    def callback_config(self, config, level):
+
+        rospy.logdebug('level: {}'.format(level))
+        rospy.logdebug('config: {}'.format(config))
+
+        self.center_latitude = config['center_latitude']
+        self.center_longitude = config['center_longitude']
+        self.zoom_level = config['zoom_level']
+
+        self.render_map()
+        self.publish_map()
+        self.calc_transform()
+
+        return config
+
     def __init__(self):
 
-        self.initial_latitude = rospy.get_param('~initial_latitude', 35.70751)
-        self.initial_longitude = rospy.get_param(
-            '~initial_longitude', 139.76060)
-        self.zoom_level = int(rospy.get_param('~zoom_level', 18))
-        self.map_size = int(rospy.get_param('~map_size', 1000))
+        self.center_latitude = None
+        self.center_longitude = None
+        self.zoom_level = None
+
+        self.initial_latitude = rospy.get_param('~initial_latitude')
+        self.initial_longitude = rospy.get_param('~initial_longitude')
+
+        self.map_size = rospy.get_param(
+            '~map_size', 1000)
         self.map_type = rospy.get_param(
             '~map_type', 'osm')  # 'osm' or 'gsi_jp'
         self.initial_frame = rospy.get_param(
@@ -32,8 +54,6 @@ class StaticMapPublisher:
         self.static_map_frame = rospy.get_param(
             '~static_map_frame', 'static_map_frame')
 
-        self.center_latitude = self.initial_latitude
-        self.center_longitude = self.initial_longitude
         self.transform_initial_to_static = TransformStamped()
         self.transform_initial_to_static.header.frame_id = self.initial_frame
         self.transform_initial_to_static.child_frame_id = self.static_map_frame
@@ -60,13 +80,10 @@ class StaticMapPublisher:
         self.pub_occupancy_grid = rospy.Publisher(
             '/map', OccupancyGrid, queue_size=1, latch=True)
 
-        self.render_map()
-        self.publish_map()
+        self.srv_config = Server(
+            StaticMapPublisherConfig, self.callback_config)
 
-        self.srv_update_center = rospy.Service(
-            '~update_center', UpdateMapCenter, self.handler_update_center)
-
-        rospy.loginfo('Initialized')
+        rospy.logwarn('Initialized')
 
     def spin(self):
         rate = rospy.Rate(10)
@@ -74,25 +91,6 @@ class StaticMapPublisher:
             self.calc_transform()
             self.publish_tf()
             rate.sleep()
-
-    def handler_update_center(self, req):
-        try:
-            self.update_center(req.center_latitude, req.center_longitude)
-            res = UpdateMapCenterResponse()
-            res.success = True
-            return res
-        except Exception as e:
-            res = UpdateMapCenterResponse()
-            res.success = False
-            res.message = '{}'.format(e)
-            return res
-
-    def update_center(self, latitude, longitude):
-        self.center_latitude = latitude
-        self.center_longitude = longitude
-        self.render_map()
-        self.publish_map()
-        self.calc_transform()
 
     def calc_transform(self):
         # 地球を球体と仮定して、intial周りを平面近似して計算
@@ -111,7 +109,10 @@ class StaticMapPublisher:
             self.center_latitude,
             self.zoom_level
         )
-        rospy.logwarn('map resolution is {}'.format(map_resolution))
+        rospy.logdebug('map resolution is {}'.format(map_resolution))
+        rospy.logdebug('rendering map with parameter zoom : {}, center: {}'.format(
+            self.zoom_level,
+            (self.center_longitude, self.center_latitude)))
         try:
             image = self.static_map.render(
                 zoom=self.zoom_level,
