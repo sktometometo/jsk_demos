@@ -18,9 +18,10 @@ include_directories(
 ## Install ##
 #############
 
-catkin_install_python(PROGRAMS scripts/watch_dog_smach.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+install(DIRECTORY launch
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
-install(DIRECTORY launch
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+install(PROGRAMS scripts/watch-dog.l
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
