@@ -11,7 +11,7 @@
         file-path
         current-time
         success
-        (mail-title (format nil "Resque request from Spot"))
+        (mail-title (format nil "Resque request from ~A" (unix:getenv "ROBOT_NAME")))
         (mail-body (format nil "Resque request mail ~%")))
     ;; capture a image
     (setq current-time (unix:localtime))
