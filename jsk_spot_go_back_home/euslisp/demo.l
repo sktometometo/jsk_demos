@@ -28,6 +28,7 @@
     (setq success (capture-image "/dual_fisheye_to_panorama/output" file-path))
 
     ;; upload a image
+    (unix:sleep 5)
     (setq res (upload-file file-path file-name :parents-path "/go_back_home/images"))
     (if (elt res 0)
         (setq mail-body (concatenate string mail-body (format nil "~A: ~A ~%" file-name (elt res 2))))
