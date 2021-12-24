@@ -63,7 +63,7 @@
         (return-from main nil)))
 
     (if (not use-docking-station)
-      (return-from mail t))
+      (return-from main t))
 
     ;; Then try to dock
     (setq success (send *ri* :dock dock-id))
