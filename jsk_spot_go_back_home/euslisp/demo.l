@@ -29,7 +29,10 @@
 
     ;; upload a image
     (setq res (upload-file file-path file-name :parents-path "/go_back_home/images"))
-    (setq mail-body (concatenate string mail-body (format nil "~A: ~A ~%" file-name (elt res 2))))
+    (if (elt res 0)
+        (setq mail-body (concatenate string mail-body (format nil "~A: ~A ~%" file-name (elt res 2))))
+      (setq mail-body (concatenate string mail-body (format nil "Failed to upload a image ~%")))
+      )
 
     ;; send a mail
     (send-mail mail-title mail-address mail-body)
