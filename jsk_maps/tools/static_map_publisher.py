@@ -10,8 +10,6 @@ from geometry_msgs.msg import TransformStamped
 import numpy as np
 import staticmap
 
-from jsk_maps.srv import UpdateMapCenter
-from jsk_maps.srv import UpdateMapCenterResponse
 from jsk_maps import calc_transform_from_lon_lat
 from jsk_maps import calc_meters_per_pixel
 
