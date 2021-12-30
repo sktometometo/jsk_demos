@@ -13,7 +13,6 @@
                 - eng2_JSKEntrance
                 - eng2_73A2
                 - eng2_7FElevator
-                - eng2_73B1
             home_id: eng2_73B2
             dock_id: 520
             receiver_address: "spot@jsk.imi.i.u-tokyo.ac.jp"
