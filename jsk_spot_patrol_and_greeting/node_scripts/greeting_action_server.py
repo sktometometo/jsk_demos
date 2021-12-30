@@ -99,6 +99,7 @@ class GreetingActionServer:
             current.hour,
             current.minute,
             current.second)
+
         # Taking a shot
         file_path = self.media_directory + '/' + file_name
         ret, message = self.image_capture_client.capture(
