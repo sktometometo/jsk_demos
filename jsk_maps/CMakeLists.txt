@@ -5,7 +5,6 @@ project(jsk_maps)
 find_package(catkin REQUIRED COMPONENTS
     roscpp
     rospy
-    message_generation
     dynamic_reconfigure)
 find_package(euslisp REQUIRED)
 
@@ -44,19 +43,11 @@ else (EXISTS ${euslisp_SOURCE_DIR}/jskeus/eus/${ARCHDIR}/bin/irteusgl)
   message(FATAL_ERROR "cannot find irteusgl")
 endif(EXISTS ${euslisp_SOURCE_DIR}/jskeus/eus/${ARCHDIR}/bin/irteusgl)
 
-add_service_files(
-    FILES
-    UpdateMapCenter.srv
-)
-
-generate_messages()
-
 generate_dynamic_reconfigure_options(
     cfg/StaticMapPublisher.cfg
 )
 
 catkin_package(
-    CATKIN_DEPENDS message_runtime
 )
 
 set(_generated_files
