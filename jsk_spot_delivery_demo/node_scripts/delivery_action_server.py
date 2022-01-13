@@ -79,7 +79,7 @@ class DeliveryActionServer:
         if pose is None:
             return False
         if calc_distance_to_pose(pose) < 1.0:
-            return False
+            return True
         else:
             pos = PyKDL.Vector(
                 pose.pose.position.x,
