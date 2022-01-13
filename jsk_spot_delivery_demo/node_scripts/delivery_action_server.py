@@ -111,9 +111,10 @@ class DeliveryActionServer:
             5,
             blocking=True)
         if use_pitch:
-            pitch = -0.2
+            #pitch = -0.2
             self.spot_ros_client.pubBodyPose(0, Quaternion(
                 x=0, y=math.sin(-pitch/2), z=0, w=math.cos(-pitch/2)))
+            self.spot_ros_client.stand()
         return True
 
     def stand_straight(self):
