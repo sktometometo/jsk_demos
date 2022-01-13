@@ -2,72 +2,26 @@
 # -*- encoding: utf-8 -*-
 
 import math
-
 import actionlib
 import rospy
 import PyKDL
 
-from std_srvs.srv import Empty, EmptyRequest
-from geometry_msgs.msg import WrenchStamped, Quaternion, PoseArray, PoseStamped
-from jsk_spot_delivery_demo.msg import DeliverToAction, DeliverToResult
-from jsk_spot_delivery_demo.msg import PickupPackageAction, PickupPackageResult
-from spot_behavior_manager_msgs.msg import LeadPersonAction, LeadPersonGoal
+from std_srvs.srv import Empty
+from geometry_msgs.msg import WrenchStamped
+from geometry_msgs.msg import Quaternion
+from jsk_spot_delivery_demo.msg import ExecuteTaskAction
+from jsk_spot_delivery_demo.msg import ExecuteTaskResult
+from jsk_spot_delivery_demo.msg import PickupPackageAction
+from jsk_spot_delivery_demo.msg import PickupPackageResult
+from jsk_spot_delivery_demo.msg import DeliveryTask
+from jsk_spot_delivery_demo.msg import DeliveryTaskArray
 
 from spot_ros_client.libspotros import SpotRosClient
+from spot_ros_client.libspotros import calc_distance_to_pose
+from spot_ros_client.libspotros import get_nearest_person_pose
+from spot_ros_client.libspotros import get_diff_for_person
 from sound_play.libsoundplay import SoundClient
 from ros_speech_recognition import SpeechRecognitionClient
-
-
-def calc_distance(pose):
-
-    return pose.position.x ** 2 + pose.position.y ** 2 + pose.position.z ** 2
-
-
-def convert_msg_point_to_kdl_vector(point):
-    return PyKDL.Vector(point.x, point.y, point.z)
-
-
-def get_nearest_person_pose():
-
-    try:
-        msg = rospy.wait_for_message('~people_pose_array', PoseArray,
-                                     timeout=rospy.Duration(5))
-    except rospy.ROSException as e:
-        rospy.logwarn('Timeout exceede: {}'.format(e))
-        return None
-
-    if len(msg.poses) == 0:
-        rospy.logwarn('No person visible')
-        return None
-
-    distance = calc_distance(msg.poses[0])
-    target_pose = msg.poses[0]
-    for pose in msg.poses:
-        if calc_distance(pose) < distance:
-            distance = calc_distance(pose)
-            target_pose = pose
-
-    pose_stamped = PoseStamped()
-    pose_stamped.header = msg.header
-    pose_stamped.pose = target_pose
-
-    return pose_stamped
-
-
-def get_diff_for_person(pose_stamped):
-
-    vector_person_msgbased = convert_msg_point_to_kdl_vector(
-        pose_stamped.pose.position)
-    x = pose_stamped.pose.position.x
-    y = pose_stamped.pose.position.y
-    z = pose_stamped.pose.position.z
-
-    yaw = math.atan2(y, x)
-    try:
-        pitch = math.acos(z / math.sqrt(x**2 + y**2))
-    except ValueError:
-        pitch = 0
-    return pitch, yaw
 
 
 class DeliveryActionServer:
@@ -84,31 +38,86 @@ class DeliveryActionServer:
 
         self.node_list = rospy.get_param('~nodes', {})
 
-        self.actionserver_deliver_to = actionlib.SimpleActionServer(
-            '~deliver_to', DeliverToAction, self.callback_deliver_to, auto_start=False)
-        self.actionserver_pickup_package = actionlib.SimpleActionServer(
-            '~pickup_package', PickupPackageAction, self.callback_pickup_package, auto_start=False)
+        self.task_array = DeliveryTaskArray()
+        self.pub_task_array = rospy.Publisher(
+            '~task_array',
+            DeliveryTaskArray,
+            queue_size=1
+        )
 
-        self.actionserver_deliver_to.start()
+        self.actionserver_execute_task = actionlib.SimpleActionServer(
+            '~execute_task',
+            ExecuteTaskAction,
+            self.callback_execute_task,
+            auto_start=False)
+        self.actionserver_pickup_package = actionlib.SimpleActionServer(
+            '~pickup_package',
+            PickupPackageAction,
+            self.callback_pickup_package,
+            auto_start=False)
+        self.actionserver_execute_task.start()
         self.actionserver_pickup_package.start()
 
         rospy.loginfo('initialized')
 
-    def head_for_person(self, use_pitch=True):
+    def spin(self):
 
-        self.spot_ros_client.pubBodyPose(0, Quaternion(x=0, y=0, z=0, w=1))
+        rate = rospy.Rate(1)
+        while not rospy.is_shutdown():
+            rate.sleep()
+            self.publish_task_array()
+
+    def publish_task_array(self):
+
+        self.task_array.header.stamp = rospy.Time.now()
+        self.pub_task_array.publish(self.task_array)
+
+    def approach_person(self, distance_to_person=1.0):
+
+        self.stand_straight()
+        pose = get_nearest_person_pose()
+        if pose is None:
+            return False
+        if calc_distance_to_pose(pose) < 2.0:
+            return True
+        else:
+            pos = PyKDL.Vector(
+                pose.pose.position.x,
+                pose.pose.position.y,
+                pose.pose.position.z)
+            theta = math.atan2(pos[1], pos[0])
+            pos = pos - distance_to_person * pos / pos.Norm()
+            x = pos[0]
+            y = pos[1]
+            self.spot_ros_client.trajectory(
+                x,
+                y,
+                theta,
+                2,
+                blocking=True)
+        return True
+
+    def head_for_person(self, use_pitch=True, yaw_offset=0):
+
+        self.stand_straight()
         pose = get_nearest_person_pose()
         if pose is None:
             return False
         pitch, yaw = get_diff_for_person(pose)
-        rospy.loginfo('pitch:{}, yaw:{}'.format(pitch, yaw))
-        self.spot_ros_client.trajectory(0, 0, yaw, 5, blocking=True)
+        self.spot_ros_client.trajectory(
+            0,
+            0,
+            yaw + yaw_offset,
+            5,
+            blocking=True)
         if use_pitch:
             self.spot_ros_client.pubBodyPose(0, Quaternion(
                 x=0, y=math.sin(-pitch/2), z=0, w=math.cos(-pitch/2)))
+            self.spot_ros_client.stand()
         return True
 
     def stand_straight(self):
+
         self.spot_ros_client.pubBodyPose(0, Quaternion(x=0, y=0, z=0, w=1))
 
     def wait_package_setting(self, duration=rospy.Duration(120)):
@@ -149,19 +158,49 @@ class DeliveryActionServer:
 
     def callback_pickup_package(self, goal):
 
-        result = PickupPackageResult()
-        timeout_deadline = rospy.Time.now() + goal.timeout
+        success, message = self.pickup_package(goal.timeout)
+
+        if success:
+            if goal.execute_after_pickup:
+                success, message =\
+                        self.execute_task(len(self.task_array.tasks)-1)
+                result = PickupPackageResult()
+                result.success = success
+                result.message = message
+                if success:
+                    self.actionserver_pickup_package.set_succeeded(result)
+                else:
+                    self.actionserver_pickup_package.set_succeeded(result)
+            else:
+                result = PickupPackageResult()
+                result.success = success
+                result.message = message
+                self.actionserver_pickup_package.set_succeeded(result)
+        else:
+            result = PickupPackageResult()
+            result.success = success
+            result.message = message
+            self.actionserver_pickup_package.set_aborted(result)
+
+    def pickup_package(self, timeout=rospy.Duration(120)):
+
+        timeout_deadline = rospy.Time.now() + timeout
+        rate = rospy.Rate(1)
 
         rospy.loginfo('Asking package task')
         success = False
         timeout_temp = rospy.Time.now() + rospy.Duration(20)
         while not rospy.is_shutdown() and rospy.Time.now() < timeout_temp:
-            self.head_for_person()
+            if not self.approach_person() or not self.head_for_person():
+                rospy.logerr('No Person')
+                rate.sleep()
+                continue
             self.sound_client.say('配達物はありませんか', blocking=True)
             recognition_result = self.speech_recognition_client.recognize()
             if len(recognition_result.transcript) == 0:
-                rospy.logerr('No matching node found from spoken \'{}\''.format(
-                    recognition_result))
+                rospy.logerr(
+                    'No matching node found from spoken \'{}\''.format(
+                        recognition_result))
                 self.sound_client.say('聞き取れませんでした', blocking=True)
                 continue
             else:
@@ -169,30 +208,31 @@ class DeliveryActionServer:
                 rospy.loginfo('recognized_text: {}'.format(recognized_text))
                 success = True
                 break
-        self.stand_straight()
 
         if not success or not self.check_allow_word(recognized_text):
-            result.success = False
-            result.message = 'No delivery task.'
-            self.actionserver_pickup_package.set_aborted(result)
-            return
+            self.stand_straight()
+            return False, 'No delivery task'
 
         rospy.loginfo('Asking package information')
         success = False
         while not rospy.is_shutdown() and rospy.Time.now() < timeout_deadline:
-            self.head_for_person()
+            if not self.head_for_person():
+                rospy.logerr('No Person')
+                rate.sleep()
+                continue
             self.sound_client.say('配達先を教えてください。', blocking=True)
             recognition_result = self.speech_recognition_client.recognize()
             if len(recognition_result.transcript) == 0:
-                rospy.logerr('No matching node found from spoken \'{}\''.format(
-                    recognition_result))
+                rospy.logerr(
+                    'No matching node found from spoken \'{}\''.format(
+                        recognition_result))
                 self.sound_client.say('配達先がわかりませんでした', blocking=True)
                 continue
             recognized_destination = recognition_result.transcript[0]
             target_node_candidates = {}
             for node_id, value in self.node_list.items():
                 try:
-                    if not value.has_key('name_jp'):
+                    if 'name_jp' not in value:
                         continue
                     if type(value['name_jp']) is list:
                         # DO HOGE
@@ -200,32 +240,33 @@ class DeliveryActionServer:
                             if name.encode('utf-8') == recognized_destination:
                                 target_node_candidates[node_id] = value
                     else:
-                        if value['name_jp'].encode('utf-8') == recognized_destination:
+                        if value['name_jp'].encode('utf-8') ==\
+                                recognized_destination:
                             target_node_candidates[node_id] = value
                 except Exception as e:
                     rospy.logerr('Error: {}'.format(e))
             if len(target_node_candidates) == 0:
-                rospy.logerr('No matching node found from spoken \'{}\''.format(
-                    recognition_result))
+                rospy.logerr(
+                    'No matching node found from spoken \'{}\''.format(
+                        recognition_result))
                 self.sound_client.say('配達先がわかりませんでした', blocking=True)
             else:
                 success = True
                 break
-        self.stand_straight()
 
         if not success:
-            result.success = False
-            result.message = 'Falied to recognize the destination from speech.'
-            self.actionserver_pickup_package.set_aborted(result)
-            return
+            self.stand_straight()
+            return False, 'Falied to recognize the destination from speech.'
         else:
             target_node_id = target_node_candidates.keys()[0]
             if isinstance(self.node_list[target_node_id]['name_jp'], list):
-                target_node_name_jp = self.node_list[target_node_id]['name_jp'][0].encode(
-                    'utf-8')
+                target_node_name_jp =\
+                    self.node_list[target_node_id]['name_jp'][0].encode(
+                        'utf-8')
             else:
-                target_node_name_jp = self.node_list[target_node_id]['name_jp'].encode(
-                    'utf-8')
+                target_node_name_jp =\
+                    self.node_list[target_node_id]['name_jp'].encode(
+                        'utf-8')
             rospy.loginfo('target_node_id: {}'.format(target_node_id))
             self.sound_client.say('{}ですね。わかりました。'.format(
                 target_node_name_jp), blocking=True)
@@ -233,7 +274,10 @@ class DeliveryActionServer:
         rospy.loginfo('Asking sender information')
         success = False
         while not rospy.is_shutdown() and rospy.Time.now() < timeout_deadline:
-            self.head_for_person()
+            if not self.head_for_person():
+                rospy.logerr('No Person')
+                rate.sleep()
+                continue
             self.sound_client.say('送り主の名前を教えてください', blocking=True)
             recognition_result = self.speech_recognition_client.recognize()
             if len(recognition_result.transcript) == 0:
@@ -245,58 +289,68 @@ class DeliveryActionServer:
                 recognized_name = recognition_result.transcript[0]
                 success = True
                 break
-        self.stand_straight()
 
         if not success:
-            result.success = False
-            result.message = 'Falied to recognize sender name from speech.'
-            self.actionserver_pickup_package.set_aborted(result)
-            return
+            self.stand_straight()
+            return False, 'Falied to recognize sender name from speech.'
         else:
             sender_name = recognized_name
             rospy.loginfo('sender name is {}'.format(sender_name))
             self.sound_client.say('{}さんですね'.format(sender_name), blocking=True)
 
         rospy.loginfo('Waiting for package placed.')
-        self.head_for_person(use_pitch=False)
+        self.head_for_person(use_pitch=False, yaw_offset=1.57)
         self.sound_client.say('荷物を置いてください', blocking=True)
         success = self.wait_package_setting(
             timeout_deadline - rospy.Time.now())
         if not success:
             rospy.logerr('Timeout for package placement')
-            result.success = False
-            result.message = 'Timeout for package placement.'
-            self.actionserver_pickup_package.set_aborted(result)
+            return False, 'Timeout for package placement.'
         else:
             rospy.loginfo('Package placed')
             self.sound_client.say('荷物を確認しました', blocking=True)
 
-        result.success = True
-        result.message = 'Success'
-        result.task.target_node_id = target_node_id
-        result.task.package_content = ''
-        result.task.sender = sender_name
-        self.actionserver_pickup_package.set_succeeded(result)
+        task = DeliveryTask()
+        task.target_node_id = target_node_id
+        task.package_content = ''
+        task.sender = sender_name
+        self.task_array.tasks.append(task)
 
-    def callback_deliver_to(self, goal):
+        return True, 'Success'
 
-        task = goal.task
-        target_node_id = task.target_node_id
+    def callback_execute_task(self, goal):
+
+        success, message = self.execute_task(goal.index)
+
+        if success:
+            rospy.loginfo(message)
+            self.actionserver_execute_task.set_succeeded(
+                ExecuteTaskResult(success, message))
+        else:
+            rospy.logerr(message)
+            self.actionserver_execute_task.set_aborted(
+                ExecuteTaskResult(success, message))
+
+    def execute_task(self, index):
+
+        if index >= len(self.task_array.tasks):
+            return False, 'goal index ({}) is out of range.'.format(index)
+        task = self.task_array.tasks[index]
 
         rospy.loginfo('move to {}'.format(task.target_node_id))
         result = self.spot_ros_client.execute_behaviors(task.target_node_id)
         rospy.logwarn('result: {}'.format(result))
         if not result.success:
-            rospy.logerr('Failed to reach {}'.format(task.target_node_id))
-            self.actionserver_deliver_to.set_aborted(
-                DeliverToResult(False, 'Falied to reach the destination.'))
-            return
+            return False, 'Failed to reach {}'.format(task.target_node_id)
         rospy.loginfo('reached {}'.format(task.target_node_id))
 
         rate = rospy.Rate(1)
         while not rospy.is_shutdown():
-            rospy.loginfo('Waiting for package picked.')
-            if not self.head_for_person(use_pitch=False):
+            rospy.loginfo('Waiting for packag picked.')
+            if not self.approach_person():
+                rate.sleep()
+                continue
+            if not self.head_for_person(use_pitch=False, yaw_offset=1.5):
                 rate.sleep()
                 continue
             self.sound_client.say(
@@ -308,16 +362,14 @@ class DeliveryActionServer:
                 self.sound_client.say('荷物の受取を確認しました')
                 break
 
-        self.actionserver_deliver_to.set_succeeded(
-            DeliverToResult(True, 'Success'))
-        return
+        return True, 'Success'
 
 
 def main():
 
     rospy.init_node('delivery_action_server')
     node = DeliveryActionServer()
-    rospy.spin()
+    node.spin()
 
 
 if __name__ == '__main__':

@@ -1,0 +1,5 @@
+int32 index
+---
+bool success
+string message
+---
