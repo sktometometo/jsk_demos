@@ -159,8 +159,22 @@ class DeliveryActionServer:
 
     def callback_pickup_package(self, goal):
 
-        result = PickupPackageResult()
-        timeout_deadline = rospy.Time.now() + goal.timeout
+        success, message = self.pickup_package(goal.timeout)
+
+        if success:
+            result = PickupPackageResult()
+            result.success = success
+            result.message = message
+            self.actionserver_pickup_package.set_succeeded(result)
+        else:
+            result = PickupPackageResult()
+            result.success = success
+            result.message = message
+            self.actionserver_pickup_package.set_aborted(result)
+
+    def pickup_package(self, timeout=rospy.Duration(120)):
+
+        timeout_deadline = rospy.Time.now() + timeout
 
         rospy.loginfo('Asking package task')
         success = False
@@ -190,10 +204,7 @@ class DeliveryActionServer:
 
         if not success or not self.check_allow_word(recognized_text):
             self.stand_straight()
-            result.success = False
-            result.message = 'No delivery task.'
-            self.actionserver_pickup_package.set_aborted(result)
-            return
+            return False, 'No delivery task'
 
         rospy.loginfo('Asking package information')
         success = False
@@ -202,8 +213,9 @@ class DeliveryActionServer:
             self.sound_client.say('配達先を教えてください。', blocking=True)
             recognition_result = self.speech_recognition_client.recognize()
             if len(recognition_result.transcript) == 0:
-                rospy.logerr('No matching node found from spoken \'{}\''.format(
-                    recognition_result))
+                rospy.logerr(
+                    'No matching node found from spoken \'{}\''.format(
+                        recognition_result))
                 self.sound_client.say('配達先がわかりませんでした', blocking=True)
                 continue
             recognized_destination = recognition_result.transcript[0]
@@ -218,13 +230,15 @@ class DeliveryActionServer:
                             if name.encode('utf-8') == recognized_destination:
                                 target_node_candidates[node_id] = value
                     else:
-                        if value['name_jp'].encode('utf-8') == recognized_destination:
+                        if value['name_jp'].encode('utf-8') ==\
+                                recognized_destination:
                             target_node_candidates[node_id] = value
                 except Exception as e:
                     rospy.logerr('Error: {}'.format(e))
             if len(target_node_candidates) == 0:
-                rospy.logerr('No matching node found from spoken \'{}\''.format(
-                    recognition_result))
+                rospy.logerr(
+                    'No matching node found from spoken \'{}\''.format(
+                        recognition_result))
                 self.sound_client.say('配達先がわかりませんでした', blocking=True)
             else:
                 success = True
@@ -232,18 +246,17 @@ class DeliveryActionServer:
 
         if not success:
             self.stand_straight()
-            result.success = False
-            result.message = 'Falied to recognize the destination from speech.'
-            self.actionserver_pickup_package.set_aborted(result)
-            return
+            return False, 'Falied to recognize the destination from speech.'
         else:
             target_node_id = target_node_candidates.keys()[0]
             if isinstance(self.node_list[target_node_id]['name_jp'], list):
-                target_node_name_jp = self.node_list[target_node_id]['name_jp'][0].encode(
-                    'utf-8')
+                target_node_name_jp =\
+                    self.node_list[target_node_id]['name_jp'][0].encode(
+                        'utf-8')
             else:
-                target_node_name_jp = self.node_list[target_node_id]['name_jp'].encode(
-                    'utf-8')
+                target_node_name_jp =\
+                    self.node_list[target_node_id]['name_jp'].encode(
+                        'utf-8')
             rospy.loginfo('target_node_id: {}'.format(target_node_id))
             self.sound_client.say('{}ですね。わかりました。'.format(
                 target_node_name_jp), blocking=True)
@@ -266,10 +279,7 @@ class DeliveryActionServer:
 
         if not success:
             self.stand_straight()
-            result.success = False
-            result.message = 'Falied to recognize sender name from speech.'
-            self.actionserver_pickup_package.set_aborted(result)
-            return
+            return False, 'Falied to recognize sender name from speech.'
         else:
             sender_name = recognized_name
             rospy.loginfo('sender name is {}'.format(sender_name))
@@ -282,9 +292,7 @@ class DeliveryActionServer:
             timeout_deadline - rospy.Time.now())
         if not success:
             rospy.logerr('Timeout for package placement')
-            result.success = False
-            result.message = 'Timeout for package placement.'
-            self.actionserver_pickup_package.set_aborted(result)
+            return False, 'Timeout for package placement.'
         else:
             rospy.loginfo('Package placed')
             self.sound_client.say('荷物を確認しました', blocking=True)
@@ -293,33 +301,34 @@ class DeliveryActionServer:
         task.target_node_id = target_node_id
         task.package_content = ''
         task.sender = sender_name
-
         self.task_array.tasks.append(task)
 
-        result.success = True
-        result.message = 'Success'
-        self.actionserver_pickup_package.set_succeeded(result)
+        return True, 'Success'
 
     def callback_execute_task(self, goal):
 
-        if goal.index >= len(self.task_array.tasks):
-            rospy.logerr('goal index ({}) is out of range.'.format(goal.index))
-            self.actionserver_execute_task.set_aborted(
-                ExecuteTaskResult(
-                    False,
-                    'goal index ({}) is out of range.'.format(goal.index)))
-            return
+        success, message = self.execute_task(goal.index)
 
-        task = self.task_array.tasks[goal.index]
+        if success:
+            rospy.loginfo(message)
+            self.actionserver_execute_task.set_succeeded(
+                ExecuteTaskResult(success, message))
+        else:
+            rospy.logerr(message)
+            self.actionserver_execute_task.set_aborted(
+                ExecuteTaskResult(success, message))
+
+    def execute_task(self, index):
+
+        if index >= len(self.task_array.tasks):
+            return False, 'goal index ({}) is out of range.'.format(index)
+        task = self.task_array.tasks[index]
 
         rospy.loginfo('move to {}'.format(task.target_node_id))
         result = self.spot_ros_client.execute_behaviors(task.target_node_id)
         rospy.logwarn('result: {}'.format(result))
         if not result.success:
-            rospy.logerr('Failed to reach {}'.format(task.target_node_id))
-            self.actionserver_execute_task.set_aborted(
-                ExecuteTaskResult(False, 'Falied to reach the destination.'))
-            return
+            return False, 'Failed to reach {}'.format(task.target_node_id)
         rospy.loginfo('reached {}'.format(task.target_node_id))
 
         rate = rospy.Rate(1)
@@ -340,9 +349,7 @@ class DeliveryActionServer:
                 self.sound_client.say('荷物の受取を確認しました')
                 break
 
-        self.actionserver_execute_task.set_succeeded(
-            ExecuteTaskResult(True, 'Success'))
-        return
+        return True, 'Success'
 
 
 def main():
