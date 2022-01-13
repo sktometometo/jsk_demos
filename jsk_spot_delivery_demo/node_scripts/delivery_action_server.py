@@ -70,7 +70,7 @@ class DeliveryActionServer:
     def publish_task_array(self):
 
         self.task_array.header.stamp = rospy.Time.now()
-        self.pub_task_array(self.task_array)
+        self.pub_task_array.publish(self.task_array)
 
     def approach_person(self):
 
