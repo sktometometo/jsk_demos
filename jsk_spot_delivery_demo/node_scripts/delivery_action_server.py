@@ -60,6 +60,18 @@ class DeliveryActionServer:
 
         rospy.loginfo('initialized')
 
+    def spin(self):
+
+        rate = rospy.Rate(1)
+        while not rospy.is_shutdown():
+            rate.sleep()
+            self.publish_task_array()
+
+    def publish_task_array(self):
+
+        self.task_array.header.stamp = rospy.Time.now()
+        self.pub_task_array(self.task_array)
+
     def approach_person(self):
 
         self.stand_straight()
@@ -325,7 +337,7 @@ def main():
 
     rospy.init_node('delivery_action_server')
     node = DeliveryActionServer()
-    rospy.spin()
+    node.spin()
 
 
 if __name__ == '__main__':
