@@ -1,4 +1,5 @@
 <launch>
+    <arg name="patrol_list" default="['eng2_JSKEntrance', 'eng2_7FElevator']" />
 
     <node
         pkg="jsk_spot_patrol_and_greeting"
@@ -9,30 +10,10 @@
         >
         <remap from="~greeting" to="/greeting_action_server/greeting" />
         <rosparam subst_value="true">
-            patrol_list:
-                - eng2_JSKEntrance
-                - eng2_73A2
-                - eng2_7FElevator
+            patrol_list: $(arg patrol_list)
             home_id: eng2_73B2
             dock_id: 520
             receiver_address: "spot@jsk.imi.i.u-tokyo.ac.jp"
-        </rosparam>
-    </node>
-
-    <!-- person tracker -->
-    <node
-        pkg="spot_person_lead_behaviors"
-        type="person_tracker.py"
-        name="patrol_and_greeting_demo_person_tracker"
-        output="screen">
-        <remap from="~bbox_array" to="/spot_recognition/bbox_array" />
-        <!-- remap from="~visible" to="" / -->
-
-        <rosparam subst_value="true">
-            frame_id_robot: 'body'
-            label_person: 0
-            dist_visible: 2.0
-            timeout_observation: 5.0
         </rosparam>
     </node>
 
@@ -43,7 +24,7 @@
         name="greeting_action_server"
         output="screen"
         >
-        <remap from="~people_pose_array" to="/patrol_and_greeting_demo_person_tracker/people_pose_array" />
+        <remap from="~people_pose_array" to="/spot_recognition_person_tracker/people_pose_array" />
 
         <rosparam subst_value="true">
             receiver_address: spot@jsk.imi.i.u-tokyo.ac.jp
