@@ -1,0 +1,8 @@
+<launch>
+    <node
+        pkg="jsk_spot_delivery_demo"
+        type="pickup_package_client"
+        name="pickup_package_client"
+        output="screen">
+    </node>
+</launch>

@@ -1,32 +1,4 @@
 <launch>
-    <arg name="launch_demo" default="true" />
-
-    <!-- delivery_demo -->
-    <!--
-    <node
-        pkg="jsk_spot_delivery_demo"
-        type="delivery_demo.py"
-        name="delivery_demo"
-        output="screen"
-        required="true"
-        if="$(arg launch_demo)">
-        <rosparam>
-            list_node_strolling:
-                - eng2_JSKEntrance
-                - eng2_73B2
-                - eng2_73A2
-                - eng2_73A4
-            home_id: eng2_73B2
-        </rosparam>
-
-        <remap from="~person_visible" to="/delivery_demo_person_tracker/visible" />
-        <remap from="~people_pose_array" to="/delivery_demo_person_tracker/people_pose_array" />
-
-        <remap from="~pickup_package" to="/delivery_action_server/pickup_package" />
-        <remap from="~deliver_to" to="/delivery_action_server/deliver_to" />
-    </node>
-    -->
-
     <!-- deliver_to and pickup_package action server -->
     <node
         pkg="jsk_spot_delivery_demo"
