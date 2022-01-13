@@ -78,7 +78,7 @@ class DeliveryActionServer:
         pose = get_nearest_person_pose()
         if pose is None:
             return False
-        if calc_distance_to_pose(pose) < 1.0:
+        if calc_distance_to_pose(pose) < 2.0:
             return True
         else:
             pos = PyKDL.Vector(
