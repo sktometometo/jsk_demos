@@ -34,7 +34,7 @@
         name="delivery_action_server"
         output="screen">
         <rosparam>
-            force_threshold: 1.5
+            force_threshold: 5.0
         </rosparam>
         <rosparam command="load" file="$(find spot_behavior_graph)/config/nodes.yaml" />
         <remap from="~person_visible" to="/delivery_demo_person_tracker/visible" />
