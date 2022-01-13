@@ -72,7 +72,7 @@ class DeliveryActionServer:
         self.task_array.header.stamp = rospy.Time.now()
         self.pub_task_array.publish(self.task_array)
 
-    def approach_person(self):
+    def approach_person(self, distance_to_person=1.0):
 
         self.stand_straight()
         pose = get_nearest_person_pose()
@@ -86,7 +86,7 @@ class DeliveryActionServer:
                 pose.pose.position.y,
                 pose.pose.position.z)
             theta = math.atan2(pos[1], pos[0])
-            pos = pos - 0.5 * pos / pos.Norm()
+            pos = pos - distance_to_person * pos / pos.Norm()
             x = pos[0]
             y = pos[1]
             self.spot_ros_client.trajectory(
@@ -324,8 +324,11 @@ class DeliveryActionServer:
 
         rate = rospy.Rate(1)
         while not rospy.is_shutdown():
-            rospy.loginfo('Waiting for package picked.')
-            if not self.head_for_person(use_pitch=False):
+            rospy.loginfo('Waiting for packag picked.')
+            if not self.approach_person():
+                rate.sleep()
+                continue
+            if not self.head_for_person(use_pitch=False, yaw_offset=1.5):
                 rate.sleep()
                 continue
             self.sound_client.say(
