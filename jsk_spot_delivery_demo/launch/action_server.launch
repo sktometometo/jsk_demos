@@ -2,6 +2,7 @@
     <arg name="launch_demo" default="true" />
 
     <!-- delivery_demo -->
+    <!--
     <node
         pkg="jsk_spot_delivery_demo"
         type="delivery_demo.py"
@@ -24,6 +25,7 @@
         <remap from="~pickup_package" to="/delivery_action_server/pickup_package" />
         <remap from="~deliver_to" to="/delivery_action_server/deliver_to" />
     </node>
+    -->
 
     <!-- deliver_to and pickup_package action server -->
     <node
@@ -40,24 +42,6 @@
         <remap from="~reset_body_force" to="/body_force_publisher/zero_offset" />
         <remap from="~body_force" to="/body_force_publisher/wrench_output" />
     </node>
-
-    <!-- person tracker -->
-    <node
-        pkg="spot_person_lead_behaviors"
-        type="person_tracker.py"
-        name="delivery_demo_person_tracker"
-        output="screen">
-        <remap from="~bbox_array" to="/spot_recognition/bbox_array" />
-        <!-- remap from="~visible" to="" / -->
-
-        <rosparam subst_value="true">
-            frame_id_robot: 'body'
-            label_person: 0
-            dist_visible: 2.0
-            timeout_observation: 5.0
-        </rosparam>
-    </node>
-
 
     <!-- body force caculation -->
     <node
