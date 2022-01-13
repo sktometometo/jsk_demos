@@ -187,9 +187,9 @@ class DeliveryActionServer:
                 rospy.loginfo('recognized_text: {}'.format(recognized_text))
                 success = True
                 break
-        self.stand_straight()
 
         if not success or not self.check_allow_word(recognized_text):
+            self.stand_straight()
             result.success = False
             result.message = 'No delivery task.'
             self.actionserver_pickup_package.set_aborted(result)
@@ -229,9 +229,9 @@ class DeliveryActionServer:
             else:
                 success = True
                 break
-        self.stand_straight()
 
         if not success:
+            self.stand_straight()
             result.success = False
             result.message = 'Falied to recognize the destination from speech.'
             self.actionserver_pickup_package.set_aborted(result)
@@ -263,9 +263,9 @@ class DeliveryActionServer:
                 recognized_name = recognition_result.transcript[0]
                 success = True
                 break
-        self.stand_straight()
 
         if not success:
+            self.stand_straight()
             result.success = False
             result.message = 'Falied to recognize sender name from speech.'
             self.actionserver_pickup_package.set_aborted(result)
@@ -302,7 +302,7 @@ class DeliveryActionServer:
 
     def callback_execute_task(self, goal):
 
-        if len(self.task_array.tasks) >= goal.index:
+        if goal.index >= len(self.task_array.tasks):
             rospy.logerr('goal index ({}) is out of range.'.format(goal.index))
             self.actionserver_execute_task.set_aborted(
                 ExecuteTaskResult(
