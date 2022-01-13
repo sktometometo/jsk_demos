@@ -163,7 +163,7 @@ class DeliveryActionServer:
         if success:
             if goal.execute_after_pickup:
                 success, message =\
-                        self.execute_behaviors(len(self.task_array.tasks)-1)
+                        self.execute_task(len(self.task_array.tasks)-1)
                 result = PickupPackageResult()
                 result.success = success
                 result.message = message
