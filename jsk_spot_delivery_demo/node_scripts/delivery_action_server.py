@@ -302,7 +302,7 @@ class DeliveryActionServer:
 
     def callback_execute_task(self, goal):
 
-        if len(self.task_array) >= goal.index:
+        if len(self.task_array.tasks) >= goal.index:
             rospy.logerr('goal index ({}) is out of range.'.format(goal.index))
             self.actionserver_execute_task.set_aborted(
                 ExecuteTaskResult(
