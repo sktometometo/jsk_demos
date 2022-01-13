@@ -164,7 +164,14 @@ class DeliveryActionServer:
         success = False
         timeout_temp = rospy.Time.now() + rospy.Duration(20)
         while not rospy.is_shutdown() and rospy.Time.now() < timeout_temp:
-            self.head_for_person()
+            ret = self.approach_person()
+            if not ret:
+                rospy.logerr('No Person')
+                continue
+            ret = self.head_for_person()
+            if not ret:
+                rospy.logerr('No Person')
+                continue
             self.sound_client.say('配達物はありませんか', blocking=True)
             recognition_result = self.speech_recognition_client.recognize()
             if len(recognition_result.transcript) == 0:
