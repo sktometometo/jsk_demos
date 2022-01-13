@@ -1,4 +1,5 @@
 duration timeout
+bool execute_after_pickup
 ---
 bool success
 string message

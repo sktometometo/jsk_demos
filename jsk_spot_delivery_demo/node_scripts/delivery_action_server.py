@@ -111,7 +111,6 @@ class DeliveryActionServer:
             5,
             blocking=True)
         if use_pitch:
-            #pitch = -0.2
             self.spot_ros_client.pubBodyPose(0, Quaternion(
                 x=0, y=math.sin(-pitch/2), z=0, w=math.cos(-pitch/2)))
             self.spot_ros_client.stand()
@@ -162,10 +161,21 @@ class DeliveryActionServer:
         success, message = self.pickup_package(goal.timeout)
 
         if success:
-            result = PickupPackageResult()
-            result.success = success
-            result.message = message
-            self.actionserver_pickup_package.set_succeeded(result)
+            if goal.execute_after_pickup:
+                success, message =\
+                        self.execute_behaviors(len(self.task_array.tasks)-1)
+                result = PickupPackageResult()
+                result.success = success
+                result.message = message
+                if success:
+                    self.actionserver_pickup_package.set_succeeded(result)
+                else:
+                    self.actionserver_pickup_package.set_succeeded(result)
+            else:
+                result = PickupPackageResult()
+                result.success = success
+                result.message = message
+                self.actionserver_pickup_package.set_succeeded(result)
         else:
             result = PickupPackageResult()
             result.success = success
@@ -175,18 +185,15 @@ class DeliveryActionServer:
     def pickup_package(self, timeout=rospy.Duration(120)):
 
         timeout_deadline = rospy.Time.now() + timeout
+        rate = rospy.Rate(1)
 
         rospy.loginfo('Asking package task')
         success = False
         timeout_temp = rospy.Time.now() + rospy.Duration(20)
         while not rospy.is_shutdown() and rospy.Time.now() < timeout_temp:
-            ret = self.approach_person()
-            if not ret:
+            if not self.approach_person() or not self.head_for_person():
                 rospy.logerr('No Person')
-                continue
-            ret = self.head_for_person()
-            if not ret:
-                rospy.logerr('No Person')
+                rate.sleep()
                 continue
             self.sound_client.say('配達物はありませんか', blocking=True)
             recognition_result = self.speech_recognition_client.recognize()
@@ -209,7 +216,10 @@ class DeliveryActionServer:
         rospy.loginfo('Asking package information')
         success = False
         while not rospy.is_shutdown() and rospy.Time.now() < timeout_deadline:
-            self.head_for_person()
+            if not self.head_for_person():
+                rospy.logerr('No Person')
+                rate.sleep()
+                continue
             self.sound_client.say('配達先を教えてください。', blocking=True)
             recognition_result = self.speech_recognition_client.recognize()
             if len(recognition_result.transcript) == 0:
@@ -264,7 +274,10 @@ class DeliveryActionServer:
         rospy.loginfo('Asking sender information')
         success = False
         while not rospy.is_shutdown() and rospy.Time.now() < timeout_deadline:
-            self.head_for_person()
+            if not self.head_for_person():
+                rospy.logerr('No Person')
+                rate.sleep()
+                continue
             self.sound_client.say('送り主の名前を教えてください', blocking=True)
             recognition_result = self.speech_recognition_client.recognize()
             if len(recognition_result.transcript) == 0:
