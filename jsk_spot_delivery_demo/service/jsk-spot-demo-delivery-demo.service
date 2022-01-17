@@ -1,0 +1,18 @@
+[Unit]
+Description=JSK Spot Demo Delivery Demo Service
+
+[Service]
+Type=simple
+ExecStart=/bin/bash -c ". /opt/ros/roscore_poststart.bash && \
+. /home/spot/spot_ws/devel/setup.bash && \
+if [ -e /var/lib/robot/config.bash ];then . /var/lib/robot/config.bash ;fi && \
+roslaunch jsk_spot_delivery_demo action_server.launch \
+    --wait --screen"
+ExecStop=/bin/kill -WINCH ${MAINPID}
+KillMode=control-group
+KillSignal=SIGTERM
+User=spot
+Group=spot
+
+[Install]
+WantedBy=multi-user.target
