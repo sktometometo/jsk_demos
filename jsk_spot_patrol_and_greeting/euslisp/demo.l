@@ -1,6 +1,7 @@
 #!/usr/bin/env roseus
 
 (load "package://spoteus/spot-interface.l")
+(load "package://spotkinovaeus/spotkinova-interface.l")
 
 (ros::load-ros-manifest "std_srvs")
 
@@ -9,9 +10,9 @@
     ;;
     (setq ret (ros::wait-for-service "~greeting" 1))
     (if (not ret)
-      (progn
-        (ros::ros-error "No server found.")
-        (return-from greeting nil)))
+        (progn
+          (ros::ros-error "No server found.")
+          (return-from greeting nil)))
     ;;
     (setq res (ros::service-call "~greeting" (instance std_srvs::TriggerRequest :init) t))
     (send res :success)
@@ -20,7 +21,14 @@
 
 (defun main ()
   (ros::roseus "spot-patrol-and-greeting")
-  (spot-init)
+  (setq *with-kinova* (ros::get-param "~with_kinova" nil))
+  (if *with-kinova*
+      (progn
+        (spotkinova-init)
+        (send *spotkinova* :kinova-rest-pose)
+        (send *ri* :angle-vector (send *spotkinova* :angle-vector) 5000)
+        (send *ri* :wait-interpolation))
+      (spot-init))
 
   (setq patrol-list (ros::get-param "~patrol_list" nil))
   (setq home-id (ros::get-param "~home_id" "eng2_73B2"))
@@ -34,18 +42,18 @@
     (ros::ros-info "Going to ~A" target-id)
     (setq ret (send *ri* :go-to-spot target-id))
     (if ret
-      (let* ((deadline (ros::time+ (ros::time-now) (ros::time duration-spot-stay))))
-        (ros::ros-info "Success to reach ~A" target-id)
-        (ros::ros-info "(ros::time-now) : ~A" (ros::time-now))
-        (ros::ros-info "deadline : ~A" deadline)
-        (ros::ros-info "(ros::time< (ros::time-now) deadline) : ~A" (ros::time< (ros::time-now) deadline))
-        (while (ros::time< (ros::time-now) deadline)
-            (greeting)
-            (send *ri* :go-to-spot target-id)
-            (unix::sleep 5)
-            )
-        )
-      (ros::ros-warn "Failed to reach ~A" target-id))
+        (let* ((deadline (ros::time+ (ros::time-now) (ros::time duration-spot-stay))))
+          (ros::ros-info "Success to reach ~A" target-id)
+          (ros::ros-info "(ros::time-now) : ~A" (ros::time-now))
+          (ros::ros-info "deadline : ~A" deadline)
+          (ros::ros-info "(ros::time< (ros::time-now) deadline) : ~A" (ros::time< (ros::time-now) deadline))
+          (while (ros::time< (ros::time-now) deadline)
+                 (greeting)
+                 (send *ri* :go-to-spot target-id)
+                 (unix::sleep 5)
+                 )
+          )
+        (ros::ros-warn "Failed to reach ~A" target-id))
     )
 
   ;; go back to home and dock

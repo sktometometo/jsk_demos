@@ -1,5 +1,6 @@
 <launch>
     <arg name="patrol_list" default="['eng2_JSKEntrance', 'eng2_7FElevator']" />
+    <arg name="with_kinova" default="false" />
 
     <node
         pkg="jsk_spot_patrol_and_greeting"
@@ -11,6 +12,7 @@
         <remap from="~greeting" to="/greeting_action_server/greeting" />
         <rosparam subst_value="true">
             patrol_list: $(arg patrol_list)
+            with_kinova: $(arg with_kinova)
             home_id: eng2_73B2
             dock_id: 520
             receiver_address: "spot@jsk.imi.i.u-tokyo.ac.jp"
