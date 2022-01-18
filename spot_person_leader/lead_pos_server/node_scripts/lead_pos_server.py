@@ -164,7 +164,7 @@ class LeadPosServer:
 
                 if not self._state_person_visible and self._state_duration_visible > rospy.Duration(1):
                     rospy.logwarn('No person visible')
-                    self._spot_client.pubCmdVel(0, 0, 0)
+                    self._spot_client.pub_cmd_vel(0, 0, 0)
                     state = 'stop'
                 elif rospy.Time.now() > trajectory_command_validtime:
                     rospy.loginfo('Restart moving')
@@ -183,7 +183,7 @@ class LeadPosServer:
 
                 if not self._state_person_visible and self._state_duration_visible > rospy.Duration(1):
                     rospy.logwarn('No person visible')
-                    self._spot_client.pubCmdVel(0, 0, 0)
+                    self._spot_client.pub_cmd_vel(0, 0, 0)
                     state = 'stop'
                 else:
                     rospy.loginfo('Restart moving')
@@ -201,7 +201,7 @@ class LeadPosServer:
             else:
                 if not self._state_person_visible and self._state_duration_visible > rospy.Duration(1):
                     rospy.logwarn('No person visible')
-                    self._spot_client.pubCmdVel(0, 0, 0)
+                    self._spot_client.pub_cmd_vel(0, 0, 0)
                     state = 'stop'
                 else:
                     rospy.loginfo('Start moving')
