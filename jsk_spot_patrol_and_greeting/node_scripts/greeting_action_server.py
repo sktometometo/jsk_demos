@@ -131,7 +131,7 @@ class GreetingActionServer:
 
     def head_for_person(self, use_pitch=True):
 
-        self.spot_ros_client.pubBodyPose(0, Quaternion(x=0, y=0, z=0, w=1))
+        self.spot_ros_client.pub_body_pose(0, Quaternion(x=0, y=0, z=0, w=1))
         pose = get_nearest_person_pose()
         if pose is None:
             return False
@@ -139,13 +139,13 @@ class GreetingActionServer:
         rospy.loginfo('pitch:{}, yaw:{}'.format(pitch, yaw))
         self.spot_ros_client.trajectory(0, 0, yaw, 5, blocking=True)
         if use_pitch:
-            self.spot_ros_client.pubBodyPose(0, Quaternion(
+            self.spot_ros_client.pub_body_pose(0, Quaternion(
                 x=0, y=math.sin(-pitch/2), z=0, w=math.cos(-pitch/2)))
         return True
 
     def stand_straight(self):
 
-        self.spot_ros_client.pubBodyPose(0, Quaternion(x=0, y=0, z=0, w=1))
+        self.spot_ros_client.pub_body_pose(0, Quaternion(x=0, y=0, z=0, w=1))
 
     def handler(self, req):
 
