@@ -20,11 +20,13 @@ if __name__ == '__main__':
 
     return_after_demo = rospy.get_param('~return_after_demo', True)
     home_id = rospy.get_param('~home_id', 'eng2_73B2')
+    dock_id = rospy.get_param('~dock_id', 520)
 
     timeout = rospy.get_param('~timeout', 120.0)
     execute_after_pickup = rospy.get_param('~execute_after_pickup', True)
 
     client = SpotRosClient()
+    client.auto_undock()
 
     ac = actionlib.SimpleActionClient(
             '/delivery_action_server/pickup_package',
@@ -42,5 +44,4 @@ if __name__ == '__main__':
     rospy.loginfo('result: {}'.format(result))
 
     if return_after_demo:
-        client.execute_behaviors(home_id)
-        client.dock()
+        client.auto_dock(dock_id, home_id)
