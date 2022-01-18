@@ -71,17 +71,17 @@ class SpotPlayAndDance:
             if self.client.actionclient.wait_for_result(rospy.Duration(0.1)):
                 break
             if pose_num == 0:
-                self.spot_client.pubBodyPose(-0.1, Quaternion(w=1.0))
+                self.spot_client.pub_body_pose(-0.1, Quaternion(w=1.0))
                 self.spot_client.stand()
             elif pose_num == 1:
-                self.spot_client.pubBodyPose(0, Quaternion(
+                self.spot_client.pub_body_pose(0, Quaternion(
                     x=pose_left[0], y=pose_left[1], z=pose_left[2], w=pose_left[3]))
                 self.spot_client.stand()
             elif pose_num == 2:
-                self.spot_client.pubBodyPose(-0.1, Quaternion(w=1.0))
+                self.spot_client.pub_body_pose(-0.1, Quaternion(w=1.0))
                 self.spot_client.stand()
             elif pose_num == 3:
-                self.spot_client.pubBodyPose(0, Quaternion(
+                self.spot_client.pub_body_pose(0, Quaternion(
                     x=pose_right[0], y=pose_right[1], z=pose_right[2], w=pose_right[3]))
                 self.spot_client.stand()
             pose_num += 1
@@ -93,19 +93,19 @@ class SpotPlayAndDance:
         rate = rospy.Rate(1)
         for i in range(5):
             rate.sleep()
-            self.spot_client.pubCmdVel(0,0,0.1)
+            self.spot_client.pub_cmd_vel(0,0,0.1)
 
     def shutdown_hook(self):
         rospy.logwarn('stop playing music...')
         self.client.stopAll()
         self.do_dance = False
         self.thread_dance.join()
-        self.spot_client.pubBodyPose(0.0, Quaternion(w=1.0))
+        self.spot_client.pub_body_pose(0.0, Quaternion(w=1.0))
         self.spot_client.stand()
         rate = rospy.Rate(1)
         for i in range(5):
             rate.sleep()
-            self.spot_client.pubCmdVel(0,0,0.1)
+            self.spot_client.pub_cmd_vel(0,0,0.1)
 
 
 if __name__ == '__main__':
