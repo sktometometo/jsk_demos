@@ -111,14 +111,14 @@ class DeliveryActionServer:
             5,
             blocking=True)
         if use_pitch:
-            self.spot_ros_client.pubBodyPose(0, Quaternion(
+            self.spot_ros_client.pub_body_pose(0, Quaternion(
                 x=0, y=math.sin(-pitch/2), z=0, w=math.cos(-pitch/2)))
             self.spot_ros_client.stand()
         return True
 
     def stand_straight(self):
 
-        self.spot_ros_client.pubBodyPose(0, Quaternion(x=0, y=0, z=0, w=1))
+        self.spot_ros_client.pub_body_pose(0, Quaternion(x=0, y=0, z=0, w=1))
 
     def wait_package_setting(self, duration=rospy.Duration(120)):
 
