@@ -1,0 +1,17 @@
+<launch>
+    <arg name="TARGET_NODE" default="eng2_73B2"/>
+    <arg name="HOME_ID" default="eng2_73B2"/>
+    <arg name="DOCK_ID" default="520"/>
+
+    <node
+        pkg="jsk_spot_delivery_demo"
+        type="delivery_demo.py"
+        name="delivery_demo"
+        output="screen">
+        <rosparam subst_value="true">
+            node_list: ['$(arg TARGET_NODE)']
+            home_id: $(arg HOME_ID)
+            dock_id: $(arg DOCK_ID)
+        </rosparam>
+    </node>
+</launch>

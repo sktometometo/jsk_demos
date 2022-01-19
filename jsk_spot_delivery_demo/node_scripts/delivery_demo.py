@@ -36,12 +36,19 @@ if __name__ == '__main__':
         rospy.logerr('Server is not available')
         sys.exit(1)
 
-    goal = PickupPackageGoal()
-    goal.timeout = rospy.Duration(timeout)
-    goal.execute_after_pickup = execute_after_pickup
+    for target_node_id in random.sample(node_list, len(node_list)):
+        rospy.loginfo('Move to {}'.format(target_node_id))
+        client.execute_behaviors(target_node_id)
 
-    result = ac.send_goal_and_wait(goal)
-    rospy.loginfo('result: {}'.format(result))
+        goal = PickupPackageGoal()
+        goal.timeout = rospy.Duration(timeout)
+        goal.execute_after_pickup = execute_after_pickup
+
+        result = ac.send_goal_and_wait(goal)
+        rospy.loginfo('result: {}'.format(result))
+
+        if result.success:
+            break
 
     if return_after_demo:
         client.auto_dock(dock_id, home_id)

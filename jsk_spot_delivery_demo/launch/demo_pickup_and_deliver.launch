@@ -4,5 +4,9 @@
         type="pickup_package_client.py"
         name="pickup_package_client"
         output="screen">
+        <rosparam subst_value="true">
+            timeout: 120
+            execute_after_pickup: True
+        </rosparam>
     </node>
 </launch>
