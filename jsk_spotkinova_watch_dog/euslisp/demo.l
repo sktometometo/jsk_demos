@@ -4,8 +4,6 @@
 
 (ros::roseus-add-msgs "geometry_msgs")
 
-(spotkinova-init)
-
 (defun look-at (target-coords)
   (send *spotkinova* :look-at-target target-coords)
   (send *ri* :angle-vector (send *spotkinova* :angle-vector) 2000)
@@ -35,6 +33,9 @@
     ))
 
 (defun main ()
+  (spotkinova-init)
+  (send *spotkinova* :reset-pose)
+  (send *ri* :angle-vector (send *spotkinova* :angle-vector) 5000)
   (let (target-coords)
     (while (ros::ok)
       (setq target-coords (get-person-pose))
