@@ -6,13 +6,13 @@
 
 (defun look-at (target-coords)
   (send *spotkinova* :look-at-target target-coords)
-  (send *ri* :angle-vector (send *spotkinova* :angle-vector) 2000)
+  (send *ri* :angle-vector (send *spotkinova* :angle-vector) 1000)
   (send *ri* :wait-interpolation)
   )
 
 (defun fold-arm ()
   (send *spotkinova* :kinova-rest-pose)
-  (send *ri* :angle-vector (send *spotkinova* :angle-vector) 2000)
+  (send *ri* :angle-vector (send *spotkinova* :angle-vector) 1000)
   (send *ri* :wait-interpolation)
   )
 
@@ -35,7 +35,8 @@
 (defun main ()
   (spotkinova-init)
   (send *spotkinova* :reset-pose)
-  (send *ri* :angle-vector (send *spotkinova* :angle-vector) 5000)
+  (send *ri* :angle-vector (send *spotkinova* :angle-vector) 10000)
+  (send *ri* :wait-interpolation)
   (let (target-coords)
     (while (ros::ok)
       (setq target-coords (get-person-pose))
