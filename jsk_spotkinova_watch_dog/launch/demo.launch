@@ -1,0 +1,8 @@
+<launch>
+    <node
+        pkg="jsk_spotkinova_watch_dog"
+        type="demo.l"
+        name="demo"
+        output="screen"
+        />
+</launch>
