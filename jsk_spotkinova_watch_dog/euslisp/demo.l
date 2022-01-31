@@ -20,7 +20,13 @@
     (send *ri* :wait-interpolation)
     t))
 
-(defun move-to-look-at-init nil
+(defun fold-arm ()
+  (send *spotkinova* :kinova-rest-pose)
+  (send *ri* :angle-vector (send *spotkinova* :angle-vector) 5000)
+  (send *ri* :wait-interpolation)
+  )
+
+(defun move-to-look-at-init ()
   (setq look-at-init-pose #f(0.0 45.0 -90.0 0.0 45.0 -90.0 0.0 45.0 -90.0 0.0 45.0 -90.0 0.0 20.0 90.0 -90.0 -20.0 -90.0))
   (send *ri* :angle-vector look-at-init-pose 5000)
   (send *ri* :wait-interpolation)
@@ -58,11 +64,10 @@
             )
           (progn
             (ros::ros-info "No person")
-            (move-to-look-at-init)
+            (fold-arm)
             ))
       )
-    (send *spotkinova* :kinova-rest-pose)
-    (send *ri* :angle-vector (send *spotkinova* :angle-vector) 5000)
-    (send *ri* :wait-interpolation)))
+    (fold-arm)
+    ))
 
 (main)
