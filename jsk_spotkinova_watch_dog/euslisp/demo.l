@@ -7,7 +7,9 @@
 (defun look-at (target-coords)
   (let ((target-pos (send (send target-coords :translate #f(0 0 500)) :pos))
         ret)
-    (setq ret (send *spotkinova* :head :look-at target-pos :link-list (list (send *spotkinova* :link "kinova_shoulder_link") (send *spotkinova* :link "kinova_forearm_link"))))
+    ;; link-list args seems no effect...
+    ;;(setq ret (send *spotkinova* :head :look-at target-pos :link-list (list (send *spotkinova* :link "kinova_shoulder_link") (send *spotkinova* :link "kinova_forearm_link"))))
+    (setq ret (send *spotkinova* :head :look-at target-pos))
     (if (not ret)
       (return-from look-at nil)
       nil)
@@ -56,6 +58,7 @@
             )
           (progn
             (ros::ros-info "No person")
+            (move-to-look-at-init)
             ))
       )
     (send *spotkinova* :kinova-rest-pose)
