@@ -44,7 +44,7 @@
           (progn
             (ros::ros-info "Found a person")
             (look-at target-coords)
-            (send *ri* :speak-jp "こんにちは")
+            (send *ri* :speak-jp "こんにちは" :wait t)
             )
           (progn
             (ros::ros-info "No person")
