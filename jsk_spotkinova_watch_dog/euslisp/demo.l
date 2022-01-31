@@ -4,11 +4,16 @@
 
 (ros::roseus-add-msgs "geometry_msgs")
 
+
+(setq *look-at-init-pose* #f(0.0 45.0 -90.0 0.0 45.0 -90.0 0.0 45.0 -90.0 0.0 45.0 -90.0 0.0 20.0 90.0 -90.0 -20.0 -90.0))
+
+
 (defun look-at (target-coords)
   (let ((target-pos (send (send target-coords :translate #f(0 0 500)) :pos))
         ret)
     ;; link-list args seems no effect...
     ;;(setq ret (send *spotkinova* :head :look-at target-pos :link-list (list (send *spotkinova* :link "kinova_shoulder_link") (send *spotkinova* :link "kinova_forearm_link"))))
+    (send *spotkinova* :angle-vector *look-at-init-pose*)
     (setq ret (send *spotkinova* :head :look-at target-pos))
     (if (not ret)
       (return-from look-at nil)
@@ -27,8 +32,7 @@
   )
 
 (defun move-to-look-at-init ()
-  (setq look-at-init-pose #f(0.0 45.0 -90.0 0.0 45.0 -90.0 0.0 45.0 -90.0 0.0 45.0 -90.0 0.0 20.0 90.0 -90.0 -20.0 -90.0))
-  (send *ri* :angle-vector look-at-init-pose 5000)
+  (send *ri* :angle-vector *look-at-init-pose* 5000)
   (send *ri* :wait-interpolation)
   )
 
