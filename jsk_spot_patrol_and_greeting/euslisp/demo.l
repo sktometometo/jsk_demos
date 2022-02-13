@@ -1,7 +1,5 @@
 #!/usr/bin/env roseus
 
-(load "package://spoteus/spot-interface.l")
-(load "package://spotkinovaeus/spotkinova-interface.l")
 
 (ros::load-ros-manifest "std_srvs")
 
@@ -24,11 +22,14 @@
   (setq *with-kinova* (ros::get-param "~with_kinova" nil))
   (if *with-kinova*
       (progn
+        (load "package://spotkinovaeus/spotkinova-interface.l")
         (spotkinova-init)
         (send *spotkinova* :kinova-rest-pose)
         (send *ri* :angle-vector (send *spotkinova* :angle-vector) 5000)
         (send *ri* :wait-interpolation))
-      (spot-init))
+      (progn
+        (load "package://spoteus/spot-interface.l")
+        (spot-init)))
 
   (setq patrol-list (ros::get-param "~patrol_list" nil))
   (setq home-id (ros::get-param "~home_id" "eng2_73B2"))
