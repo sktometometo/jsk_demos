@@ -35,4 +35,11 @@
         </rosparam>
     </node>
 
+    <node
+        pkg="jsk_spot_patrol_and_greeting"
+        type="approach_person.py"
+        name="approach_person"
+        output="screen"
+        />
+
 </launch>
