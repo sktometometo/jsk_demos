@@ -20,6 +20,8 @@ class AppoachPerson(object):
         self.index_person = int(rospy.get_param('~index_person', 0))
         self.duration_interaction = rospy.get_param(
             '~duration_interaction', 30)
+        self.duration_dead = rospy.get_param(
+            '~duration_dead', 30)
         self.ros_lock = ROSLock('locomotion')
 
         self.lock_for_tracked_objects = threading.Lock()
@@ -79,8 +81,11 @@ class AppoachPerson(object):
                     target_y = target_y * \
                         (target_distance - 1) / target_distance
                     spot_client.trajectory(target_x, target_y, target_theta)
+            rospy.sleep(self.duration_dead)
 
 
 def main():
 
     rospy.init_node('approach_person')
+    node = AppoachPerson()
+    node.spin()

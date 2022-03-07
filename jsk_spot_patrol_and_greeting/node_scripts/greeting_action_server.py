@@ -4,69 +4,17 @@
 import datetime
 import math
 import rospy
-import PyKDL
 
 from std_srvs.srv import Trigger, TriggerResponse
-from geometry_msgs.msg import Quaternion, PoseArray, PoseStamped
+from geometry_msgs.msg import Quaternion
 
 from spot_ros_client.libspotros import SpotRosClient
+from spot_ros_client.libspotros import get_nearest_person_pose
+from spot_ros_client.libspotros import get_diff_for_person
 from sound_play.libsoundplay import SoundClient
 from jsk_robot_startup.email_topic_client import EmailTopicClient
 from image_view2.image_capture_utils import ImageCaptureClient
 from gdrive_ros.gdrive_ros_client import GDriveROSClient
-
-
-def calc_distance(pose):
-
-    return pose.position.x ** 2 + pose.position.y ** 2 + pose.position.z ** 2
-
-
-def convert_msg_point_to_kdl_vector(point):
-
-    return PyKDL.Vector(point.x, point.y, point.z)
-
-
-def get_nearest_person_pose():
-
-    try:
-        msg = rospy.wait_for_message('~people_pose_array', PoseArray,
-                                     timeout=rospy.Duration(5))
-    except rospy.ROSException as e:
-        rospy.logwarn('Timeout exceede: {}'.format(e))
-        return None
-
-    if len(msg.poses) == 0:
-        rospy.logwarn('No person visible')
-        return None
-
-    distance = calc_distance(msg.poses[0])
-    target_pose = msg.poses[0]
-    for pose in msg.poses:
-        if calc_distance(pose) < distance:
-            distance = calc_distance(pose)
-            target_pose = pose
-
-    pose_stamped = PoseStamped()
-    pose_stamped.header = msg.header
-    pose_stamped.pose = target_pose
-
-    return pose_stamped
-
-
-def get_diff_for_person(pose_stamped):
-
-    vector_person_msgbased = convert_msg_point_to_kdl_vector(
-        pose_stamped.pose.position)
-    x = pose_stamped.pose.position.x
-    y = pose_stamped.pose.position.y
-    z = pose_stamped.pose.position.z
-
-    yaw = math.atan2(y, x)
-    try:
-        pitch = math.acos(z / math.sqrt(x**2 + y**2))
-    except ValueError:
-        pitch = 0
-    return pitch, yaw
 
 
 class GreetingActionServer:
@@ -171,4 +119,3 @@ if __name__ == '__main__':
     rospy.init_node('greeting_action_server')
     node = GreetingActionServer()
     rospy.spin()
-
