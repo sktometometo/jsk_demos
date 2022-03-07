@@ -14,7 +14,7 @@
             patrol_list: $(arg patrol_list)
             with_kinova: $(arg with_kinova)
             home_id: eng2_73B2
-            dock_id: 520
+            dock_id: $(optenv DOCKING_STATION_ID 520)
             receiver_address: "spot@jsk.imi.i.u-tokyo.ac.jp"
         </rosparam>
     </node>
