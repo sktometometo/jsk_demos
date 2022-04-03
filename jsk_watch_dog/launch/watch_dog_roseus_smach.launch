@@ -4,19 +4,19 @@
   <arg name="rest_time_per_hour" default="10" /> # min
   <arg name="report_mail_address" default="spot@jsk.imi.i.u-tokyo.ac.jp" />
 
-  # person attention
+  <!-- person attention -->
   <arg name="panorama_image" default="/dual_fisheye_to_panorama/output" />
   <arg name="human_detection_result" default="/spot_recognition/rects" />
-  <arg name="human_width_threshold" default="0.45" /> # rate of human(bbox) height
-  <arg name="human_height_threshold" default="0.4" /> # rate of image height
-  <arg name="max_tracking_yaw" default="0.8" /> # radian
-  <arg name="temp_threshold_sit" default="55" /> # degree
-  <arg name="temp_threshold_stand" default="47" /> # degree
-  <arg name="change_body_duration" default="0.8" /> # second
+  <arg name="human_width_threshold" default="0.45" /> <!-- rate of human(bbox) height -->
+  <arg name="human_height_threshold" default="0.4" /> <!-- rate of image height -->
+  <arg name="max_tracking_yaw" default="0.8" /> <!-- radian -->
+  <arg name="temp_threshold_sit" default="55" /> <!-- degree -->
+  <arg name="temp_threshold_stand" default="47" /> <!-- degree -->
+  <arg name="change_body_duration" default="0.8" /> <!-- second -->
 
-  # watch dog smach
+  <!-- watch dog smach -->
   <node pkg="roseus" type="roseus" name="spot_watchdog" output="screen"
-        args="$(find jsk_spot_watch_dog)/scripts/watch-dog.l" >
+        args="$(find jsk_watch_dog)/scripts/watch-dog.l" >
     <remap from="~input" to="$(arg input_image)" />
     <remap from="~panorama_image" to="$(arg panorama_image)" />
     <remap from="~human" to="$(arg human_detection_result)" />

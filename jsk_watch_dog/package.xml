@@ -1,10 +1,11 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>jsk_spot_watch_dog</name>
+  <name>jsk_watch_dog</name>
   <version>0.0.4</version>
-  <description>The jsk_spot_watch_dog package</description>
+  <description>The jsk_watch_dog package</description>
 
-  <maintainer email="chou@jsk.imi.i.u-tokyo.ac.jp">spot</maintainer>
+  <maintainer email="shinjo@jsk.imi.i.u-tokyo.ac.jp">Koki Shinjo</maintainer>
+  <author email="chou@jsk.imi.i.u-tokyo.ac.jp">spot</author>
 
   <license>BSD</license>
 
