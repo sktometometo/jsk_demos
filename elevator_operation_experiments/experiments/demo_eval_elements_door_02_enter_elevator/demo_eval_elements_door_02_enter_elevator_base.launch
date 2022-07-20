@@ -1,0 +1,15 @@
+<launch>
+    <include
+        file="$(find elevator_operation)/launch/elevator_operation.launch"
+        >
+        <arg name="robot_type" value="fetch"/>
+    </include>
+
+    <include
+        file="$(find elevator_operation)/launch/elevator_door_detector.launch"
+        >
+        <arg name="input_topic_points" value="/head_camera/depth_registered/points"/>
+        <arg name="elevator_door_frame_id" value="eng2/7f/elevator_door"/>
+        <arg name="prefix" value=""/>
+    </include>
+</launch>
