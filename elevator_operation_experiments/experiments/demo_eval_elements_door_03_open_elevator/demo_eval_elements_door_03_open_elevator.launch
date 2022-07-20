@@ -1,0 +1,17 @@
+<launch>
+
+    <node
+        pkg="elevator_operation"
+        type="demo_eval_elements_door_01_enter_room.l"
+        name="demo_eval_elements_door_01_enter_room"
+        output="screen"
+        >
+        <remap from="~look_at" to="/look_at_target_server/look_at_target" />
+        <rosparam subst_value="true">
+            door_frame_id: eng2/7f/73B2/door
+            pose_inside_room: [2.0, 6.2, 0, 0, 0, 0, 1, "eng2/7f"]
+            pose_outside_room: [-1.0, 6.2, 0, 0, 0, 0, 1, "eng2/7f"]
+        </rosparam>
+    </node>
+
+</launch>
