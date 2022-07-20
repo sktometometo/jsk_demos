@@ -1,0 +1,26 @@
+<launch>
+    <arg name="ROSBAG_FILE" />
+
+    <include
+        file="$(find elevator_operation)/launch/rosbag_record.launch"
+        >
+        <arg name="ROSBAG_FILE" value="$(arg ROSBAG_FILE)"/>
+    </include>
+
+    <node
+        pkg="elevator_operation_experiments"
+        type="demo_eval_elements_door_01_enter_room.l"
+        name="demo_eval_elements_door_01_enter_room"
+        output="screen"
+        required="True"
+        >
+        <remap from="~look_at" to="/look_at_target_server/look_at_target" />
+        <remap from="~door_is_open" to="/elevator_operation_server/door_is_open"/>
+        <rosparam subst_value="true">
+            door_frame_id: eng2/7f/73B2/door
+            pose_inside_room: [1.0, 6.3, 0, 0, 0, 0, 1, "eng2/7f"]
+            pose_outside_room: [-1.0, 6.25, 0, 0, 0, 0, 1, "eng2/7f"]
+        </rosparam>
+    </node>
+
+</launch>
