@@ -7,32 +7,47 @@
 (load "package://fetcheus/fetch-interface.l")
 (load "package://elevator_operation/euslisp/utils.l")
 
+;; elevator movement callback
 (setq *elevator-movement* "")
 (setq *elevator-movement-change-flag* nil)
 (defun callback-elevator-movement (msg)
-  (if (not (equal *elevator-movement* (send msg :data)))
-    (setq *elevator-movement-change-flag* t)
-    )
+  (if (not *elevator-movement-change-flag*)
+    (progn
+      (if (not (equal *elevator-movement* (send msg :data)))
+        (setq *elevator-movement-change-flag* t)
+        )
+      ))
   (setq *elevator-movement* (send msg :data))
   )
 
+;; current floor callback
 (setq *current-floor* nil)
 (defun callback-current-floor (msg)
   (setq *current-floor* (send msg :data))
+  )
+
+;; door state callback
+(setq *door-state* 0)
+(defun callback-door-state (msg)
+  (setq *door-state* (send msg :state))
   )
 
 (defun main()
   (fetch-init)
   (ros::subscribe "/elevator_state_publisher/elevator_movement" std_msgs::String #'callback-elevator-movement)
   (ros::subscribe "/elevator_state_publisher/current_floor" std_msgs::Int16 #'callback-current-floor)
+  (ros::subscribe "/elevator_door_detector/door_state" elevator_operation::DoorState #'callback-door-state)
 
-  ;;(setq *pose-inside-elevator* (ros::get-param "~pose_inside_elevator"))
+  (setq *pose-outside-elevator* (ros::get-param "~pose_outside_elevator"))
+  (setq *pose-inside-elevator* (ros::get-param "~pose_inside_elevator"))
+  (setq *panel-frame-id* (ros::get-param "~panel_frame_id"))
+  (setq *door-frame-id* (ros::get-param "~door_frame_id"))
 
-  ;;(add-collision-objects)
+  (call-look-at-target "~look_at" *panel-frame-id*)
 
-  ;;(move-arm-pre-pose)
+  (move-arm-pre-pose)
 
-  ;;(call-look-at-target "~look_at" *door-frame-id*)
+  (call-look-at-target "~look_at" *door-frame-id*)
 
   (ros::rate 10)
   (while (ros::ok)
