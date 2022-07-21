@@ -1,0 +1,18 @@
+<launch>
+
+    <node
+        pkg="elevator_operation"
+        type="demo_eval_elements_door_02_keep_open.l"
+        name="demo_eval_elements_door_02_keep_open"
+        output="screen"
+        >
+        <remap from="~look_at" to="/look_at_target_server/look_at_target" />
+        <rosparam subst_value="true">
+            pose_outside_elevator: [-1.0, 6.2, 0, 0, 0, 0, 1, "eng2/7f"]
+            pose_inside_elevator: [2.0, 6.2, 0, 0, 0, 0, 1, "eng2/7f"]
+            panel_frame_id: eng2/7f/elevator_inside_panel
+            door_frame_id: eng2/7f/elevator_door
+        </rosparam>
+    </node>
+
+</launch>
