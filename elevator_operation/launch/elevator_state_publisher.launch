@@ -67,6 +67,14 @@
             if="$(eval arg('robot_type') == 'fetch')"
             /> <!-- for fetch -->
 
+        <node
+            pkg="topic_tools"
+            type="transform"
+            name="extract_z_acceleration"
+            args="/mobile_base/sensors/imu_data /elevator_accel std_msgs/Float32 'std_msgs.msg.Float32(data=m.linear_acceleration.z)' --import std_msgs"
+            if="$(eval arg('robot_type') == 'turtlebot')"
+            /> <!-- for fetch -->
+
         <!-- LPF for acceleration -->
         <node pkg="elevator_operation" type="lowpass_filter.py" name="lowpass_filter">
             <remap from="~input" to="/elevator_accel" />
