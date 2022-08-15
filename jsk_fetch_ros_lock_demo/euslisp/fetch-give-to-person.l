@@ -13,13 +13,12 @@
 
 (setq *fixed-frame-id* (ros::get-param "~fixed_frame_id" "odom"))
 (setq *base-frame-id* (ros::get-param "~base_frame_id" "base_link"))
+(setq *threshold-distance* (ros::get-param "~threshold_distance" 5.0))
 
 (setq *ros-lock-for-head* (instance ros-lock :init "head"))
 (send *ros-lock-for-head* :wait-for-server)
 (setq *ros-lock-for-navigation* (instance ros-lock :init "navigation"))
 (send *ros-lock-for-navigation* :wait-for-server)
-(setq *ros-lock-for-edgetpu* (instance ros-lock :init "edgetpu"))
-(send *ros-lock-for-edgetpu* :wait-for-server)
 
 (setq *nearest-people-coord-data* nil)
 (setq *nearest-people-coord-stamp* nil)
@@ -66,8 +65,11 @@
   (ros::spin-once)
   (send *ri* :spin-once)
   (ros::sleep)
-  (if (ros::time> (ros::time- (ros::time-now) *nearest-people-coord-stamp*)
-                  (ros::time-from))
+  (if (and  (ros::time>
+              (ros::time- (ros::time-now) *nearest-people-coord-stamp*)
+              (ros::time-from))
+            ()
+            )
     (progn
       (send *ros-lock-for-head* :acquire)
       (send *ros-lock-for-navigation* :acquire)
