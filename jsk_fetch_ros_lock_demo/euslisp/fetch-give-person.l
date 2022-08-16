@@ -5,8 +5,7 @@
 (load "package://fetcheus/fetch-interface.l")
 (load "package://ros_lock/euslisp/ros_lock.l")
 
-(ros::roseus "fetch_approach_person")
-(setq *ri* (instance fetch-interface :init :move-base-action-name "move_base_no_recovery"))
+(ros::roseus "fetch-approach-person")
 (fetch-init)
 
 (if (not (boundp `*tfl*))
@@ -14,16 +13,32 @@
 
 (setq *fixed-frame-id* (ros::get-param "~fixed_frame_id" "odom"))
 (setq *base-frame-id* (ros::get-param "~base_frame_id" "base_link"))
-(setq *min-threshold-distance* (ros::get-param "~min_threshold_distance" 1.5))
-(setq *max-threshold-distance* (ros::get-param "~max_threshold_distance" 5.0))
+
+(setq *ready-pose* #f(47.7909 75.6931 80.1877 -11.5039 98.5518 -24.6569 108.319 0.015018 0.447521 0.501636))
+(setq *hold-out-pose* #f(47.8061 56.7087 58.8303 -57.6904 107.385 -45.3991 90.9389 -0.006954 0.300235 0.523609))
+(setq *pre-get-pose* #f(47.8061 56.7087 58.8303 -57.6904 107.385 -45.3991 90.9389 -0.006954 0.300235 0.523609))
+(setq *get-pose* #f(47.8061 56.7087 58.8303 -57.6904 107.385 -45.3991 90.9389 -0.006954 0.300235 0.523609))
 
 (setq *ros-lock-for-head* (instance ros-lock :init "head"))
 (send *ros-lock-for-head* :wait-for-server)
+(setq *ros-lock-for-arm* (instance ros-lock :init "arm"))
+(send *ros-lock-for-arm* :wait-for-server)
 (setq *ros-lock-for-navigation* (instance ros-lock :init "navigation"))
 (send *ros-lock-for-navigation* :wait-for-server)
 
 (setq *nearest-people-coord-data* nil)
 (setq *nearest-people-coord-stamp* nil)
+
+(defun get-basket ()
+  (send *fetch* :reset-pose)
+  (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
+  t)
+
+(defun hold-out-basket ()
+  t)
+
+(defun put-basket ()
+  t)
 
 (defun callback (msg)
   (let* (bbox-coord
@@ -78,6 +93,7 @@
             )
     (progn
       (send *ros-lock-for-head* :acquire)
+      (send *ros-lock-for-arm* :acquire)
       (send *ros-lock-for-navigation* :acquire)
       (let* ((pos-x (elt (send *nearest-people-coord-data* :pos) 0))
              (pos-y (elt (send *nearest-people-coord-data* :pos) 1))
@@ -99,6 +115,7 @@
               )
           ))
       (send *ros-lock-for-head* :release)
+      (send *ros-lock-for-arm* :release)
       (send *ros-lock-for-navigation* :release)
       )
     ))

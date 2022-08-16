@@ -1,0 +1,20 @@
+<launch>
+
+    <node
+        pkg="jsk_fetch_ros_lock_demo"
+        type="fetch-wandering.l"
+        name="fetch_wandering"
+        output="screen"
+        >
+    </node>
+
+    <node
+        pkg="jsk_fetch_ros_lock_demo"
+        type="fetch-approach-person.l"
+        name="fetch_approach_person"
+        output="screen"
+        >
+        <remap from="~input_bbox_array" to="" />
+    </node>
+
+</launch>

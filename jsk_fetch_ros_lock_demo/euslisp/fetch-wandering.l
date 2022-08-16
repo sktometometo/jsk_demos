@@ -2,7 +2,7 @@
 
 (load "package://fetcheus/fetch-interface.l")
 
-(ros::roseus "fetch-wandering")
+(ros::roseus "fetch_wandering")
 (setq *ri* (instance fetch-interface :init :move-base-action-name "move_base_no_recovery"))
 (fetch-init)
 
