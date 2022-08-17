@@ -103,21 +103,22 @@
               (exit 1)
               )
             )
-          ;;(send *ros-lock-for-navigation* :acquire)
-          ;; aproach to person
-          ;;(send *ri* :go-pos-no-wait target-x target-y (rad2deg target-theta))
-          (while (and (ros::ok)
-                      *nearest-people-coord-data*
-                      (> (elt (send *nearest-people-coord-data* :pos) 1) 0)
-                      )
-              (ros::ros-info "*nearest-people-coord-data*: ~A" *nearest-people-coord-data*)
-              (send *ri* :point-head (send *nearest-people-coord-data* :pos) :wait t)
-              (unix::sleep 1)
-              (ros::spin-once)
+          (setq ret (send *ros-lock-for-navigation* :acquire :timeout 10))
+          (if (not ret)
+            (progn
+              (ros::ros-error "Unable to acquire lock for navigation")
+              (exit 1)
               )
-          (send *ri* :point-head #f(1.0 0 1.0) :wait nil)
+            )
+          ;; aproach to person
+          (ros::ros-info "*nearest-people-coord-data*: ~A" *nearest-people-coord-data*)
+          (send *ri* :go-pos target-x target-y (rad2deg target-theta))
+          (ros::spin-once)
+          (if *nearest-people-coord-data*
+              (send *ri* :point-head (send *nearest-people-coord-data* :pos) :wait t)
+            )
           ;; Release lock
-          ;;(send *ros-lock-for-navigation* :release)
+          (send *ros-lock-for-navigation* :release)
           (send *ros-lock-for-head* :release)
           (ros::ros-error "released")
           )

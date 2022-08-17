@@ -13,6 +13,7 @@
 
 (setq *fixed-frame-id* (ros::get-param "~fixed_frame_id" "odom"))
 (setq *base-frame-id* (ros::get-param "~base_frame_id" "base_link"))
+(setq *max-threshold-distance* (ros::get-param "~max_threshold_distance" 2.0))
 
 (setq *ready-pose* #f(47.7909 75.6931 80.1877 -11.5039 98.5518 -24.6569 108.319 0.015018 0.447521 0.501636))
 (setq *hold-out-pose* #f(47.8061 56.7087 58.8303 -57.6904 107.385 -45.3991 90.9389 -0.006954 0.300235 0.523609))
@@ -113,14 +114,15 @@
 (ros::subscribe "~input_bbox_array" jsk_recognition_msgs::BoundingBoxArray #'callback)
 
 (ros::rate 1)
-(while (ros:ok)
+(while (ros::ok)
   (ros::spin-once)
   (send *ri* :spin-once)
   (ros::sleep)
   (ros::ros-info "*nearest-people-coord-data*: ~A" *nearest-people-coord-data*)
   (ros::ros-info "*nearest-people-coord-stamp*: ~A" *nearest-people-coord-stamp*)
   (if (and *nearest-people-coord-data* *nearest-people-coord-stamp*)
-    (let* ((pos-x (elt (send *nearest-people-coord-data* :pos) 0))
+    (let* (ret
+           (pos-x (elt (send *nearest-people-coord-data* :pos) 0))
            (pos-y (elt (send *nearest-people-coord-data* :pos) 1))
            (distance (norm (send *nearest-people-coord-data* :pos)))
            (delay (ros::time- (ros::time-now) *nearest-people-coord-stamp*))
@@ -138,9 +140,30 @@
                 )
         (progn
           ;; Acquire lock
-          (send *ros-lock-for-arm* :acquire)
-          (send *ros-lock-for-head* :acquire)
-          (send *ros-lock-for-navigation* :acquire)
+          (setq ret (send *ros-lock-for-arm* :acquire :timeout 10))
+          (if (not ret)
+            (progn
+              (ros::ros-error "Unable to acquire lock for arm")
+              (send *ros-lock-for-arm* :release)
+              (return)
+              ))
+          (setq ret (send *ros-lock-for-head* :acquire :timeout 10))
+          (if (not ret)
+            (progn
+              (ros::ros-error "Unable to acquire lock for head")
+              (send *ros-lock-for-arm* :release)
+              (send *ros-lock-for-head* :release)
+              (return)
+              ))
+          (setq ret (send *ros-lock-for-navigation* :acquire))
+          (if (not ret)
+            (progn
+              (ros::ros-error "Unable to acquire lock for navigation")
+              (send *ros-lock-for-navigation* :release)
+              (send *ros-lock-for-arm* :release)
+              (send *ros-lock-for-head* :release)
+              (return)
+              ))
           ;; Hold out basket to person
           (send *ri* :go-pos-no-wait 0 0 (rad2deg target-theta))
           (get-basket)
@@ -154,4 +177,5 @@
           (send *ros-lock-for-head* :release)
           (send *ros-lock-for-arm* :release)
           )
+        (ros::ros-error "Unable to find person")
         ))))

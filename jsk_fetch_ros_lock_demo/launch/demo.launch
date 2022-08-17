@@ -35,6 +35,7 @@
         <remap
             from="~input_bbox_array"
             to="/edgetpu_panorama_object_detector/bbox_array" />
+    </node>
 
     <node
         pkg="jsk_fetch_ros_lock_demo"
