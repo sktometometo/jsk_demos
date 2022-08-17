@@ -87,7 +87,7 @@
       (ros::ros-info "delay: ~A" delay)
       (if (and (ros::time<
                  delay
-                 (send (instance ros::time :init) :from-sec 5.0)
+                 (send (instance ros::time :init) :from-sec 2.0)
                  )
                (<= distance *max-threshold-distance*)
                (>= distance *min-threshold-distance*)

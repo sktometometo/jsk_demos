@@ -5,7 +5,7 @@
 (load "package://fetcheus/fetch-interface.l")
 (load "package://ros_lock/euslisp/ros_lock.l")
 
-(ros::roseus "fetch-approach-person")
+(ros::roseus "fetch_hold_out_person")
 (fetch-init)
 
 (if (not (boundp `*tfl*))
@@ -112,38 +112,46 @@
 
 (ros::subscribe "~input_bbox_array" jsk_recognition_msgs::BoundingBoxArray #'callback)
 
+(ros::rate 1)
 (while (ros:ok)
   (ros::spin-once)
   (send *ri* :spin-once)
-  (if (and  (ros::time<
-              (ros::time- (ros::time-now) *nearest-people-coord-stamp*)
-              (send (instance ros::time :init) :from-sec 5.0)
-              )
-            (<= (norm (send *nearest-people-coord-data* :pos)) *max-threshold-distance*)
-            (>= (norm (send *nearest-people-coord-data* :pos)) *min-threshold-distance*)
-            )
+  (ros::sleep)
+  (ros::ros-info "*nearest-people-coord-data*: ~A" *nearest-people-coord-data*)
+  (ros::ros-info "*nearest-people-coord-stamp*: ~A" *nearest-people-coord-stamp*)
+  (if (and *nearest-people-coord-data* *nearest-people-coord-stamp*)
     (let* ((pos-x (elt (send *nearest-people-coord-data* :pos) 0))
            (pos-y (elt (send *nearest-people-coord-data* :pos) 1))
            (distance (norm (send *nearest-people-coord-data* :pos)))
-           (target-x (* pos-x (/ (- distance 0.5) distance)))
-           (target-y (* pos-y (/ (- distance 0.5) distance)))
+           (delay (ros::time- (ros::time-now) *nearest-people-coord-stamp*))
            (target-theta (atan pos-y pos-x))
            )
-      ;; Acquire lock
-      (send *ros-lock-for-head* :acquire)
-      (send *ros-lock-for-arm* :acquire)
-      (send *ros-lock-for-navigation* :acquire)
-      ;; Hold out basket to person
-      (send *ri* :go-pos-no-wait 0 0 (rad2deg target-theta))
-      (get-basket)
-      (hold-out-basket)
-      (send *ri* :speak-jp "お菓子はいかがですか")
-      (unix:sleep 5)
-      (ready-basket)
-      (put-basket)
-      ;; Release lock
-      (send *ros-lock-for-head* :release)
-      (send *ros-lock-for-arm* :release)
-      (send *ros-lock-for-navigation* :release)
-      )
-    ))
+      (ros::ros-info "distance: ~A" distance)
+      (ros::ros-info "delay: ~A" delay)
+      (ros::ros-info "target-theta: ~A" target-theta)
+      (if (and  (ros::time<
+                  delay
+                  (send (instance ros::time :init) :from-sec 2.0)
+                  )
+                (<= distance *max-threshold-distance*)
+                (< (rad2deg (abs target-theta)) 45)
+                )
+        (progn
+          ;; Acquire lock
+          (send *ros-lock-for-arm* :acquire)
+          (send *ros-lock-for-head* :acquire)
+          (send *ros-lock-for-navigation* :acquire)
+          ;; Hold out basket to person
+          (send *ri* :go-pos-no-wait 0 0 (rad2deg target-theta))
+          (get-basket)
+          (hold-out-basket)
+          (send *ri* :speak-jp "お菓子はいかがですか")
+          (unix:sleep 5)
+          (ready-basket)
+          (put-basket)
+          ;; Release lock
+          (send *ros-lock-for-navigation* :release)
+          (send *ros-lock-for-head* :release)
+          (send *ros-lock-for-arm* :release)
+          )
+        ))))

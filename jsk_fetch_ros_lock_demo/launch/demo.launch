@@ -35,6 +35,16 @@
         <remap
             from="~input_bbox_array"
             to="/edgetpu_panorama_object_detector/bbox_array" />
+
+    <node
+        pkg="jsk_fetch_ros_lock_demo"
+        type="fetch-give-person.l"
+        name="fetch_give_person"
+        output="screen"
+        >
+        <remap
+            from="~input_bbox_array"
+            to="/edgetpu_panorama_object_detector/bbox_array" />
     </node>
 
 </launch>
