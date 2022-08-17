@@ -14,8 +14,8 @@
 
 (setq *fixed-frame-id* (ros::get-param "~fixed_frame_id" "odom"))
 (setq *base-frame-id* (ros::get-param "~base_frame_id" "base_link"))
-(setq *min-threshold-distance* (ros::get-param "~min_threshold_distance" 1.5))
-(setq *max-threshold-distance* (ros::get-param "~max_threshold_distance" 5.0))
+(setq *min-threshold-distance* (ros::get-param "~min_threshold_distance" 0.5))
+(setq *max-threshold-distance* (ros::get-param "~max_threshold_distance" 3.0))
 
 (setq *ros-lock-for-head* (instance ros-lock :init "head"))
 (send *ros-lock-for-head* :wait-for-server)
@@ -66,32 +66,62 @@
 
 (ros::subscribe "~input_bbox_array" jsk_recognition_msgs::BoundingBoxArray #'callback)
 
-(while (ros:ok)
+(ros::rate 1)
+(while (ros::ok)
   (ros::spin-once)
   (send *ri* :spin-once)
-  (if (and  (ros::time<
-              (ros::time- (ros::time-now) *nearest-people-coord-stamp*)
-              (send (instance ros::time :init) :from-sec 5.0)
-              )
-            (<= (norm (send *nearest-people-coord-data* :pos)) *max-threshold-distance*)
-            (>= (norm (send *nearest-people-coord-data* :pos)) *min-threshold-distance*)
-            )
-    (let* ((pos-x (elt (send *nearest-people-coord-data* :pos) 0))
+  (ros::sleep)
+  (ros::ros-info "*nearest-people-coord-data*: ~A" *nearest-people-coord-data*)
+  (ros::ros-info "*nearest-people-coord-stamp*: ~A" *nearest-people-coord-stamp*)
+  (if (and *nearest-people-coord-data* *nearest-people-coord-stamp*)
+    (let* (ret
+           (pos-x (elt (send *nearest-people-coord-data* :pos) 0))
            (pos-y (elt (send *nearest-people-coord-data* :pos) 1))
-           (distance (norm (send *nearest-people-coord-data* :pos)))
+           (distance (* 0.001 (norm (send *nearest-people-coord-data* :pos))))
+           (delay (ros::time- (ros::time-now) *nearest-people-coord-stamp*))
            (target-x (* pos-x (/ (- distance 0.5) distance)))
            (target-y (* pos-y (/ (- distance 0.5) distance)))
            (target-theta (atan pos-y pos-x))
            )
-      ;; Acquire lock
-      (send *ros-lock-for-head* :acquire)
-      (send *ros-lock-for-navigation* :acquire)
-      ;; aproach to person
-      (send *ri* :go-pos-no-wait target-x target-y (rad2deg target-theta))
-      (send *ri* :point-head (send *nearest-people-coord-data* :pos) :wait nil)
-      (unix::sleep 1)
-      ;; Release lock
-      (send *ros-lock-for-head* :release)
-      (send *ros-lock-for-navigation* :release)
+      (ros::ros-info "distance: ~A" distance)
+      (ros::ros-info "delay: ~A" delay)
+      (if (and (ros::time<
+                 delay
+                 (send (instance ros::time :init) :from-sec 5.0)
+                 )
+               (<= distance *max-threshold-distance*)
+               (>= distance *min-threshold-distance*)
+               (> pos-y 0)
+               )
+        (progn
+          (ros::ros-error "Found person, approach to ~A ~A" target-x target-y)
+          ;; Acquire lock
+          (setq ret (send *ros-lock-for-head* :acquire :timeout 10))
+          (if (not ret)
+            (progn
+              (ros::ros-error "Unable to acquire lock for head")
+              (exit 1)
+              )
+            )
+          ;;(send *ros-lock-for-navigation* :acquire)
+          ;; aproach to person
+          ;;(send *ri* :go-pos-no-wait target-x target-y (rad2deg target-theta))
+          (while (and (ros::ok)
+                      *nearest-people-coord-data*
+                      (> (elt (send *nearest-people-coord-data* :pos) 1) 0)
+                      )
+              (ros::ros-info "*nearest-people-coord-data*: ~A" *nearest-people-coord-data*)
+              (send *ri* :point-head (send *nearest-people-coord-data* :pos) :wait t)
+              (unix::sleep 1)
+              (ros::spin-once)
+              )
+          (send *ri* :point-head #f(1.0 0 1.0) :wait nil)
+          ;; Release lock
+          ;;(send *ros-lock-for-navigation* :release)
+          (send *ros-lock-for-head* :release)
+          (ros::ros-error "released")
+          )
+        )
       )
+    (ros::ros-error "Person not found.)
     ))
