@@ -18,6 +18,7 @@
         /scan
         /elevator_operation/elevator_door_points
         /elevator_door_opening_checker/output
+        /elevator_detection_door_detector_extract_indices/output
         /elevator_accel
         /elevator_accel_filtered
         /elevator_altitude
