@@ -15,8 +15,15 @@
         /map
         /odom
         /odom_combined
+        /scan
         /elevator_operation/elevator_door_points
         /elevator_door_opening_checker/output
+        /elevator_accel
+        /elevator_accel_filtered
+        /elevator_altitude
+        /elevator_state_publisher/current_floor
+        /elevator_state_publisher/elevator_movement
+        /elevator_state_publisher/rest_elevator
         /spinal/imu
         /spinal/baro
         /lowpass_filter/output
