@@ -16,6 +16,7 @@
         /odom
         /odom_combined
         /scan
+        /base_scan
         /elevator_operation/elevator_door_points
         /elevator_door_opening_checker/output
         /elevator_detection_door_detector_extract_indices/output
