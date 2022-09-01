@@ -2,6 +2,7 @@
     <arg name="initial_floor" default="7" />
     <arg name="device_type" default="" /> <!-- spinal or enviii or fetch1075_enviii -->
     <arg name="device_name" default="/dev/ttyUSB0" />
+    <arg name="device_baud" default="115200" />
     <arg name="robot_type" default="fetch" /> <!-- fetch -->
 
     <arg name="output_topic_current_floor" default="/elevator_state_publisher/current_floor" />
@@ -37,6 +38,7 @@
             file="$(find elevator_operation)/launch/drivers/spinal_driver.launch"
             if="$(eval arg('device_type') == 'spinal')" >
             <arg name="device" value="$(arg device_name)" />
+            <arg name="baud" value="$(arg device_baud)" />
             <arg name="output_altitude_topic" value="/elevator_altitude" />
         </include>
 
@@ -45,6 +47,7 @@
             file="$(find elevator_operation)/launch/drivers/enviii_driver.launch"
             if="$(eval arg('device_type') == 'enviii')" >
             <arg name="device" value="$(arg device_name)" />
+            <arg name="baud" value="$(arg device_baud)" />
             <arg name="output_altitude_topic" value="/elevator_altitude" />
         </include>
 
