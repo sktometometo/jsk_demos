@@ -16,6 +16,7 @@
         type="play"
         name="elevator_operation_rosbag_play"
         args="$(arg ROSBAG_FILE) --clock --loop"
+        output="screen"
         />
 
     <group if="$(eval arg('ROBOT_TYPE') == 'fetch')">
