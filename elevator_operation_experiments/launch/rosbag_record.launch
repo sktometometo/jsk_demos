@@ -9,9 +9,12 @@
         args="-O $(arg ROSBAG_FILE)
         /camera/depth_registered/points
         /head_camera/depth_registered/points
+        /head_camera/rgb/quater/image_rect_color
+        /dual_fisheye_to_panorama/quater/output
         /rosout
         /tf
         /tf_static
+        /joint_states
         /map
         /odom
         /odom_combined
@@ -20,14 +23,20 @@
         /elevator_operation/elevator_door_points
         /elevator_door_opening_checker/output
         /elevator_detection_door_detector_extract_indices/output
+        /spinal/imu
+        /imu
+        /mobile_base/sensors/imu_data
         /elevator_accel
         /elevator_accel_filtered
+        /spinal/baro
+        /enviii/pressure
+        /enviii/temperature
+        /pressure
+        /temperature
         /elevator_altitude
         /elevator_state_publisher/current_floor
         /elevator_state_publisher/elevator_movement
         /elevator_state_publisher/rest_elevator
-        /spinal/imu
-        /spinal/baro
         /lowpass_filter/output
         /change_floor_server/input
         "
