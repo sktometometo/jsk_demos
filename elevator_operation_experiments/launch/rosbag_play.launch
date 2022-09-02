@@ -1,5 +1,11 @@
 <launch>
     <arg name="ROSBAG_FILE" />
+    <arg name="ROBOT_TYPE" />
+
+    <arg name="use_fetch_description" default="true" />
+    <arg name="use_base_camera_mount" default="true" />
+    <arg name="use_head_box" default="false" />
+    <arg name="use_head_l515" default="true" />
 
     <rosparam>
         use_sim_time: true
@@ -9,6 +15,18 @@
         pkg="rosbag"
         type="play"
         name="elevator_operation_rosbag_play"
-        args="$(arg ROSBAG_FILE) --clock "
+        args="$(arg ROSBAG_FILE) --clock --loop"
         />
+
+    <group if="$(eval arg('ROBOT_TYPE') == 'fetch')">
+        <param name="robot_description" command="$(find xacro)/xacro $(find jsk_fetch_startup)/robots/jsk_fetch.urdf.xacro
+                  ros_distro:=$(env ROS_DISTRO)
+                  use_fetch_description:=$(arg use_fetch_description)
+                  base_camera_mount:=$(arg use_base_camera_mount)
+                  head_box:=$(arg use_head_box)
+                  head_l515:=$(arg use_head_l515)" />
+        <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+        <node pkg="rviz" type="rviz" name="$(anon jsk_startup_rviz)"
+              args="-d $(find jsk_fetch_startup)/config/jsk_startup.rviz" />
+    </group>
 </launch>
