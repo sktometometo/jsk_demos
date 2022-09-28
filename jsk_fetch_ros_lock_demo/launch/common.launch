@@ -1,0 +1,14 @@
+<launch>
+
+    <node
+        pkg="jsk_fetch_ros_lock_demo"
+        type="dummy_known_person_publisher.py"
+        name="dummy_known_person_publisher"
+        output="screen"
+        >
+        <remap from="~input" to="/edgetpu_panorama_object_detector/bbox_array" />
+        <remap from="~output_known" to="/edgetpu_panorama_object_detector/known_bbox_array" />
+        <remap from="~output_unknown" to="/edgetpu_panorama_object_detector/unknown_bbox_array" />
+    </node>
+
+</launch>
