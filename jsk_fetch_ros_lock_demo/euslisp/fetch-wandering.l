@@ -33,6 +33,7 @@
     (if ret
       (progn
         (ros::ros-info "target-x: ~A, target-y: ~A, target-theta: ~A" target-x target-y target-theta)
+        (send *ri* :clear-costmap)
         (send *ri* :go-pos-no-wait target-x target-y (deg2rad target-theta))
         (send *ros-lock* :release)
         )

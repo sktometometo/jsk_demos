@@ -6,6 +6,7 @@
 (load "package://ros_lock/euslisp/ros_lock.l")
 
 (ros::roseus "fetch_serve_person")
+(setq *ri* (instance fetch-interface :init :move-base-action-name "move_base_no_recovery"))
 (fetch-init)
 
 (if (not (boundp `*tfl*))
@@ -14,16 +15,12 @@
 (setq *fixed-frame-id* (ros::get-param "~fixed_frame_id" "odom"))
 (setq *base-frame-id* (ros::get-param "~base_frame_id" "base_link"))
 
-(setq *ros-lock-for-head* (instance ros-lock :init "head"))
-(send *ros-lock-for-head* :wait-for-server)
-(setq *ros-lock-for-arm* (instance ros-lock :init "arm"))
-(send *ros-lock-for-arm* :wait-for-server)
-(setq *ros-lock-for-base* (instance ros-lock :init "base"))
-(send *ros-lock-for-base* :wait-for-server)
+(setq *ros-lock* (instance ros-lock :init "base"))
+(send *ros-lock* :wait-for-server)
 
-(setq *nearest-people-coord-data* nil)
-(setq *nearest-people-coord-stamp* nil)
-(setq *last-stamp-approach* (ros::time-now))
+(setq *target-person-coord-data* nil)
+(setq *target-person-coord-stamp* nil)
+(setq *last-stamp-approach* (ros::time))
 
 (defun callback (msg)
   (let* (bbox-coord
@@ -37,8 +34,8 @@
          )
     (if (not (send msg :boxes))
       (progn
-        (setq *nearest-people-coord-data* nil)
-        (setq *nearest-people-coord-stamp* (send msg :header :stamp))
+        (setq *target-person-coord-data* nil)
+        (setq *target-person-coord-stamp* (send msg :header :stamp))
         )
       (if coord-base-to-bbox
         (progn
@@ -50,7 +47,7 @@
                            (ros::tf-pose->coords (send bbox :pose))))
                      (send msg :boxes))
                 )
-          (setq *nearest-people-coord-data*
+          (setq *target-person-coord-data*
               (elt
                 (sort people-coords-base-based
                       #'(lambda (coord-a coord-b)
@@ -59,7 +56,7 @@
                               )
                           ))
                 0))
-          (setq *nearest-people-coord-stamp* (send msg :header :stamp))
+          (setq *target-person-coord-stamp* (send msg :header :stamp))
           ))
       )
     ))
@@ -71,14 +68,14 @@
   (ros::spin-once)
   (send *ri* :spin-once)
   (ros::sleep)
-  (ros::ros-info "*nearest-people-coord-data*: ~A" *nearest-people-coord-data*)
-  (ros::ros-info "*nearest-people-coord-stamp*: ~A" *nearest-people-coord-stamp*)
-  (if (and *nearest-people-coord-data* *nearest-people-coord-stamp*)
+  (ros::ros-info "*target-person-coord-data*: ~A" *target-person-coord-data*)
+  (ros::ros-info "*target-person-coord-stamp*: ~A" *target-person-coord-stamp*)
+  (if (and *target-person-coord-data* *target-person-coord-stamp*)
     (let* (ret
-           (pos-x (elt (send *nearest-people-coord-data* :pos) 0))
-           (pos-y (elt (send *nearest-people-coord-data* :pos) 1))
-           (distance (* 0.001 (norm (send *nearest-people-coord-data* :pos))))
-           (delay (ros::time- (ros::time-now) *nearest-people-coord-stamp*))
+           (pos-x (* 0.001 (elt (send *target-person-coord-data* :pos) 0)))
+           (pos-y (* 0.001 (elt (send *target-person-coord-data* :pos) 1)))
+           (distance (norm (send *target-person-coord-data* :pos)))
+           (delay (ros::time- (ros::time-now) *target-person-coord-stamp*))
            (duration-from-last (ros::time- (ros::time-now) *last-stamp-approach*))
            (target-x (* pos-x (/ (- distance 0.5) distance)))
            (target-y (* pos-y (/ (- distance 0.5) distance)))
@@ -92,27 +89,15 @@
                 )
         (progn
           ;; Acquire lock
-          (setq ret (send *ros-lock-for-arm* :acquire :timeout 10))
-          (if (not ret)
-            (progn
-              (ros::ros-error "Unable to acquire lock for arm")
-              (exit 1)
-              ))
-          (setq ret (send *ros-lock-for-head* :acquire :timeout 10))
-          (if (not ret)
-            (progn
-              (ros::ros-error "Unable to acquire lock for head")
-              (exit 1)
-              ))
-          (setq ret (send *ros-lock-for-base* :acquire))
+          (setq ret (send *ros-lock* :acquire))
           (if (not ret)
             (progn
               (ros::ros-error "Unable to acquire lock for base")
               (exit 1)
               ))
           ;; Hold out basket to person
-          (send *ri* :go-pos-no-wait target-x target-y (rad2deg target-theta))
-          (send *fetch* :inverse-kinematics (make-cascoords #f(500 0 500)) :rotation-axis :x)
+          (send *ri* :go-pos target-x target-y (rad2deg target-theta))
+          (send *fetch* :inverse-kinematics (make-cascoords :pos #f(500 0 500)) :rotation-axis :x)
           (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
           (send *ri* :speak-jp "お菓子はいかがですか")
           (send *ri* :wait-interpolation)
@@ -121,12 +106,10 @@
           (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
           (send *ri* :wait-interpolation)
           ;; Release lock
-          (send *ros-lock-for-base* :release)
-          (send *ros-lock-for-head* :release)
-          (send *ros-lock-for-arm* :release)
+          (send *ros-lock* :release)
           (ros::ros-error "released")
           ;;
-          (setq *last-stamp-approach* *nearest-people-coord-stamp*)
+          (setq *last-stamp-approach* *target-person-coord-stamp*)
           )
         (ros::ros-error "Unable to find person")
         ))))

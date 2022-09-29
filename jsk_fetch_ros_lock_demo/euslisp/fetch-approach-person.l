@@ -15,14 +15,12 @@
 (setq *fixed-frame-id* (ros::get-param "~fixed_frame_id" "odom"))
 (setq *base-frame-id* (ros::get-param "~base_frame_id" "base_link"))
 
-(setq *ros-lock-for-head* (instance ros-lock :init "head"))
-(setq *ros-lock-for-base* (instance ros-lock :init "base"))
-(send *ros-lock-for-head* :wait-for-server)
-(send *ros-lock-for-base* :wait-for-server)
+(setq *ros-lock* (instance ros-lock :init "base"))
+(send *ros-lock* :wait-for-server)
 
 (setq *nearest-people-coord-data* nil)
 (setq *nearest-people-coord-stamp* nil)
-(setq *last-stamp-approach* (ros::time-now))
+(setq *last-stamp-approach* (ros::time))
 
 (defun callback (msg)
   (let* (bbox-coord
@@ -64,6 +62,7 @@
     ))
 
 (ros::subscribe "~input_bbox_array" jsk_recognition_msgs::BoundingBoxArray #'callback)
+(ros::advertise "~output" geometry_msgs::PoseStamped)
 
 (ros::rate 1)
 (while (ros::ok)
@@ -92,14 +91,7 @@
         (progn
           (ros::ros-error "Found unknown person, approach to ~A ~A" target-x target-y)
           ;; Acquire lock
-          (setq ret (send *ros-lock-for-head* :acquire :timeout 10))
-          (if (not ret)
-            (progn
-              (ros::ros-error "Unable to acquire lock for head")
-              (exit 1)
-              )
-            )
-          (setq ret (send *ros-lock-for-base* :acquire :timeout 10))
+          (setq ret (send *ros-lock* :acquire :timeout 10))
           (if (not ret)
             (progn
               (ros::ros-error "Unable to acquire lock for base")
@@ -115,8 +107,7 @@
             )
           (send *ri* :speak-jp "こんにちは")
           ;; Release lock
-          (send *ros-lock-for-base* :release)
-          (send *ros-lock-for-head* :release)
+          (send *ros-lock* :release)
           (ros::ros-error "released")
           ;;
           (setq *last-stamp-approach* *nearest-people-coord-stamp*)
