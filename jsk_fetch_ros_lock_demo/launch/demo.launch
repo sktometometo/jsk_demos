@@ -1,29 +1,15 @@
 <launch>
 
+    <include
+        file="$(find jsk_fetch_ros_lock_demo)/launch/common.launch"
+        />
+
     <node
         pkg="jsk_fetch_ros_lock_demo"
         type="fetch-wandering.l"
         name="fetch_wandering"
         output="screen"
         >
-    </node>
-
-    <node
-        pkg="jsk_perception"
-        type="rect_array_in_panorama_to_bounding_box_array.py"
-        name="ros_lock_demo_edgetpu_panorama_object_detection_rect_array_in_panorama_to_bounding_box_array"
-        output="log"
-        >
-        <remap from="~panorama_image" to="/dual_fisheye_to_panorama/quater/output" />
-        <remap from="~panorama_info" to="/dual_fisheye_to_panorama/panorama_info" />
-        <remap from="~input_class" to="/edgetpu_panorama_object_detector/output/class" />
-        <remap from="~input_rects" to="/edgetpu_panorama_object_detector/output/rects" />
-        <remap from="~bbox_array" to="/edgetpu_panorama_object_detector/bbox_array" />
-        <rosparam>
-            frame_fixed: "map"
-            dimensions_labels:
-                person: [0.5, 0.5, 1.5]
-        </rosparam>
     </node>
 
     <node
@@ -34,18 +20,18 @@
         >
         <remap
             from="~input_bbox_array"
-            to="/edgetpu_panorama_object_detector/bbox_array" />
+            to="/edgetpu_panorama_object_detector/unknown_bbox_array" />
     </node>
 
     <node
         pkg="jsk_fetch_ros_lock_demo"
-        type="fetch-give-person.l"
-        name="fetch_give_person"
+        type="fetch-serve-person.l"
+        name="fetch_serve_person"
         output="screen"
         >
         <remap
             from="~input_bbox_array"
-            to="/edgetpu_panorama_object_detector/bbox_array" />
+            to="/edgetpu_panorama_object_detector/known_bbox_array" />
     </node>
 
 </launch>

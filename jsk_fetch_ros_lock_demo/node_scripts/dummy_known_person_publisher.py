@@ -7,7 +7,7 @@ import math
 
 
 def near_table(box):
-    if math.sqrt((box.position.x - 3.921)**2 + (box.position.y - 7.847)) < 3.0:
+    if math.sqrt((box.pose.position.x - 3.921)**2 + (box.pose.position.y - 7.847)**2) < 3.0:
         return True
     else:
         return False

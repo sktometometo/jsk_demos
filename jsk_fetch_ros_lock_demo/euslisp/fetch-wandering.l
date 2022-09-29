@@ -15,24 +15,32 @@
 (setq *min-theta-range* (ros::get-param "~min_theta_range" -3.14))
 
 
-(setq *ros-lock* (instance ros-lock :init "navigation"))
+(setq *ros-lock* (instance ros-lock :init "base"))
+(ros::ros-info "waiting for ros-lock server...")
 (send *ros-lock* :wait-for-server)
+(ros::ros-info "ros-lock server is ready.")
 
-(ros::rate 0.1)
 (while (ros::ok)
   (ros::spin-once)
-  (send *ri* :spin-once)
-  (ros::sleep)
   (unix::sleep 1)
-  (send *ros-lock* :acquire)
-  (let ((target-x (+ (random (- *max-x-range* *min-x-range*)) *min-x-range*))
+  (let (ret
+        (target-x (+ (random (- *max-x-range* *min-x-range*)) *min-x-range*))
         (target-y (+ (random (- *max-y-range* *min-y-range*)) *min-y-range*))
         (target-theta (+ (random (- *max-theta-range* *min-theta-range*)) *min-theta-range*))
         )
-    (ros::ros-info "target-x: ~A, target-y: ~A, target-theta: ~A" target-x target-y target-theta)
-    (send *ri* :go-pos-no-wait target-x target-y (deg2rad target-theta))
+    (ros::ros-info "trying to acquire lock")
+    (setq ret (send *ros-lock* :acquire :timeout 10))
+    (if ret
+      (progn
+        (ros::ros-info "target-x: ~A, target-y: ~A, target-theta: ~A" target-x target-y target-theta)
+        (send *ri* :go-pos-no-wait target-x target-y (deg2rad target-theta))
+        (send *ros-lock* :release)
+        )
+      (progn
+        (ros::ros-error "Failed to acquire lock")
+        )
+      )
     )
-  (send *ros-lock* :release)
   )
 
 (exit)
