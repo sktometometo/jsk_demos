@@ -18,8 +18,8 @@
 (setq *ros-lock* (instance ros-lock :init "base"))
 (send *ros-lock* :wait-for-server)
 
-(setq *nearest-people-coord-data* nil)
-(setq *nearest-people-coord-stamp* nil)
+(setq *target-person-coord-data* nil)
+(setq *target-person-coord-stamp* nil)
 (setq *last-stamp-approach* (ros::time))
 
 (defun callback (msg)
@@ -34,8 +34,8 @@
          )
     (if (not (send msg :boxes))
       (progn
-        (setq *nearest-people-coord-data* nil)
-        (setq *nearest-people-coord-stamp* (send msg :header :stamp))
+        (setq *target-person-coord-data* nil)
+        (setq *target-person-coord-stamp* (send msg :header :stamp))
         )
       (if coord-base-to-bbox
         (progn
@@ -47,7 +47,7 @@
                            (ros::tf-pose->coords (send bbox :pose))))
                      (send msg :boxes))
                 )
-          (setq *nearest-people-coord-data*
+          (setq *target-person-coord-data*
               (elt
                 (sort people-coords-base-based
                       #'(lambda (coord-a coord-b)
@@ -56,7 +56,7 @@
                               )
                           ))
                 0))
-          (setq *nearest-people-coord-stamp* (send msg :header :stamp))
+          (setq *target-person-coord-stamp* (send msg :header :stamp))
           ))
       )
     ))
@@ -69,14 +69,14 @@
   (ros::spin-once)
   (send *ri* :spin-once)
   (ros::sleep)
-  (ros::ros-info "*nearest-people-coord-data*: ~A" *nearest-people-coord-data*)
-  (ros::ros-info "*nearest-people-coord-stamp*: ~A" *nearest-people-coord-stamp*)
-  (if (and *nearest-people-coord-data* *nearest-people-coord-stamp*)
+  (ros::ros-info "*target-person-coord-data*: ~A" *target-person-coord-data*)
+  (ros::ros-info "*target-person-coord-stamp*: ~A" *target-person-coord-stamp*)
+  (if (and *target-person-coord-data* *target-person-coord-stamp*)
     (let* (ret
-           (pos-x (elt (send *nearest-people-coord-data* :pos) 0))
-           (pos-y (elt (send *nearest-people-coord-data* :pos) 1))
-           (distance (* 0.001 (norm (send *nearest-people-coord-data* :pos))))
-           (delay (ros::time- (ros::time-now) *nearest-people-coord-stamp*))
+           (pos-x (* 0.001 (elt (send *target-person-coord-data* :pos) 0)))
+           (pos-y (* 0.001 (elt (send *target-person-coord-data* :pos) 1)))
+           (distance (norm (send *target-person-coord-data* :pos)))
+           (delay (ros::time- (ros::time-now) *target-person-coord-stamp*))
            (duration-from-last (ros::time- (ros::time-now) *last-stamp-approach*))
            (target-x (* pos-x (/ (- distance 0.5) distance)))
            (target-y (* pos-y (/ (- distance 0.5) distance)))
@@ -89,7 +89,6 @@
                ;;(> pos-y 0)
                )
         (progn
-          (ros::ros-error "Found unknown person, approach to ~A ~A" target-x target-y)
           ;; Acquire lock
           (setq ret (send *ros-lock* :acquire :timeout 10))
           (if (not ret)
@@ -99,18 +98,18 @@
               )
             )
           ;; aproach to person
-          (ros::ros-info "*nearest-people-coord-data*: ~A" *nearest-people-coord-data*)
+          (ros::ros-info "*target-person-coord-data*: ~A" *target-person-coord-data*)
           (send *ri* :go-pos target-x target-y (rad2deg target-theta))
           (ros::spin-once)
-          (if *nearest-people-coord-data*
-              (send *ri* :point-head (send *nearest-people-coord-data* :pos) :wait t)
+          (if *target-person-coord-data*
+              (send *ri* :point-head (send *target-person-coord-data* :pos) :wait t)
             )
           (send *ri* :speak-jp "こんにちは")
           ;; Release lock
           (send *ros-lock* :release)
           (ros::ros-error "released")
           ;;
-          (setq *last-stamp-approach* *nearest-people-coord-stamp*)
+          (setq *last-stamp-approach* *target-person-coord-stamp*)
           )
         )
       )
