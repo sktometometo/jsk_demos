@@ -15,7 +15,7 @@
 (setq *fixed-frame-id* (ros::get-param "~fixed_frame_id" "odom"))
 (setq *base-frame-id* (ros::get-param "~base_frame_id" "base_link"))
 
-(setq *ros-lock* (instance ros-lock :init "head"))
+(setq *ros-lock* (instance ros-lock :init))
 (send *ros-lock* :wait-for-server)
 
 (setq *target-person-coord-data* nil)
@@ -84,13 +84,14 @@
            )
       (ros::ros-info "distance: ~A" distance)
       (ros::ros-info "delay: ~A" delay)
-      (if (and (ros::time< delay (send (instance ros::time :init) :from-sec 2.0))
+      (if (and (< distance 3.0)
+               (ros::time< delay (send (instance ros::time :init) :from-sec 2.0))
                (ros::time> duration-from-last (send (instance ros::time :init) :from-sec 10.0))
                ;;(> pos-y 0)
                )
         (progn
           ;; Acquire lock
-          (setq ret (send *ros-lock* :acquire :timeout 10))
+          (setq ret (send *ros-lock* :acquire "head" :timeout 10))
           (if (not ret)
             (progn
               (ros::ros-error "Unable to acquire lock for base")
@@ -99,14 +100,10 @@
             )
           ;; aproach to person
           (ros::ros-info "*target-person-coord-data*: ~A" *target-person-coord-data*)
-          (send *ri* :go-pos target-x target-y (rad2deg target-theta))
-          (ros::spin-once)
-          (if *target-person-coord-data*
-              (send *ri* :point-head (send *target-person-coord-data* :pos) :wait t)
-            )
           (send *ri* :speak-jp "こんにちは")
+          (send *ri* :point-head (send *target-person-coord-data* :pos) :wait t)
           ;; Release lock
-          (send *ros-lock* :release)
+          (send *ros-lock* :release "head")
           (ros::ros-error "released")
           ;;
           (setq *last-stamp-approach* *target-person-coord-stamp*)
