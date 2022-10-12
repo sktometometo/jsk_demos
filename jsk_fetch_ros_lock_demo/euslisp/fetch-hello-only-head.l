@@ -2,92 +2,39 @@
 
 (ros::load-ros-manifest "jsk_recognition_msgs")
 
-(load "package://fetcheus/fetch-interface.l")
-(load "package://ros_lock/euslisp/ros_lock.l")
+(require "package://fetcheus/fetch-interface.l")
+(require "package://ros_lock/euslisp/ros_lock.l")
+(require "package://jsk_fetch_ros_lock/euslisp/utils.l")
 
 (ros::roseus "fetch_hello_only_head")
-(setq *ri* (instance fetch-interface :init :move-base-action-name "move_base_no_recovery_with_lock"))
-(fetch-init)
 
-(if (not (boundp `*tfl*))
-  (setq *tfl* (instance ros::transform-listener :init)))
+(jsk-fetch-ros-lock-init)
 
-(setq *fixed-frame-id* (ros::get-param "~fixed_frame_id" "odom"))
-(setq *base-frame-id* (ros::get-param "~base_frame_id" "base_link"))
-
-(setq *ros-lock* (instance ros-lock :init))
-(send *ros-lock* :wait-for-server)
-
-(setq *target-person-coord-data* nil)
-(setq *target-person-coord-stamp* nil)
-(setq *last-stamp-approach* (ros::time))
-
-(defun callback (msg)
-  (let* (bbox-coord
-         (bbox-frame-id (send msg :header :frame_id))
-         (coord-base-to-bbox
-            (send *tfl* :lookup-transform
-                  *base-frame-id*
-                  bbox-frame-id
-                  (ros::time)))
-         (people-coords-fixed-based nil)
-         )
-    (if (not (send msg :boxes))
-      (progn
-        (setq *target-person-coord-data* nil)
-        (setq *target-person-coord-stamp* (send msg :header :stamp))
-        )
-      (if coord-base-to-bbox
-        (progn
-          (setq people-coords-base-based
-                  (mapcar
-                     #'(lambda (bbox)
-                         (transform-coords
-                           coord-base-to-bbox
-                           (ros::tf-pose->coords (send bbox :pose))))
-                     (send msg :boxes))
-                )
-          (setq *target-person-coord-data*
-              (elt
-                (sort people-coords-base-based
-                      #'(lambda (coord-a coord-b)
-                          (<= (norm (send coord-a :pos))
-                              (norm (send coord-b :pos))
-                              )
-                          ))
-                0))
-          (setq *target-person-coord-stamp* (send msg :header :stamp))
-          ))
-      )
-    ))
-
-(ros::subscribe "~input_bbox_array" jsk_recognition_msgs::BoundingBoxArray #'callback)
-(ros::advertise "~output" geometry_msgs::PoseStamped)
+(setq *threshold-distance* (ros::get-param "~threshold_distance" 5.0))
+(setq *threshold-delay* (ros::get-param "~threshold_delay" 2.0))
+(setq *duration-dead* (ros::get-param "~duration_dead" 2.0))
 
 (ros::rate 1)
 (while (ros::ok)
   (ros::spin-once)
   (send *ri* :spin-once)
   (ros::sleep)
-  (ros::ros-info "*target-person-coord-data*: ~A" *target-person-coord-data*)
-  (ros::ros-info "*target-person-coord-stamp*: ~A" *target-person-coord-stamp*)
-  (if (and *target-person-coord-data* *target-person-coord-stamp*)
+  (ros::ros-info "*target-person-coord-robotbased-data*: ~A" *target-person-coord-robotbased-data*)
+  (ros::ros-info "*target-person-coord-robotbased-stamp*: ~A" *target-person-coord-robotbased-stamp*)
+  (if (and *target-person-coord-robotbased-data* *target-person-coord-robotbased-stamp*)
     (let* (ret
-           (pos-x (* 0.001 (elt (send *target-person-coord-data* :pos) 0)))
-           (pos-y (* 0.001 (elt (send *target-person-coord-data* :pos) 1)))
-           (distance (norm (send *target-person-coord-data* :pos)))
-           (delay (ros::time- (ros::time-now) *target-person-coord-stamp*))
+           (pos-y (* 0.001 (elt (send *target-person-coord-robotbased-data* :pos) 1)))
+           (distance (* 0.001 (norm (send *target-person-coord-robotbased-data* :pos))))
+           (delay (ros::time- (ros::time-now) *target-person-coord-robotbased-stamp*))
            (duration-from-last (ros::time- (ros::time-now) *last-stamp-approach*))
-           (target-x (* pos-x (/ (- distance 0.5) distance)))
-           (target-y (* pos-y (/ (- distance 0.5) distance)))
-           (target-theta (atan pos-y pos-x))
            )
       (ros::ros-info "distance: ~A" distance)
       (ros::ros-info "delay: ~A" delay)
-      (if (and (< distance 3.0)
-               (ros::time< delay (send (instance ros::time :init) :from-sec 2.0))
-               (ros::time> duration-from-last (send (instance ros::time :init) :from-sec 10.0))
-               ;;(> pos-y 0)
+      (ros::ros-info "duration-from-last: ~A" duration-from-last)
+      (if (and (< distance *threshold-distance*)
+               (ros::time< delay (send (instance ros::time :init) :from-sec *threshold-delay*))
+               (ros::time> duration-from-last (send (instance ros::time :init) :from-sec *duration-dead*))
+               (> pos-y 0)
                )
         (progn
           ;; Acquire lock
@@ -99,14 +46,22 @@
               )
             )
           ;; aproach to person
-          (ros::ros-info "*target-person-coord-data*: ~A" *target-person-coord-data*)
+          (ros::ros-info "*target-person-coord-robotbased-data*: ~A" *target-person-coord-robotbased-data*)
           (send *ri* :speak-jp "こんにちは")
-          (send *ri* :point-head (send *target-person-coord-data* :pos) :wait t)
+          (let ((deadline (ros::time+ (ros::time-now) (send (instance ros::time :init) :from-sec 5))))
+            (while (and (ros::ok)
+                        *target-person-coord-robotbased-data*
+                        (ros::time< (ros::time-now) deadline)
+                        )
+              (send *ri* :point-head (send *target-person-coord-robotbased-data* :pos) :wait t)
+              (ros::spin-once)
+              )
+            )
           ;; Release lock
           (send *ros-lock* :release "head")
           (ros::ros-error "released")
           ;;
-          (setq *last-stamp-approach* *target-person-coord-stamp*)
+          (setq *last-stamp-approach* *target-person-coord-robotbased-stamp*)
           )
         )
       )
