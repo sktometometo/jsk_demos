@@ -8,6 +8,9 @@ import rospy
 import actionlib
 import tf2_ros
 
+from ros_lock import ROSLock
+from ros_lock import roslock_acquire
+
 from move_base_msgs.msg import MoveBaseAction
 from move_base_msgs.msg import MoveBaseActionGoal
 from move_base_msgs.msg import MoveBaseGoal
@@ -37,6 +40,8 @@ class LockedMoveBaseServer(object):
 
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
+
+        self.ros_lock = ROSLock()
 
         try:
             rospy.wait_for_service('~make_plan', timeout=rospy.Duration(30))
@@ -127,21 +132,22 @@ class LockedMoveBaseServer(object):
             list_goals[-1] = MoveBaseGoal(goal_pose)
 
         for goal in list_goals:
-            self.move_base_client.send_goal(
-                                    goal,
-                                    feedback_cb=self.feedback_cb
-                                    )
-            while not rospy.is_shutdown():
-                if self.move_base_client.wait_for_result(timeout=rospy.Duration(1)):
-                    result = self.move_base_client.get_result()
-                    self.move_base_server.set_succeeded(result)
-                    return
-                if self.move_base_server.is_preempt_requested():
-                    rospy.logerr('Cancel requested.')
-                    self.move_base_client.cancel_goal()
-                    result = self.move_base_client.get_result()
-                    self.move_base_server.set_aborted(result)
-                    return
+            with roslock_acquire(self.ros_lock, 'base'):
+                self.move_base_client.send_goal(
+                                        goal,
+                                        feedback_cb=self.feedback_cb
+                                        )
+                while not rospy.is_shutdown():
+                    if self.move_base_client.wait_for_result(timeout=rospy.Duration(1)):
+                        result = self.move_base_client.get_result()
+                        self.move_base_server.set_succeeded(result)
+                        return
+                    if self.move_base_server.is_preempt_requested():
+                        rospy.logerr('Cancel requested.')
+                        self.move_base_client.cancel_goal()
+                        result = self.move_base_client.get_result()
+                        self.move_base_server.set_aborted(result)
+                        return
             if rospy.is_shutdown():
                 return
 
