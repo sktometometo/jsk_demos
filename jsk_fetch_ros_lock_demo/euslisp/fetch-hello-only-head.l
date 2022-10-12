@@ -4,10 +4,9 @@
 
 (require "package://fetcheus/fetch-interface.l")
 (require "package://ros_lock/euslisp/ros_lock.l")
-(require "package://jsk_fetch_ros_lock/euslisp/utils.l")
+(require "package://jsk_fetch_ros_lock_demo/euslisp/utils.l")
 
 (ros::roseus "fetch_hello_only_head")
-
 (jsk-fetch-ros-lock-init)
 
 (setq *threshold-distance* (ros::get-param "~threshold_distance" 5.0))

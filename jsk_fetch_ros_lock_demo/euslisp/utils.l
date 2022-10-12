@@ -1,7 +1,9 @@
 (require "package://fetcheus/fetch-interface.l")
 (require "package://ros_lock/euslisp/ros_lock.l")
 
-(defun jsk-fetch-ros-lock-init (&key (move-base-action-name "move_base_no_recovery_with_lock"))
+(defun jsk-fetch-ros-lock-init (&key (move-base-action-name "move_base_no_recovery_with_lock")
+                                     (input-bbox-array-topic-name "~input_bbox_array")
+                                     )
   (setq *ri* (instance fetch-interface :init :move-base-action-name move-base-action-name))
   (fetch-init)
 
@@ -57,7 +59,7 @@
         )
       ))
 
-  (ros::subscribe "~input_bbox_array" jsk_recognition_msgs::BoundingBoxArray #'callback)
+  (ros::subscribe input-bbox-array-topic-name jsk_recognition_msgs::BoundingBoxArray #'callback)
   )
 
 ;; TODO

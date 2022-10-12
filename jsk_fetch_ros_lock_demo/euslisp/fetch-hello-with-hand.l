@@ -2,8 +2,9 @@
 
 (ros::load-ros-manifest "jsk_recognition_msgs")
 
-(load "package://fetcheus/fetch-interface.l")
-(load "package://ros_lock/euslisp/ros_lock.l")
+(require "package://fetcheus/fetch-interface.l")
+(require "package://ros_lock/euslisp/ros_lock.l")
+(require "package://jsk_fetch_ros_lock_demo/euslisp/utils.l")
 
 (ros::roseus "fetch_approach_person")
 (jsk-fetch-ros-lock-init)
@@ -45,6 +46,7 @@
           ;; hello with hand
           (ros::ros-info "*target-person-coord-robotbased-data*: ~A" *target-person-coord-robotbased-data*)
           ;;; move hand once
+          (send *ri* :point-head (send *target-person-coord-robotbased-data* :pos) :wait t)
           (send *ri* :spin-once)
           (send *fetch* :angle-vector (send *ri* :state :potentio-vector))
           (setq ret-ik
@@ -61,21 +63,34 @@
               ))
           ;;; say hello and move hand
           (send *ri* :speak-jp "こんにちは")
-          (let ((deadline (ros::time+ (ros::time-now) (send (instance ros::time :init) :from-sec 10))))
+          (let ((count 0)
+                (deadline (ros::time+ (ros::time-now) (send (instance ros::time :init) :from-sec 10))))
             (while (and (ros::ok)
                         *target-person-coord-robotbased-data*
                         (ros::time< (ros::time-now) deadline)
                         )
-              (send *ri* :point-head (send *target-person-coord-robotbased-data* :pos) :wait t)
+              (send *ri* :point-head (send *target-person-coord-robotbased-data* :pos) :wait nil)
               (send *ri* :spin-once)
               (send *fetch* :angle-vector (send *ri* :state :potentio-vector))
-              (setq ret-ik
-                (send *fetch* :inverse-kinematics
-                    (transform-coords
-                      (send (send *fetch* :head :end-coords) :copy-worldcoords)
-                      (make-coords :pos #f(16.951 -121.855 172.07) :rpy #f(1.941 -0.361 -1.249)))
-                    :use-torso nil)
-                )
+              (if (oddp count)
+                  (progn
+                    (setq ret-ik
+                          (send *fetch* :inverse-kinematics
+                                (transform-coords
+                                 (send (send *fetch* :head :end-coords) :copy-worldcoords)
+                                 (make-coords :pos #f(-16.755 -130.538 142.025) :rpy #f(2.035 -0.205 -0.15)))
+                                :use-torso nil))
+                    )
+                  (progn
+                    (setq ret-ik
+                          (send *fetch* :inverse-kinematics
+                                (transform-coords
+                                 (send (send *fetch* :head :end-coords) :copy-worldcoords)
+                                 (make-coords :pos #f(-134.649 -293.126 99.766) :rpy #f(2.552 0.004 -0.03)))
+                                :use-torso nil))
+                    )
+                  )
+              (setq count (+ 1 count))
               (if ret-ik
                 (progn
                   (send *ri* :angle-vector (send *fetch* :angle-vector) 1000)

@@ -2,8 +2,9 @@
 
 (ros::load-ros-manifest "jsk_recognition_msgs")
 
-(load "package://fetcheus/fetch-interface.l")
-(load "package://ros_lock/euslisp/ros_lock.l")
+(require "package://fetcheus/fetch-interface.l")
+(require "package://ros_lock/euslisp/ros_lock.l")
+(require "package://jsk_fetch_ros_lock_demo/euslisp/utils.l")
 
 (ros::roseus "fetch_server")
 (jsk-fetch-ros-lock-init)
