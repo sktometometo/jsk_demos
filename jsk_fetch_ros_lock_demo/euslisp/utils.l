@@ -1,8 +1,8 @@
 (require "package://fetcheus/fetch-interface.l")
 (require "package://ros_lock/euslisp/ros_lock.l")
 
-(defun jsk-fetch-ros-lock-init ()
-  (setq *ri* (instance fetch-interface :init :move-base-action-name "move_base_no_recovery_with_lock"))
+(defun jsk-fetch-ros-lock-init (&key (move-base-action-name "move_base_no_recovery_with_lock"))
+  (setq *ri* (instance fetch-interface :init :move-base-action-name move-base-action-name))
   (fetch-init)
 
   (if (not (boundp `*tfl*))

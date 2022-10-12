@@ -2,12 +2,10 @@
 
 (ros::load-ros-manifest "jsk_recognition_msgs")
 
-(require "package://fetcheus/fetch-interface.l")
-(require "package://ros_lock/euslisp/ros_lock.l")
-(require "package://jsk_fetch_ros_lock/euslisp/utils.l")
+(load "package://fetcheus/fetch-interface.l")
+(load "package://ros_lock/euslisp/ros_lock.l")
 
-(ros::roseus "fetch_hello_only_head")
-
+(ros::roseus "fetch_server")
 (jsk-fetch-ros-lock-init)
 
 (setq *threshold-distance* (ros::get-param "~threshold_distance" 5.0))
@@ -22,11 +20,15 @@
   (ros::ros-info "*target-person-coord-robotbased-data*: ~A" *target-person-coord-robotbased-data*)
   (ros::ros-info "*target-person-coord-robotbased-stamp*: ~A" *target-person-coord-robotbased-stamp*)
   (if (and *target-person-coord-robotbased-data* *target-person-coord-robotbased-stamp*)
-    (let* (ret
+    (let* (ret-head ret-arm ret-base
+           (target-x (* 0.001 (elt (send *target-person-coord-robotbased-data* :pos) 0)))
            (target-y (* 0.001 (elt (send *target-person-coord-robotbased-data* :pos) 1)))
+           (target-direction (atan target-y target-x))
            (target-distance (* 0.001 (norm (send *target-person-coord-robotbased-data* :pos))))
            (delay (ros::time- (ros::time-now) *target-person-coord-robotbased-stamp*))
            (duration-from-last (ros::time- (ros::time-now) *last-stamp-approach*))
+           (destination-x (* target-x (/ (- target-distance 0.5) target-distance)))
+           (destination-y (* target-y (/ (- target-distance 0.5) target-distance)))
            )
       (ros::ros-info "target-distance: ~A" target-distance)
       (ros::ros-info "delay: ~A" delay)
@@ -34,30 +36,23 @@
       (if (and (< target-distance *threshold-distance*)
                (ros::time< delay (send (instance ros::time :init) :from-sec *threshold-delay*))
                (ros::time> duration-from-last (send (instance ros::time :init) :from-sec *duration-dead*))
-               (> pos-y 0)
                )
         (progn
           ;; Acquire lock
-          (setq ret (send *ros-lock* :acquire "head" :timeout 10))
-          (if (not ret)
+          (setq ret-head (send *ros-lock* :acquire "head" :timeout 10))
+          (setq ret-arm (send *ros-lock* :acquire "arm" :timeout 10))
+          (setq ret-base (send *ros-lock* :acquire "base" :timeout 10))
+          (if (or (not ret-head) (not ret-arm) (not ret-base))
             (progn
               (ros::ros-error "Unable to acquire lock for base")
               (exit 1)
-              )
-            )
-          ;; aproach to person
-          (ros::ros-info "*target-person-coord-robotbased-data*: ~A" *target-person-coord-robotbased-data*)
-          (send *ri* :speak-jp "こんにちは")
-          (let ((deadline (ros::time+ (ros::time-now) (send (instance ros::time :init) :from-sec 5))))
-            (while (and (ros::ok)
-                        *target-person-coord-robotbased-data*
-                        (ros::time< (ros::time-now) deadline)
-                        )
-              (send *ri* :point-head (send *target-person-coord-robotbased-data* :pos) :wait t)
-              (ros::spin-once)
-              )
-            )
+              ))
+          ;; Hold out basket to person
+          (send *ri* :go-pos destination-x destination-y (rad2deg target-direction))
+          (send *ri* :speak-jp "お菓子はいかがですか")
           ;; Release lock
+          (send *ros-lock* :release "base")
+          (send *ros-lock* :release "arm")
           (send *ros-lock* :release "head")
           (ros::ros-error "released")
           ;;
@@ -65,5 +60,5 @@
           )
         )
       )
-    (ros::ros-error "Unable to find person")
+      (ros::ros-error "Unable to find person")
     ))

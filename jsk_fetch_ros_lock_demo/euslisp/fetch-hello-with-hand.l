@@ -21,18 +21,14 @@
   (ros::ros-info "*target-person-coord-robotbased-stamp*: ~A" *target-person-coord-robotbased-stamp*)
   (if (and *target-person-coord-robotbased-data* *target-person-coord-robotbased-stamp*)
     (let* (ret-head ret-arm ret-ik
-           (pos-x (* 0.001 (elt (send *target-person-coord-robotbased-data* :pos) 0)))
-           (pos-y (* 0.001 (elt (send *target-person-coord-robotbased-data* :pos) 1)))
-           (distance (* 0.001 (norm (send *target-person-coord-robotbased-robotbased-data* :pos))))
-           (target-x (* pos-x (/ (- distance 0.5) distance)))
-           (target-y (* pos-y (/ (- distance 0.5) distance)))
-           (target-theta (atan pos-y pos-x))
+           (target-distance (* 0.001 (norm (send *target-person-coord-robotbased-robotbased-data* :pos))))
            (delay (ros::time- (ros::time-now) *target-person-coord-robotbased-stamp*))
            (duration-from-last (ros::time- (ros::time-now) *last-stamp-approach*))
            )
-      (ros::ros-info "distance: ~A" distance)
+      (ros::ros-info "target-distance: ~A" target-distance)
       (ros::ros-info "delay: ~A" delay)
-      (if (and (< distance *threshold-distance*)
+      (ros::ros-info "duration-from-last: ~A" duration-from-last)
+      (if (and (< target-distance *threshold-distance*)
                (ros::time< delay (send (instance ros::time :init) :from-sec *threshold-delay*))
                (ros::time> duration-from-last (send (instance ros::time :init) :from-sec *duration-dead*))
                )
@@ -40,7 +36,7 @@
           ;; Acquire lock
           (setq ret-head (send *ros-lock* :acquire "head" :timeout 10))
           (setq ret-arm (send *ros-lock* :acquire "arm" :timeout 10))
-          (if (and (not ret-head) (not ret-arm))
+          (if (or (not ret-head) (not ret-arm))
             (progn
               (ros::ros-error "Unable to acquire lock")
               (exit 1)
@@ -89,8 +85,8 @@
               )
             )
           ;; Release lock
-          (send *ros-lock* :release "head")
           (send *ros-lock* :release "arm")
+          (send *ros-lock* :release "head")
           (ros::ros-error "released")
           ;;
           (setq *last-stamp-approach* *target-person-coord-robotbased-stamp*)
