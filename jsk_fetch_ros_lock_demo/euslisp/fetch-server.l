@@ -79,7 +79,7 @@
                                           :absolute_z_axis_tolerance 10.0))
                           ))
           (send *fetch* :inverse-kinematics *ready-pose* :use-torso nil)
-          (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
+          (send *ri* :angle-vector (send *fetch* :angle-vector) 5000 :default-controller 0 :path-constraints path-constraints)
           ;;
           (send *ri* :speak-jp "お菓子はいかがですか")
           ;; Release lock
