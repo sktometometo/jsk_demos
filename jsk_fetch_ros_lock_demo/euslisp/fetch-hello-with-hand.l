@@ -22,7 +22,7 @@
   (ros::ros-info "*target-person-coord-robotbased-stamp*: ~A" *target-person-coord-robotbased-stamp*)
   (if (and *target-person-coord-robotbased-data* *target-person-coord-robotbased-stamp*)
     (let* (ret-head ret-arm ret-ik
-           (target-distance (* 0.001 (norm (send *target-person-coord-robotbased-robotbased-data* :pos))))
+           (target-distance (* 0.001 (norm (send *target-person-coord-robotbased-data* :pos))))
            (delay (ros::time- (ros::time-now) *target-person-coord-robotbased-stamp*))
            (duration-from-last (ros::time- (ros::time-now) *last-stamp-approach*))
            )
@@ -64,7 +64,7 @@
           ;;; say hello and move hand
           (send *ri* :speak-jp "こんにちは")
           (let ((count 0)
-                (deadline (ros::time+ (ros::time-now) (send (instance ros::time :init) :from-sec 10))))
+                (deadline (ros::time+ (ros::time-now) (send (instance ros::time :init) :from-sec 30))))
             (while (and (ros::ok)
                         *target-person-coord-robotbased-data*
                         (ros::time< (ros::time-now) deadline)
@@ -99,6 +99,9 @@
               (ros::spin-once)
               )
             )
+          ;;
+          (send *fetch* :reset-pose)
+          (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
           ;; Release lock
           (send *ros-lock* :release "arm")
           (send *ros-lock* :release "head")
