@@ -136,6 +136,43 @@
           ;;
           (send *ri* :speak-jp "お菓子はいかがですか")
           ;;
+          (let ((count 0)
+                (deadline (ros::time+ (ros::time-now) (send (instance ros::time :init) :from-sec 30))))
+            (while (and (ros::ok)
+                        *target-person-coord-robotbased-data*
+                        (ros::time< (ros::time-now) deadline)
+                        )
+              (send *ri* :point-head (send *target-person-coord-robotbased-data* :pos) :wait nil)
+              (send *ri* :spin-once)
+              (send *fetch* :angle-vector (send *ri* :state :potentio-vector))
+              (if (oddp count)
+                  (progn
+                    (setq ret-ik
+                          (send *fetch* :inverse-kinematics
+                                (transform-coords
+                                 (send (send *fetch* :head :end-coords) :copy-worldcoords)
+                                 (make-coords :pos #f(-16.755 -130.538 142.025) :rpy #f(2.035 -0.205 -0.15)))
+                                :use-torso nil))
+                    )
+                  (progn
+                    (setq ret-ik
+                          (send *fetch* :inverse-kinematics
+                                (transform-coords
+                                 (send (send *fetch* :head :end-coords) :copy-worldcoords)
+                                 (make-coords :pos #f(-134.649 -293.126 99.766) :rpy #f(2.552 0.004 -0.03)))
+                                :use-torso nil))
+                    )
+                  )
+              (setq count (+ 1 count))
+              (if ret-ik
+                (progn
+                  (send *ri* :angle-vector (send *fetch* :angle-vector) 1000)
+                  (send *ri* :wait-interpolation)
+                  ))
+              (ros::spin-once)
+              )
+            )
+          ;;
           (put-basket)
           ;; Release lock
           (send *ros-lock* :release "base")
