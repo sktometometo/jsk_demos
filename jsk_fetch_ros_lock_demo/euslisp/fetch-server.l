@@ -139,7 +139,7 @@
                         *target-person-coord-robotbased-data*
                         (ros::time< (ros::time-now) deadline)
                         )
-              (send *ri* :go-pos 0 0 (rad2deg target-direction))
+              ;(send *ri* :go-pos 0 0 (rad2deg target-direction))
               (ros::spin-once)
               (send *ri* :spin-once)
               (send *fetch* :angle-vector (send *ri* :state :potentio-vector))
@@ -154,7 +154,7 @@
                              :pos (float-vector (* 450 (cos target-direction))
                                                 (* 450 (sin target-direction))
                                                 600)
-                             :rpy (float-vector 0 0 (cos target-direction))))
+                             :rpy (float-vector (cos target-direction) 0 0)))
                           :use-torso t))
               (if ret-ik
                 (progn
