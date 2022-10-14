@@ -146,7 +146,7 @@
               (setq target-x (* 0.001 (elt (send *target-person-coord-robotbased-data* :pos) 0)))
               (setq target-y (* 0.001 (elt (send *target-person-coord-robotbased-data* :pos) 1)))
               (setq target-direction (atan target-y target-x))
-              (send *fetch* :look-at (send *target-person-coord-robotbased-data* :pos))
+              (send *fetch* :look-at-target (send *target-person-coord-robotbased-data* :pos))
               (setq ret-ik
                     (send *fetch* :inverse-kinematics
                           (transform-coords
@@ -155,7 +155,7 @@
                              :pos (float-vector (* 450 (cos target-direction))
                                                 (* 450 (sin target-direction))
                                                 600)
-                             :rpy (float-vector (cos target-direction) 0 0)))
+                             :rpy (float-vector 0 0 0)))
                           :use-torso t))
               (if ret-ik
                 (progn
