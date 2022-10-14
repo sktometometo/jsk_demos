@@ -111,8 +111,6 @@
               (exit 1)
               ))
           ;;
-          (send *ri* :go-pos destination-x destination-y (rad2deg target-direction))
-          (send *ri* :spin-once)
           ;; Hold out basket to person
           (get-basket)
           ;;
@@ -136,36 +134,31 @@
           ;;
           (send *ri* :speak-jp "お菓子はいかがですか")
           ;;
-          (let ((count 0)
-                (deadline (ros::time+ (ros::time-now) (send (instance ros::time :init) :from-sec 30))))
+          (let ((deadline (ros::time+ (ros::time-now) (send (instance ros::time :init) :from-sec 30))))
             (while (and (ros::ok)
                         *target-person-coord-robotbased-data*
                         (ros::time< (ros::time-now) deadline)
                         )
-              (send *ri* :point-head (send *target-person-coord-robotbased-data* :pos) :wait nil)
+              (send *ri* :go-pos 0 0 (rad2deg target-direction))
+              (ros::spin-once)
               (send *ri* :spin-once)
               (send *fetch* :angle-vector (send *ri* :state :potentio-vector))
-              (if (oddp count)
-                  (progn
-                    (setq ret-ik
-                          (send *fetch* :inverse-kinematics
-                                (transform-coords
-                                 (send (send *fetch* :head :end-coords) :copy-worldcoords)
-                                 (make-coords :pos #f(-16.755 -130.538 142.025) :rpy #f(2.035 -0.205 -0.15)))
-                                :use-torso nil))
-                    )
-                  (progn
-                    (setq ret-ik
-                          (send *fetch* :inverse-kinematics
-                                (transform-coords
-                                 (send (send *fetch* :head :end-coords) :copy-worldcoords)
-                                 (make-coords :pos #f(-134.649 -293.126 99.766) :rpy #f(2.552 0.004 -0.03)))
-                                :use-torso nil))
-                    )
-                  )
-              (setq count (+ 1 count))
+              (setq target-x (* 0.001 (elt (send *target-person-coord-robotbased-data* :pos) 0)))
+              (setq target-y (* 0.001 (elt (send *target-person-coord-robotbased-data* :pos) 1)))
+              (setq target-direction (atan target-y target-x))
+              (setq ret-ik
+                    (send *fetch* :inverse-kinematics
+                          (transform-coords
+                           (send (send *fetch* :head :end-coords) :copy-worldcoords)
+                           (make-coords
+                             :pos (float-vector (* 450 (cos target-direction))
+                                                (* 450 (sin target-direction))
+                                                600)
+                             :rpy (float-vector 0 0 (cos target-direction))))
+                          :use-torso t))
               (if ret-ik
                 (progn
+                  (send *ri* :point-head (send *target-person-coord-robotbased-data* :pos) :wait nil)
                   (send *ri* :angle-vector (send *fetch* :angle-vector) 1000)
                   (send *ri* :wait-interpolation)
                   ))
