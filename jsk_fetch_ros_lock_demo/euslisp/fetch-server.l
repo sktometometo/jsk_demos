@@ -13,10 +13,67 @@
 (setq *threshold-delay* (ros::get-param "~threshold_delay" 2.0))
 (setq *duration-dead* (ros::get-param "~duration_dead" 2.0))
 
-(setq *pre-grasp-pose* (make-coords :pos #f(-64.85 360.9 823.818) :rpy #f(-1.926 0.181 0.85)))
-(setq *grasp-pose* (make-coords :pos #f(-50.682 263.943 778.426) :rpy #f(-1.632 0.097 0.772)))
-(setq *pro-grasp-pose* (make-coords :pos #f(-46.346 261.287 950) :rpy #f(-1.571 0 0)))
-(setq *ready-pose* (make-coords :pos #f(363.334 -139.026 508.384) :rpy #f(0 0 0)))
+(setq *pre-grasp-pose-torso-based* (make-coords :pos #f(120.07 -205.033 148.356) :rpy #f(-3.069 0.373 0.029)))
+(setq *grasp-pose-torso-based* (make-coords :pos #f(53.8 -238.317 109.98) :rpy #f(-3.085 0.412 -0.018)))
+(setq *pro-grasp-pose-01-torso-based* (make-coords :pos #f(72.42 -248.861 185.423) :rpy #f(-3.024 0.197 0.403)))
+(setq *pro-grasp-pose-02-torso-based* (make-coords :pos #f(63.43 -370.283 184.052) :rpy #f(-2.633 0.152 0.488)))
+(setq *ready-pose* (make-coords :pos #f(363.334 -139.026 500) :rpy #f(0 0 0)))
+
+(defun get-current-end-coords-torso-based ()
+  (let (torso-link-coords end-coords-base-based)
+    (send *fetch* :angle-vector (send *ri* :state :potentio-vector))
+    (setq torso-link-coords (send (send *fetch* :link "torso_lift_link") :copy-worldcoords))
+    (setq end-coords-base-based (send (send *fetch* :rarm :end-coords) :copy-worldcoords))
+    (transform-coords (send torso-link-coords :inverse-transformation) end-coords-base-based)
+    )
+  )
+
+(defun transform-pose-to-base-based (coords)
+  (let (torso-link-coords)
+    (send *fetch* :angle-vector (send *ri* :state :potentio-vector))
+    (setq torso-link-coords (send (send *fetch* :link "torso_lift_link") :copy-worldcoords))
+    (transform-coords torso-link-coords coords)
+    )
+  )
+
+(defun get-basket ()
+  (send *fetch* :inverse-kinematics (transform-pose-to-base-based *pre-grasp-pose-torso-based*) :use-torso nil)
+  (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
+  (send *ri* :wait-interpolation)
+  (send *ri* :stop-grasp)
+  (send *fetch* :inverse-kinematics (transform-pose-to-base-based *grasp-pose-torso-based*) :use-torso nil)
+  (send *ri* :angle-vector (send *fetch* :angle-vector) 1000)
+  (send *ri* :wait-interpolation)
+  (send *ri* :start-grasp)
+  (send *fetch* :inverse-kinematics (transform-pose-to-base-based *pro-grasp-pose-01-torso-based*) :use-torso nil)
+  (send *ri* :angle-vector (send *fetch* :angle-vector) 1000)
+  (send *ri* :wait-interpolation)
+  (send *fetch* :inverse-kinematics (transform-pose-to-base-based *pro-grasp-pose-02-torso-based*) :use-torso nil)
+  (send *ri* :angle-vector (send *fetch* :angle-vector) 1000)
+  (send *ri* :wait-interpolation)
+  (send *fetch* :inverse-kinematics *ready-pose* :use-torso nil)
+  (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
+  (send *ri* :wait-interpolation)
+  )
+
+(defun put-basket ()
+  (send *fetch* :inverse-kinematics (transform-pose-to-base-based *pro-grasp-pose-02-torso-based*) :use-torso nil)
+  (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
+  (send *ri* :wait-interpolation)
+  (send *fetch* :inverse-kinematics (transform-pose-to-base-based *pro-grasp-pose-01-torso-based*) :use-torso nil)
+  (send *ri* :angle-vector (send *fetch* :angle-vector) 1000)
+  (send *ri* :wait-interpolation)
+  (send *fetch* :inverse-kinematics (transform-pose-to-base-based *grasp-pose-torso-based*) :use-torso nil)
+  (send *ri* :angle-vector (send *fetch* :angle-vector) 1000)
+  (send *ri* :wait-interpolation)
+  (send *ri* :stop-grasp)
+  (send *fetch* :inverse-kinematics (transform-pose-to-base-based *pre-grasp-pose-torso-based*) :use-torso nil)
+  (send *ri* :angle-vector (send *fetch* :angle-vector) 1000)
+  (send *ri* :wait-interpolation)
+  (send *fetch* :reset-pose)
+  (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
+  (send *ri* :wait-interpolation)
+  )
 
 (ros::rate 1)
 (while (ros::ok)
@@ -53,35 +110,33 @@
               (ros::ros-error "Unable to acquire lock for base")
               (exit 1)
               ))
-          ;; Hold out basket to person
+          ;;
           (send *ri* :go-pos destination-x destination-y (rad2deg target-direction))
           (send *ri* :spin-once)
-          (send *fetch* :angle-vector (send *ri* :state :potentio-vector))
-          (send *fetch* :inverse-kinematics *pre-grasp-pose* :use-torso nil)
-          (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
-          (send *ri* :stop-grasp)
-          (send *fetch* :inverse-kinematics *grasp-pose* :use-torso nil)
-          (send *ri* :angle-vector (send *fetch* :angle-vector) 1000)
-          (send *ri* :start-grasp)
-          (send *fetch* :inverse-kinematics *pro-grasp-pose* :use-torso nil)
-          (send *ri* :angle-vector (send *fetch* :angle-vector) 2000)
-          (setq path-constraints
-                (instance moveit_msgs::constraints :init
-                          :name ""
-                          :orientation_constraints
-                          (list (instance moveit_msgs::OrientationConstraint :init
-                                          :header
-                                          (instance std_msgs::Header :init :frame_id "base_link")
-                                          :link_name "gripper_link"
-                                          :orientation
-                                          (instance geometry_msgs::Quaternion :init
-                                                    :x 0 :y 1.0 :z 0 :w 0)
-                                          :absolute_z_axis_tolerance 10.0))
-                          ))
-          (send *fetch* :inverse-kinematics *ready-pose* :use-torso nil)
-          (send *ri* :angle-vector (send *fetch* :angle-vector) 5000 :default-controller 0 :path-constraints path-constraints)
+          ;; Hold out basket to person
+          (get-basket)
+          ;;
+          ;(setq path-constraints
+          ;      (instance moveit_msgs::constraints :init
+          ;                :name ""
+          ;                :orientation_constraints
+          ;                (list (instance moveit_msgs::OrientationConstraint :init
+          ;                                :header
+          ;                                (instance std_msgs::Header :init :frame_id "base_link")
+          ;                                :link_name "gripper_link"
+          ;                                :orientation
+          ;                                (instance geometry_msgs::Quaternion :init
+          ;                                          :x 0 :y 0 :z 0 :w 1.0)
+          ;                                :absolute_x_axis_tolerance 2.0
+          ;                                :absolute_y_axis_tolerance 2.0
+          ;                                :absolute_z_axis_tolerance 3.15))
+          ;                ))
+          ;(send *fetch* :inverse-kinematics *ready-pose* :use-torso t)
+          ;(send *ri* :angle-vector (send *fetch* :angle-vector) 5000 :default-controller 0 :path-constraints path-constraints)
           ;;
           (send *ri* :speak-jp "お菓子はいかがですか")
+          ;;
+          (put-basket)
           ;; Release lock
           (send *ros-lock* :release "base")
           (send *ros-lock* :release "arm")
