@@ -30,20 +30,16 @@
       (ros::ros-info "target-distance: ~A" target-distance)
       (ros::ros-info "delay: ~A" delay)
       (ros::ros-info "duration-from-last: ~A" duration-from-last)
+      ;; Acquire lock
+      (setq ret (send *ros-lock* :acquire "head" :timeout 10))
+      (ros::spin-once)
       (if (and (< target-distance *threshold-distance*)
                (ros::time< delay (send (instance ros::time :init) :from-sec *threshold-delay*))
                (ros::time> duration-from-last (send (instance ros::time :init) :from-sec *duration-dead*))
                (> pos-y 0)
+               ret
                )
         (progn
-          ;; Acquire lock
-          (setq ret (send *ros-lock* :acquire "head" :timeout 10))
-          (if (not ret)
-            (progn
-              (ros::ros-error "Unable to acquire lock for base")
-              (exit 1)
-              )
-            )
           ;; aproach to person
           (ros::ros-info "*target-person-coord-robotbased-data*: ~A" *target-person-coord-robotbased-data*)
           (send *ri* :speak-jp "こんにちは")
@@ -56,13 +52,13 @@
               (ros::spin-once)
               )
             )
-          ;; Release lock
-          (send *ros-lock* :release "head")
-          (ros::ros-error "released")
           ;;
-          (setq *last-stamp-approach* *target-person-coord-robotbased-stamp*)
+          (setq *last-stamp-approach* (ros::time-now))
           )
         )
+      ;; Release lock
+      (send *ros-lock* :release "head")
+      (ros::ros-error "released")
       )
     (ros::ros-error "Unable to find person")
     ))

@@ -30,8 +30,9 @@
       (ros::ros-info "delay: ~A" delay)
       (ros::ros-info "duration-from-last: ~A" duration-from-last)
       ;; Acquire lock
-      (setq ret-head (send *ros-lock* :acquire "head" :timeout 1))
-      (setq ret-arm (send *ros-lock* :acquire "arm" :timeout 1))
+      (setq ret-head (send *ros-lock* :acquire "head" :timeout 10))
+      (setq ret-arm (send *ros-lock* :acquire "arm" :timeout 10))
+      (ros::spin-once)
       (if (and (< target-distance *threshold-distance*)
                (ros::time< delay (send (instance ros::time :init) :from-sec *threshold-delay*))
                (ros::time> duration-from-last (send (instance ros::time :init) :from-sec *duration-dead*))
