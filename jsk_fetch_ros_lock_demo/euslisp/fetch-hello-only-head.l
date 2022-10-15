@@ -36,7 +36,7 @@
       (if (and (< target-distance *threshold-distance*)
                (ros::time< delay (send (instance ros::time :init) :from-sec *threshold-delay*))
                (ros::time> duration-from-last (send (instance ros::time :init) :from-sec *duration-dead*))
-               (> pos-y 0)
+               (> target-y 0)
                ret
                )
         (progn

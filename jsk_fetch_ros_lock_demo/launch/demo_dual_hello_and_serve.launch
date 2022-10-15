@@ -1,0 +1,39 @@
+<launch>
+
+    <include
+        file="$(find jsk_fetch_ros_lock_demo)/launch/common.launch"
+        />
+
+    <node
+        pkg="jsk_fetch_ros_lock_demo"
+        type="fetch-hello-with-hand.l"
+        name="fetch_hello_with_hand"
+        output="screen"
+        >
+        <remap
+            from="~input_bbox_array"
+            to="/edgetpu_panorama_object_detector/bbox_array" />
+        <rosparam>
+            threshold_distance: 5.0
+            threshold_delay: 3.0
+            duration_dead: 10.0
+        </rosparam>
+    </node>
+
+    <node
+        pkg="jsk_fetch_ros_lock_demo"
+        type="fetch-server.l"
+        name="fetch_server"
+        output="screen"
+        >
+        <remap
+            from="~input_bbox_array"
+            to="/edgetpu_panorama_object_detector/bbox_array" />
+        <rosparam>
+            threshold_distance: 5.0
+            threshold_delay: 3.0
+            duration_dead: 10.0
+        </rosparam>
+    </node>
+
+</launch>

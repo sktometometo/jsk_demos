@@ -108,13 +108,8 @@
                ret-base
                )
         (progn
-          ;; Acquire lock
-          (if (or (not ret-head) (not ret-arm) (not ret-base))
-            (progn
-              (ros::ros-error "Unable to acquire lock for base")
-              (exit 1)
-              ))
           ;;
+          (send *ri* :go-pos 0 0 (rad2deg target-direction))
           ;; Hold out basket to person
           (get-basket)
           ;;
@@ -143,7 +138,6 @@
                         *target-person-coord-robotbased-data*
                         (ros::time< (ros::time-now) deadline)
                         )
-              ;(send *ri* :go-pos 0 0 (rad2deg target-direction))
               (ros::spin-once)
               (send *ri* :spin-once)
               (send *fetch* :angle-vector (send *ri* :state :potentio-vector))

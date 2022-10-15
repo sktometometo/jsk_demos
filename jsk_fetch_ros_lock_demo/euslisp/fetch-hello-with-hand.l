@@ -38,6 +38,7 @@
                (ros::time> duration-from-last (send (instance ros::time :init) :from-sec *duration-dead*))
                ret-head
                ret-arm
+               *target-person-coord-robotbased-data*
                )
         (progn
           ;; hello with hand
@@ -99,6 +100,7 @@
           ;;
           (send *fetch* :reset-pose)
           (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
+          (send *ri* :wait-interpolation)
           ;;
           (setq *last-stamp-approach* (ros::time-now))
           )
