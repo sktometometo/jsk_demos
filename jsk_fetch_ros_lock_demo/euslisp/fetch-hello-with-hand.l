@@ -29,20 +29,16 @@
       (ros::ros-info "target-distance: ~A" target-distance)
       (ros::ros-info "delay: ~A" delay)
       (ros::ros-info "duration-from-last: ~A" duration-from-last)
+      ;; Acquire lock
+      (setq ret-head (send *ros-lock* :acquire "head" :timeout 1))
+      (setq ret-arm (send *ros-lock* :acquire "arm" :timeout 1))
       (if (and (< target-distance *threshold-distance*)
                (ros::time< delay (send (instance ros::time :init) :from-sec *threshold-delay*))
                (ros::time> duration-from-last (send (instance ros::time :init) :from-sec *duration-dead*))
+               ret-head
+               ret-arm
                )
         (progn
-          ;; Acquire lock
-          (setq ret-head (send *ros-lock* :acquire "head" :timeout 10))
-          (setq ret-arm (send *ros-lock* :acquire "arm" :timeout 10))
-          (if (or (not ret-head) (not ret-arm))
-            (progn
-              (ros::ros-error "Unable to acquire lock")
-              (exit 1)
-              )
-            )
           ;; hello with hand
           (ros::ros-info "*target-person-coord-robotbased-data*: ~A" *target-person-coord-robotbased-data*)
           ;;; move hand once
@@ -102,14 +98,14 @@
           ;;
           (send *fetch* :reset-pose)
           (send *ri* :angle-vector (send *fetch* :angle-vector) 5000)
-          ;; Release lock
-          (send *ros-lock* :release "arm")
-          (send *ros-lock* :release "head")
-          (ros::ros-error "released")
           ;;
-          (setq *last-stamp-approach* *target-person-coord-robotbased-stamp*)
+          (setq *last-stamp-approach* (ros::time-now))
           )
         )
+      ;; Release lock
+      (if ret-arm (send *ros-lock* :release "arm"))
+      (if ret-head (send *ros-lock* :release "head"))
+      (ros::ros-error "released")
       )
     (ros::ros-error "Unable to find person")
     ))

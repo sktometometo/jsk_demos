@@ -96,15 +96,18 @@
       (ros::ros-info "target-distance: ~A" target-distance)
       (ros::ros-info "delay: ~A" delay)
       (ros::ros-info "duration-from-last: ~A" duration-from-last)
+      (setq ret-head (send *ros-lock* :acquire "head" :timeout 1))
+      (setq ret-arm (send *ros-lock* :acquire "arm" :timeout 1))
+      (setq ret-base (send *ros-lock* :acquire "base" :timeout 1))
       (if (and (< target-distance *threshold-distance*)
                (ros::time< delay (send (instance ros::time :init) :from-sec *threshold-delay*))
                (ros::time> duration-from-last (send (instance ros::time :init) :from-sec *duration-dead*))
+               ret-head
+               ret-arm
+               ret-base
                )
         (progn
           ;; Acquire lock
-          (setq ret-head (send *ros-lock* :acquire "head" :timeout 10))
-          (setq ret-arm (send *ros-lock* :acquire "arm" :timeout 10))
-          (setq ret-base (send *ros-lock* :acquire "base" :timeout 10))
           (if (or (not ret-head) (not ret-arm) (not ret-base))
             (progn
               (ros::ros-error "Unable to acquire lock for base")
@@ -149,13 +152,11 @@
               (send *fetch* :look-at-target (send *target-person-coord-robotbased-data* :pos))
               (setq ret-ik
                     (send *fetch* :inverse-kinematics
-                          (transform-coords
-                           (send (send *fetch* :head :end-coords) :copy-worldcoords)
                            (make-coords
-                             :pos (float-vector (* 450 (cos target-direction))
-                                                (* 450 (sin target-direction))
-                                                600)
-                             :rpy (float-vector 0 0 0)))
+                             :pos (float-vector (* 500 (cos target-direction))
+                                                (* 500 (sin target-direction))
+                                                800)
+                             :rpy (float-vector target-direction 0 0))
                           :use-torso t))
               (if ret-ik
                 (progn
@@ -167,15 +168,15 @@
             )
           ;;
           (put-basket)
-          ;; Release lock
-          (send *ros-lock* :release "base")
-          (send *ros-lock* :release "arm")
-          (send *ros-lock* :release "head")
-          (ros::ros-error "released")
           ;;
-          (setq *last-stamp-approach* *target-person-coord-robotbased-stamp*)
+          (setq *last-stamp-approach* (ros::time-now))
           )
         )
+      ;; Release lock
+      (if ret-base (send *ros-lock* :release "base"))
+      (if ret-arm (send *ros-lock* :release "arm"))
+      (if ret-head (send *ros-lock* :release "head"))
+      (ros::ros-error "released")
       )
-      (ros::ros-error "Unable to find person")
+    (ros::ros-error "Unable to find person")
     ))
