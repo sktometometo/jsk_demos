@@ -3,6 +3,7 @@
 
 import copy
 import sys
+import math
 
 import rospy
 import actionlib
@@ -22,9 +23,9 @@ from geometry_msgs.msg import PoseStamped
 
 def calc_distance_poses(pose1, pose2):
 
-    return math.sqrt( (pose1.position.x - pose2.position.x)**2 +
-                      (pose1.position.y - pose2.position.y)**2 +
-                      (pose1.position.z - pose2.position.z)**2 )
+    return math.sqrt( (pose1.pose.position.x - pose2.pose.position.x)**2 +
+                      (pose1.pose.position.y - pose2.pose.position.y)**2 +
+                      (pose1.pose.position.z - pose2.pose.position.z)**2 )
 
 
 class LockedMoveBaseServer(object):
@@ -120,7 +121,7 @@ class LockedMoveBaseServer(object):
 
         list_goals = []
         for pose in plan.poses:
-            if len(list_goals):
+            if len(list_goals) == 0:
                 if calc_distance_poses(start_pose, pose) > self.minimum_traverse_distance:
                     list_goals.append(MoveBaseGoal(pose))
             else:
@@ -132,6 +133,7 @@ class LockedMoveBaseServer(object):
             list_goals[-1] = MoveBaseGoal(goal_pose)
 
         for goal in list_goals:
+            rospy.loginfo('goal: {}'.format(goal))
             with roslock_acquire(self.ros_lock, 'base'):
                 self.move_base_client.send_goal(
                                         goal,

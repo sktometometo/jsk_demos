@@ -20,11 +20,11 @@
         <rosparam subst_value="true">
         </rosparam>
         <remap from="~make_plan" to="/move_base_no_recovery/make_plan" />
-        <remap from="~target_move_base/goal" to="/move_base_no_recovery/raw/goal" />
-        <remap from="~target_move_base/result" to="/move_base_no_recovery/raw/result" />
-        <remap from="~target_move_base/status" to="/move_base_no_recovery/raw/status" />
-        <remap from="~target_move_base/cancel" to="/move_base_no_recovery/raw/cancel" />
-        <remap from="~target_move_base/feedback" to="/move_base_no_recovery/raw/feedback" />
+        <remap from="~target_move_base/goal" to="/move_base_no_recovery/goal" />
+        <remap from="~target_move_base/result" to="/move_base_no_recovery/result" />
+        <remap from="~target_move_base/status" to="/move_base_no_recovery/status" />
+        <remap from="~target_move_base/cancel" to="/move_base_no_recovery/cancel" />
+        <remap from="~target_move_base/feedback" to="/move_base_no_recovery/feedback" />
         <remap from="~move_base_simple/goal" to="/move_base_no_recovery_with_lock_simple/goal" />
         <remap from="~move_base/goal" to="/move_base_no_recovery_with_lock/goal" />
         <remap from="~move_base/result" to="/move_base_no_recovery_with_lock/result" />
