@@ -120,7 +120,14 @@ class LockedMoveBaseServer(object):
             return
 
         list_goals = []
-        for pose in plan.poses:
+        for index in range(len(plan.poses)):
+            pose = plan.poses[index]
+            if index < len(plan.poses) - 1:
+                next_pose = plan.poses[index + 1]
+                direction = math.atan2( next_pose.pose.position.y - pose.pose.position.y,
+                                        next_pose.pose.position.x - pose.pose.position.x )
+                pose.pose.orientation.z = math.sin( direction / 2.0 )
+                pose.pose.orientation.w = math.cos( direction / 2.0 )
             if len(list_goals) == 0:
                 if calc_distance_poses(start_pose, pose) > self.minimum_traverse_distance:
                     list_goals.append(MoveBaseGoal(pose))
@@ -139,19 +146,32 @@ class LockedMoveBaseServer(object):
                                         goal,
                                         feedback_cb=self.feedback_cb
                                         )
+                rate = rospy.Rate(1)
                 while not rospy.is_shutdown():
+                    rate.sleep()
+                    rospy.loginfo('spin')
                     if self.move_base_client.wait_for_result(timeout=rospy.Duration(1)):
-                        result = self.move_base_client.get_result()
-                        self.move_base_server.set_succeeded(result)
-                        return
+                        break
                     if self.move_base_server.is_preempt_requested():
                         rospy.logerr('Cancel requested.')
                         self.move_base_client.cancel_goal()
                         result = self.move_base_client.get_result()
                         self.move_base_server.set_aborted(result)
                         return
+                current_pose = self.get_current_pose()
+                if math.sqrt( ( current_pose.pose.position.x - goal.target_pose.pose.position.x ) ** 2 + \
+                              ( current_pose.pose.position.y - goal.target_pose.pose.position.y ) ** 2 + \
+                              ( current_pose.pose.position.y - goal.target_pose.pose.position.y ) ** 2 ) > 1.0:
+                    rospy.logerr('Failed to reach waypoints')
+                    result = MoveBaseResult()
+                    self.move_base_server.set_aborted(result)
+                    return
             if rospy.is_shutdown():
                 return
+        rospy.loginfo('Goal Reached')
+        result = MoveBaseResult()
+        self.move_base_server.set_succeeded(result)
+        return
 
 
 if __name__ == '__main__':

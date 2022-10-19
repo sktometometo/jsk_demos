@@ -18,6 +18,7 @@
         output="screen"
         >
         <rosparam subst_value="true">
+            minimum_traverse_distance: 1.0
         </rosparam>
         <remap from="~make_plan" to="/move_base_no_recovery/make_plan" />
         <remap from="~target_move_base/goal" to="/move_base_no_recovery/goal" />
