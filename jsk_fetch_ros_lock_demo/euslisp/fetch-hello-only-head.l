@@ -20,13 +20,14 @@
   (ros::sleep)
   (ros::ros-info "*target-person-coord-robotbased-data*: ~A" *target-person-coord-robotbased-data*)
   (ros::ros-info "*target-person-coord-robotbased-stamp*: ~A" *target-person-coord-robotbased-stamp*)
-  (if (and *target-person-coord-robotbased-data* *target-person-coord-robotbased-stamp*)
+  (if *target-person-coord-robotbased-data*
     (let* (ret
            (target-y (* 0.001 (elt (send *target-person-coord-robotbased-data* :pos) 1)))
            (target-distance (* 0.001 (norm (send *target-person-coord-robotbased-data* :pos))))
            (delay (ros::time- (ros::time-now) *target-person-coord-robotbased-stamp*))
            (duration-from-last (ros::time- (ros::time-now) *last-stamp-approach*))
            )
+      (ros::ros-info "target-y: ~A" target-y)
       (ros::ros-info "target-distance: ~A" target-distance)
       (ros::ros-info "delay: ~A" delay)
       (ros::ros-info "duration-from-last: ~A" duration-from-last)
@@ -36,22 +37,24 @@
       (if (and (< target-distance *threshold-distance*)
                (ros::time< delay (send (instance ros::time :init) :from-sec *threshold-delay*))
                (ros::time> duration-from-last (send (instance ros::time :init) :from-sec *duration-dead*))
-               (> target-y 0)
+               (> target-y 0.2)
                ret
                )
         (progn
-          ;; aproach to person
+          ;; Say hello
           (ros::ros-info "*target-person-coord-robotbased-data*: ~A" *target-person-coord-robotbased-data*)
-          (send *ri* :speak-jp "こんにちは")
+          ;;(send *ri* :speak-jp "こんにちは")
           (let ((deadline (ros::time+ (ros::time-now) (send (instance ros::time :init) :from-sec 5))))
             (while (and (ros::ok)
                         *target-person-coord-robotbased-data*
                         (ros::time< (ros::time-now) deadline)
                         )
+              (ros::ros-info "point head to ~A" *target-person-coord-robotbased-data*)
               (send *ri* :point-head (send *target-person-coord-robotbased-data* :pos) :wait t)
               (ros::spin-once)
               )
             )
+          (send *ri* :point-head #f(600 0 1000) :wait t)
           ;;
           (setq *last-stamp-approach* (ros::time-now))
           )

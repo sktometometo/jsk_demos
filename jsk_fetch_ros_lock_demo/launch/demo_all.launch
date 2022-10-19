@@ -6,6 +6,14 @@
 
     <node
         pkg="jsk_fetch_ros_lock_demo"
+        type="fetch-wandering.l"
+        name="fetch_wandering"
+        output="screen"
+        >
+    </node>
+
+    <node
+        pkg="jsk_fetch_ros_lock_demo"
         type="fetch-hello-only-head.l"
         name="fetch_hello_only_head"
         output="screen"

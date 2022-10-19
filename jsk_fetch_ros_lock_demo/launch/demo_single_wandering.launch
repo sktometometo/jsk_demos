@@ -1,0 +1,15 @@
+<launch>
+
+    <include
+        file="$(find jsk_fetch_ros_lock_demo)/launch/common.launch"
+        />
+
+    <node
+        pkg="jsk_fetch_ros_lock_demo"
+        type="fetch-wandering.l"
+        name="fetch_wandering"
+        output="screen"
+        >
+    </node>
+
+</launch>
