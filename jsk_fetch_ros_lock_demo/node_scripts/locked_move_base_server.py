@@ -148,10 +148,9 @@ class LockedMoveBaseServer(object):
     def control_goals(self, list_goals):
 
         for goal in list_goals:
-            rospy.loginfo('goal: {}'.format(goal))
             with roslock_acquire(self.ros_lock, 'base'):
                 # Where replanning is required or not
-                if calc_distance_poses(self.get_current_pose(), goal.goal_pose) > self.replanning_threshold_distance:
+                if calc_distance_poses(self.get_current_pose(), goal.target_pose) > self.replanning_threshold_distance:
                     rospy.logwarn('Robot is away from pre goal')
                     return False, True, 'Robot is away from pre goal'
                 self.move_base_client.send_goal(
@@ -173,6 +172,8 @@ class LockedMoveBaseServer(object):
             if rospy.is_shutdown():
                 return False, False, None
 
+        return True, False, 'success'
+
     def execute(self, goal):
 
         for trial_index in range(self.max_trial_number):
@@ -189,9 +190,10 @@ class LockedMoveBaseServer(object):
                 self.move_base_server.set_aborted(result)
                 return
 
-            success, retrial_flag, message = self.control_goals(list_goals)
+            success, retry_flag, message = self.control_goals(list_goals)
+            rospy.loginfo('{}, {}, {}'.format(success, retry_flag, message))
 
-            if retrial_flag:
+            if retry_flag:
                 rospy.logwarn('Try to replan and execution')
                 continue
 
