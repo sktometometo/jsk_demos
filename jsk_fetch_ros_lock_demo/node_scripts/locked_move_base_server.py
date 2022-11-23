@@ -65,6 +65,8 @@ class LockedMoveBaseServer(object):
 
         self.move_base_server.start()
 
+        rospy.loginfo('Initialized')
+
     def callback(self, msg):
 
         action_goal = MoveBaseActionGoal()
@@ -178,7 +180,7 @@ class LockedMoveBaseServer(object):
             list_goals, message = self.plan_path_and_get_waypoints(
                     self.get_current_pose(),
                     goal.target_pose,
-                    self.tolerance
+                    self.planning_tolerance
                     )
 
             if list_goals is None:
