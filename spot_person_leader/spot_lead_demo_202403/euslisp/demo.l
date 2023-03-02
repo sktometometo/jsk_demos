@@ -1,16 +1,18 @@
 #!/usr/bin/env roseus
 
 (ros::load-ros-package "jsk_recognition_msgs")
+(ros::load-ros-package "speech_recognition_msgs")
 (load "package://spoteus/spot-interface.l")
 
+(setq *follow-active* t)
 (setq *current-target-label* nil)
 (setq *odom-vision-to-body* nil)
 
-(setq *distance-min* 500)
-(setq *distance-max* 10000.0)
+(setq *distance-min* 800)
+(setq *distance-max* 20000.0)
 
-(setq *min-lateral-speed* 500)
 (setq *max-lateral-speed* 2000.0)
+(setq *max-rotation-speed* 1.0)
 
 (defun convert-robot-based-coords (pose-vision)
   (transform-coords
@@ -20,7 +22,12 @@
    (ros::tf-pose->coords pose-vision)))
 
 (defun calc-vtheta (target-direction)
-  (* 1.0 target-direction))
+  (let ((vtheta (* 1.0 target-direction)))
+   (if (> vtheta *max-rotation-speed*)
+     (setq vtheta *max-rotation-speed*))
+   (if (< vtheta (* -1.0 *max-rotation-speed*))
+     (setq vtheta (* -1.0 *max-rotation-speed*)))
+    vtheta))
 
 (defun calc-vx (target-distance)
   (* 0.0005 target-distance))
@@ -54,7 +61,8 @@
 
 (defun callback-bbox-array (msg)
   (if (or (not *odom-vision-to-body*)
-          (= (length (send msg :boxes)) 0))
+          (= (length (send msg :boxes)) 0)
+          (not *follow-active*))
       (return-from callback-bbox-array)
       )
   (if *current-target-label*
@@ -99,13 +107,76 @@
          (send msg :pose :pose)))
   )
 
+(defun callback-stt (msg)
+  (if (= (length (send msg :transcript)) 0)
+      (return-from callback-stt))
+
+  (let ((text (elt (send msg :transcript) 0)))
+    (ros::ros-info (format nil "stt: ~A" text))
+    (cond
+      ((or (string= text "起きて")
+           (string= text "起きろ"))
+       (progn
+         (setq *follow-active* nil)
+         (send *ri* :undock)
+         (send *ri* :claim)
+         (send *ri* :power-on)))
+      ((or (string= text "休んで")
+           (string= text "休め"))
+       (progn
+         (setq *follow-active* nil)
+         (send *ri* :dock 521)
+         (send *ri* :sit)
+         (send *ri* :power-off)
+         (send *ri* :release)))
+      ((or (string= text "座って")
+           (string= text "すわって"))
+       (progn
+         (setq *follow-active* nil)
+         (send *ri* :sit)))
+      ((or (string= text "立って")
+           (string= text "立て")
+           (string= text "たって"))
+       (progn
+         (setq *follow-active* nil)
+         (send *ri* :stand)))
+      ((or (string= text "ちょっと待ってて")
+           (string= text "ちょっと待って")
+           (string= text "ここで待ってて")
+           (string= text "ここで待って")
+           (string= text "待って")
+           (string= text "待て"))
+       (progn
+         (setq *follow-active* nil)
+         (setq *current-target-label* nil)
+         (send *ri* :stand)))
+      ((or (string= text "こっちへ来て")
+           (string= text "来て")
+           (string= text "来い")
+           (string= text "来て")
+           (string= text "こっち来て"))
+       (progn
+         (setq *current-target-label* nil)
+         (setq *follow-active* t)
+         (send *ri* :stand)))
+      (t (progn
+           (ros::ros-error "Unknown text")))
+      )
+    )
+  )
+
 
 (defun main ()
   (spot-init)
+  (send *ri* :sit)
+  (send *ri* :power-off)
+  (send *ri* :release)
+  (send *ri* :claim)
   (send *ri* :power-on)
   (send *ri* :stand)
   (ros::subscribe "/spot/odometry" nav_msgs::Odometry #'callback-odom)
   (ros::subscribe "/spot/tracked_world_objects" jsk_recognition_msgs::BoundingBoxArray #'callback-bbox-array)
+  (ros::subscribe "/speech_to_text" speech_recognition_msgs::SpeechRecognitionCandidates #'callback-stt)
   (ros::ros-info "Initialized.")
   (ros::spin)
   )
