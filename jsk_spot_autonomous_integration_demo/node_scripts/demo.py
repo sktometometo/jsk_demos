@@ -108,7 +108,7 @@ class Demo(SpotDemo):
         while not rospy.is_shutdown() and self._api_list_loop_running:
             rate.sleep()
             api_full_list = get_api_list(self.sdp_interface)
-            rospy.loginfo(f"api_full_list: {api_full_list}")
+            #rospy.loginfo(f"api_full_list: {api_full_list}")
             self.pub_debug_string.publish(
                 String(
                     data=yaml.dump(
@@ -132,6 +132,7 @@ class Demo(SpotDemo):
         # Enter 73B2
         if not dummy:
             self.spot_client.navigate_to(waypoint_id_door_inside, blocking=True)
+            time.sleep(3.0)
 
         #
         # Turn on light
@@ -194,10 +195,13 @@ class Demo(SpotDemo):
                     dev_info = dev_if
                     break
             if dev_info is None:
+                rospy.logerr("dev info non for {}".format(device_name))
                 continue
             if "distance" not in dev_info or dev_info["distance"] is None:
+                rospy.logerr("distance non for {}: {}".format(device_name, dev_info))
                 continue
             distance = dev_info["distance"]
+            rospy.logerr(f"dev_info: {dev_info}, distance: {distance}")
             if distance < distance_to_base:
                 target_api_full = target_api_full_candidate
                 distance_to_base = distance
@@ -231,7 +235,7 @@ class Demo(SpotDemo):
         )
         # if not dummy:
         call_api(self.sdp_interface, target_api_full, target_api_args)
-        time.sleep(5.0)
+        time.sleep(10.0)
 
         if len(self.get_people()) > 0:
             # if not dummy:
