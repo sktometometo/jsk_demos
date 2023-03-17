@@ -1,0 +1,5 @@
+<launch>
+    <include file="$(find jsk_shopping)/launch/includes/trashcan_edge_detection.launch.xml"/>
+  <include file="$(find jsk_shopping)/launchch/includes/trash_mark.launch.xml"/>
+  <include file="$(find jsk_shopping)/launchch/includes/spot_mark.launch.xml"/>
+</launch>

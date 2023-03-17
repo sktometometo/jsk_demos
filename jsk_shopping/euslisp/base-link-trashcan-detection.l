@@ -35,11 +35,10 @@
       (when (ros::time> time-stamp (send msg :header :stamp)) ;;rostime揃え
         (return-from bounding-box-array-cb nil))
       (ros::ros-info "tf")
-      (setq obj-pos (scale 0.001
+      (setq *obj-pos* (scale 0.001
                            (send (send base-coords :transform base->obj-coords) :worldpos)))
-      (setq found-obj t)
-      (print obj-pos)
-      obj-pos)))
+      (print *obj-pos*)
+      *obj-pos*)))
 
 (defun grasp-with-rec (obj-pos)
   (setq target-cds (make-coords :pos (scale 1000 obj-pos)))
@@ -343,8 +342,8 @@
                   #'bounding-box-array-cb 1)
   (unix::sleep 1)
   (ros::spin-once)
-  (hole-fast obj-pos)
-  (setq obj-pos nil)
+  (hole-fast *obj-pos*)
+  (setq *obj-pos* nil)
 
   ;; (send *ri* :go-pos-unsafe 0 0 -90)
   ;; (move-to-belka-front)
@@ -379,8 +378,8 @@
                   #'bounding-box-array-cb 1)
   (unix::sleep 1)
   (ros::spin-once)
-  (hole-fast obj-pos)
-  (setq obj-pos nil)
+  (hole-fast *obj-pos*)
+  (setq *obj-pos* nil)
 
   (move-to-73b2-outside)
   (send *fetch* :angle-vector #f(99.9534 20.278 -26.5115 110.928 29.272 -29.4469 47.1254 44.1142 0.594807 44.8205))
