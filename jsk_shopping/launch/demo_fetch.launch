@@ -1,5 +1,18 @@
 <launch>
-    <include file="$(find jsk_shopping)/launch/includes/trashcan_edge_detection.launch.xml"/>
-  <include file="$(find jsk_shopping)/launchch/includes/trash_mark.launch.xml"/>
-  <include file="$(find jsk_shopping)/launchch/includes/spot_mark.launch.xml"/>
+  <include file="$(find jsk_pcl_ros)/launch/hsi_color_filter.launch">
+    <arg name="INPUT" value="/l515_head/depth_registered/quater/points"/>
+    <arg name="OUTPUT" value="hsi_output"/>
+    <arg name="CENTROID_FRAME" value="target"/>
+    <arg name="DEFAULT_NAMESPACE" value="hsi_color_filter"/>
+
+    <arg name="h_max" value="127" /><!-- 127 -->
+    <arg name="h_min" value="73" /><!-- -128 -->
+    <arg name="s_max" value="255" /><!-- 255 -->
+    <arg name="s_min" value="49" /><!-- 0 -->
+    <arg name="i_max" value="255" /><!-- 255 -->
+    <arg name="i_min" value="90" /><!-- 0 -->
+
+    <arg name="create_manager" value="true" />
+    <arg name="manager" value="hsi_filter_manager" />
+  </include>
 </launch>
