@@ -39,6 +39,11 @@ class ElevatorOperationServer(object):
         rospy.logwarn('elevator config: {}'.format(self.elevator_config))
 
         #######################################################################
+        # Robot specific config
+        #######################################################################
+        self.use_elevator_movement_status = rospy.get_param('~use_elevator_movement_status', True)
+
+        #######################################################################
         # Door Detection Input
         #######################################################################
         self.input_topic_points = rospy.get_param('~input_topic_points')
@@ -331,9 +336,14 @@ class ElevatorOperationServer(object):
                 self.state_current_floor,
                 self.state_elevator_movement
                 ))
-            if self.state_door_state == DoorState.OPEN \
+            if self.use_elevator_movement_status \
+                    and self.state_door_state == DoorState.OPEN \
                     and self.state_current_floor == target_floor \
                     and self.state_elevator_movement == 'halt':
+                break
+            elif not self.use_elevator_movement_status \
+                    and self.state_door_state == DoorState.OPEN \
+                    and self.state_current_floor == target_floor:
                 break
 
         # Get off when arrive

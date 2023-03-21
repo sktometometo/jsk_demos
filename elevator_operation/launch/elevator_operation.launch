@@ -6,6 +6,8 @@
 
     <arg name="robot_type" default="fetch" />
 
+    <arg name="use_elevator_movement_status" default="true" />
+
     <arg name="input_topic_current_floor" default="/elevator_state_publisher/current_floor" />
     <arg name="input_topic_elevator_movement" default="/elevator_state_publisher/elevator_movement" />
     <arg name="input_topic_door_state" default="/elevator_door_detector/door_state" />
@@ -24,6 +26,9 @@
             local_costmap_inflation_plugin: '/move_base/local_costmap/inflater'
             #global_costmap_inflation_plugin: '/move_base/global_costmap/inflation_layer'
             #local_costmap_inflation_plugin: '/move_base/local_costmap/inflation_layer'
+        </rosparam>
+        <rosparam subst_value="true">
+            use_elevator_movement_status: $(arg use_elevator_movement_status)
         </rosparam>
         <rosparam
             ns="elevator_config"
