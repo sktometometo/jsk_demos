@@ -7,8 +7,6 @@
     <arg name="use_head_box" default="false" />
     <arg name="use_head_l515" default="true" />
 
-    <arg name="model" value="$(find dxl_armed_turtlebot)/urdf/robot.urdf.xacro"  />
-
     <rosparam>
         use_sim_time: true
     </rosparam>
@@ -30,13 +28,13 @@
                   head_l515:=$(arg use_head_l515)" />
         <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
         <node pkg="rviz" type="rviz" name="$(anon jsk_startup_rviz)"
-              args="-d $(find jsk_fetch_startup)/config/jsk_startup.rviz" />
+              args="-d $(find elevator_operation_experiments)/config/fetch_demo.rviz" />
     </group>
 
     <group if="$(eval arg('ROBOT_TYPE') == 'turtlebot')">
-        <param name="robot_description" command="$(find xacro)/xacro.py $(arg model)" />
+        <param name="robot_description" command="$(find xacro)/xacro.py $(find dxl_armed_turtlebot)/urdf/robot.urdf.xacro" />
         <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" />
         <node pkg="rviz" type="rviz" name="$(anon rviz)"
-              args="-d $(find dxl_armed_turtlebot)/config/dxl_armed_turtlebot.rviz" />
+              args="-d $(find elevator_operation_experiments)/config/turtlebot_demo.rviz" />
     </group>
 </launch>
