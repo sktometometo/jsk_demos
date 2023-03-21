@@ -37,4 +37,7 @@
         <node pkg="rviz" type="rviz" name="$(anon rviz)"
               args="-d $(find elevator_operation_experiments)/config/turtlebot_demo.rviz" />
     </group>
+
+    <node pkg="plotjuggler" type="plotjuggler" name="plotjuggler"
+        args="-l $(find elevator_operation_experiments)/config/demo.xml" />
 </launch>
