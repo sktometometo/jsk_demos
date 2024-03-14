@@ -12,57 +12,57 @@
    (ros::tf-pose->coords pose-vision)))
 
 (defun move-robot (target-coords-from-robot)
-  (
-  )
+  (let ((target-pose (send target-coords-from-robot :pos)))
+    (ros::ros-info (format nil "target pos: ~A~%"))
+  ))
 
 (defun callback-bbox-array (msg)
-  (if (or (not *current-target-label*)
-          (= (length (send msg :boxes) 0)))
-      (return-from callback)
+  (ros::ros-info "callback-bbox-array")
+
+  (if (= (length (send msg :boxes)) 0)
+      (return-from callback-bbox-array)
       )
 
   (if *current-target-label*
-      (let* (target
-             (targets
-              (remove-if-not
-               (lambda (bbox) (= *current-target-label* (send bbox :label)))
-               (send msg :boxes)
-               ))
-             )
-        (if (> (length targets) 0)
+      (let* (target)
+        (dolist (bbox (send msg :boxes))
+          (if (= *current-target-label* (send bbox :label))
+              (setq target bbox)
+              ))
+        (if target
             (progn
               (setq target-coords
                     (convert-robot-based-coords
-                     (ros::tf-pose->coords (send (elt targets 0) :pose))))
+                     (ros::tf-pose->coords (send target :pose))))
               (move-robot target-coords)
-              (return-from callback)
+              (return-from callback-bbox-array)
               )
             )
         ))
 
   (let (nearest-bbox)
-    (setq nearest-bbox
-          (reduce
-           (lambda (bbox-a bbox-b)
-             (if (< (distance
-                     (send (ros::tf-pose->coords (send bbox-a :pose)) :pos)
+    (dolist (bbox (send msg :boxes))
+      (if (not nearest-bbox)
+          (setq nearest-bbox bbox)
+          (progn
+            (if (< (distance
+                     (send (ros::tf-pose->coords (send bbox :pose)) :pos)
                      (send *odom-vision-to-body* :pos))
-                    (distance
-                     (send (ros::tf-pose->coords (send bbox-b :pose)) :pos)
+                   (distance
+                     (send (ros::tf-pose->coords (send nearest-bbox :pose)) :pos)
                      (send *odom-vision-to-body* :pos)))
-                 bbox-a
-                 bbox-b))
+                (setq nearest-bbox bbox)))))
 
-           ))
     (setq *current-target-label*
           (send nearest-bbox :label))
     (move-robot
      (convert-robot-based-coords
-      (ros::tf-pose->coords (send nearest-box :pose))))
+      (ros::tf-pose->coords (send nearest-bbox :pose))))
     )
   )
 
 (defun callback-odom (msg)
+  (ros::ros-info "callback odom")
   (setq *odom-vision-to-body*
         (ros::tf-pose->coords
          (send msg :pose :pose)))
@@ -71,8 +71,11 @@
 
 (defun main ()
   (spot-init)
+  (send *ri* :power-on)
+  (send *ri* :stand)
   (ros::subscribe "/spot/odometry" nav_msgs::Odometry #'callback-odom)
   (ros::subscribe "/spot/tracked_world_objects" jsk_recognition_msgs::BoundingBoxArray #'callback-bbox-array)
+  (ros::ros-info "Initialized.")
   (ros::spin)
   )
 
