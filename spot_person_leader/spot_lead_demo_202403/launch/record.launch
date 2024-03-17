@@ -4,5 +4,6 @@
     <include file="$(find jsk_spot_startup)/launch/rosbag_record.launch">
         <arg name="rosbag" value="$(arg rosbag)" />
         <arg name="additional_topics" value="/spot/target_bbox" />
+        <arg name="record_as_points" value="false" />
     </include>
 </launch>
