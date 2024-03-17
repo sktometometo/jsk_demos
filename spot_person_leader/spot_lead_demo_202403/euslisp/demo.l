@@ -2,6 +2,8 @@
 
 (ros::load-ros-package "jsk_recognition_msgs")
 (ros::load-ros-package "speech_recognition_msgs")
+(ros::load-ros-package "spot_lead_demo_202403")
+
 (load "package://spoteus/spot-interface.l")
 
 (setq *follow-active* t)
@@ -13,6 +15,19 @@
 
 (setq *max-lateral-speed* 2000.0)
 (setq *max-rotation-speed* 1.0)
+
+(defun handler-start-follow 
+  (req)
+  (let 
+    ( 
+      (res 
+        (instance spot_lead_demo_202403::StartFollowResponse :init))
+      (target-label 
+        (send req :target_label)))
+    (setq *current-target-label* target-label)
+    (setq *follow-active* t)
+    (send res :success t)
+res))
 
 (defun convert-robot-based-coords 
   (pose-vision)
@@ -260,6 +275,7 @@ vtheta))
   (ros::subscribe "/spot/tracked_world_objects" jsk_recognition_msgs::BoundingBoxArray #'callback-bbox-array)
   (ros::subscribe "/speech_to_text" speech_recognition_msgs::SpeechRecognitionCandidates #'callback-stt)
   (ros::advertise "/spot/target_bbox" jsk_recognition_msgs::BoundingBox)
+  (ros::advertise-service "/spot/start_follow" spot_lead_demo_202403::StartFollow #'handler-start-follow)
   (ros::ros-info "Initialized.")
   (ros::spin)
 )
