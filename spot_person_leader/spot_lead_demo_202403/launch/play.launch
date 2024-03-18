@@ -1,0 +1,29 @@
+<launch>
+    <arg name="rosbag" />
+
+    <include file="$(find jsk_spot_startup)/launch/rosbag_play.launch" >
+        <arg name="rosbag" value="$(arg rosbag)" />
+        <arg name="gui" value="false" />
+        <arg name="skip_rosbag" value="true" />
+    </include>
+
+    <node
+        pkg="rviz"
+        type="rviz"
+        name="$(anon rviz)"
+        args="-d $(find spot_lead_demo_202403)/rviz/spot_lead_demo.rviz"
+        />
+
+    <node
+        pkg="spot_lead_demo_202403"
+        type="target_bbox_offset.py"
+        name="target_bbox_offset"
+        >
+        <remap from="~input" to="/spot/target_bbox" />
+        <remap from="~output" to="/spot/target_bbox_offset" />
+        <rosparam>
+            z_offset: 0.8
+        </rosparam>
+    </node>
+
+</launch>

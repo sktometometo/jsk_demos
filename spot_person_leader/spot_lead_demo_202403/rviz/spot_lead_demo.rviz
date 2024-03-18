@@ -5,14 +5,13 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
-        - /BodyCameraDepthClouds1/FrontLeftDepthCloud1
         - /BodyCameraDepthClouds1/FrontLeftDepthCloud1/Autocompute Value Bounds1
         - /BodyCameraDepthClouds1/FrontRightDepthCloud1/Autocompute Value Bounds1
         - /BodyCameraDepthClouds1/LeftDepthCloud1/Autocompute Value Bounds1
         - /BodyCameraDepthClouds1/RightDepthCloud1/Autocompute Value Bounds1
         - /BodyCameraDepthClouds1/RearDepthCloud1/Autocompute Value Bounds1
+        - /LidarPointCloud1
         - /LidarPointCloud1/Autocompute Value Bounds1
-        - /HandPointCloud1
       Splitter Ratio: 0.6150481104850769
     Tree Height: 889
   - Class: rviz/Selection
@@ -33,7 +32,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: BodyCameraPointCloud
+    SyncSource: LidarPointCloud
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -351,7 +350,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Group
       Displays:
-        - Alpha: 1
+        - Alpha: 0.699999988079071
           Auto Size:
             Auto Size Factor: 1
             Value: false
@@ -388,7 +387,7 @@ Visualization Manager:
           Use Fixed Frame: true
           Use rainbow: true
           Value: true
-        - Alpha: 1
+        - Alpha: 0.699999988079071
           Auto Size:
             Auto Size Factor: 1
             Value: false
@@ -425,7 +424,7 @@ Visualization Manager:
           Use Fixed Frame: true
           Use rainbow: true
           Value: true
-        - Alpha: 1
+        - Alpha: 0.699999988079071
           Auto Size:
             Auto Size Factor: 1
             Value: false
@@ -462,7 +461,7 @@ Visualization Manager:
           Use Fixed Frame: true
           Use rainbow: true
           Value: true
-        - Alpha: 1
+        - Alpha: 0.699999988079071
           Auto Size:
             Auto Size Factor: 1
             Value: false
@@ -499,7 +498,7 @@ Visualization Manager:
           Use Fixed Frame: true
           Use rainbow: true
           Value: true
-        - Alpha: 1
+        - Alpha: 0.699999988079071
           Auto Size:
             Auto Size Factor: 1
             Value: false
@@ -536,9 +535,9 @@ Visualization Manager:
           Use Fixed Frame: true
           Use rainbow: true
           Value: true
-      Enabled: false
+      Enabled: true
       Name: BodyCameraDepthClouds
-    - Alpha: 1
+    - Alpha: 0.699999988079071
       Auto Size:
         Auto Size Factor: 1
         Value: false
@@ -557,7 +556,7 @@ Visualization Manager:
       Decay Time: 0
       Depth Map Topic: /spot/camera/hand_depth_in_hand_color_frame/image
       Depth Map Transport Hint: raw
-      Enabled: false
+      Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Min Color: 0; 0; 0
@@ -568,13 +567,13 @@ Visualization Manager:
       Position Transformer: XYZ
       Queue Size: 5
       Selectable: true
-      Size (Pixels): 3
+      Size (Pixels): 5
       Size (m): 0.009999999776482582
-      Style: Points
+      Style: Squares
       Topic Filter: false
       Use Fixed Frame: true
       Use rainbow: true
-      Value: false
+      Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -603,28 +602,28 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: false
-    - Alpha: 1
+    - Alpha: 0.30000001192092896
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: -50
-        Min Value: -45
+        Max Value: -30
+        Min Value: -15
         Value: false
       Axis: Z
-      Channel Name: intensity
+      Channel Name: z
       Class: rviz/PointCloud2
       Color: 255; 255; 255
-      Color Transformer: AxisColor
+      Color Transformer: Intensity
       Decay Time: 0
       Enabled: true
-      Invert Rainbow: false
-      Max Color: 255; 255; 255
-      Min Color: 0; 0; 0
+      Invert Rainbow: true
+      Max Color: 255; 0; 4
+      Min Color: 38; 0; 255
       Name: LidarPointCloud
       Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.10000000149011612
+      Size (m): 0.05000000074505806
       Style: Flat Squares
       Topic: /spot/lidar/points/throttled
       Unreliable: false
@@ -643,7 +642,7 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: RGB8
       Decay Time: 1
-      Enabled: true
+      Enabled: false
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Min Color: 0; 0; 0
@@ -658,7 +657,7 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
-      Value: true
+      Value: false
     - Class: jsk_rviz_plugin/OverlayImage
       Enabled: true
       Name: PanoramaImage
@@ -667,7 +666,7 @@ Visualization Manager:
       alpha: 0.800000011920929
       height: 128
       keep aspect ratio: true
-      left: 0
+      left: 1200
       overwrite alpha value: false
       top: 0
       transport hint: raw
@@ -727,12 +726,12 @@ Visualization Manager:
       text size: 10
       top: 50
     - Class: jsk_rviz_plugin/BoundingBoxArray
-      Enabled: true
+      Enabled: false
       Name: DetectedObjects
       Queue Size: 10
       Topic: /spot_recognition/bbox_array
       Unreliable: false
-      Value: true
+      Value: false
       alpha: 0.800000011920929
       color: 25; 255; 0
       coloring: Label
@@ -769,11 +768,11 @@ Visualization Manager:
       Enabled: true
       Name: BoundingBox
       Queue Size: 10
-      Topic: /spot/target_bbox
+      Topic: /spot/target_bbox_offset
       Unreliable: false
       Value: true
       alpha: 0.5
-      color: 255; 106; 0
+      color: 0; 255; 0
       coloring: Flat color
       line width: 0.004999999888241291
       only edge: false
@@ -806,7 +805,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 15.48045825958252
+      Distance: 10.16343879699707
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -822,9 +821,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.9449973106384277
+      Pitch: 0.4749974012374878
       Target Frame: base_link
-      Yaw: 3.364212989807129
+      Yaw: 1.7583783864974976
     Saved: ~
 Window Geometry:
   Displays:
