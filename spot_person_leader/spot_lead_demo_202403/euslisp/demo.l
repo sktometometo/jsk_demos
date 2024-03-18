@@ -247,8 +247,7 @@ vtheta))
           (setq *follow-active* nil)
           (send *ri* :dock 521)
           (send *ri* :sit)
-          (send *ri* :power-off)
-          (send *ri* :release)))
+          ))
       (
         (or 
           (string= text "座って")
