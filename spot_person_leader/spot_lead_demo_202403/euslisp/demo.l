@@ -76,7 +76,7 @@ vtheta))
       (target-distance 
         (norm 
           (float-vector target-x target-y 0)))
-)
+        )
     (ros::ros-debug 
       (format nil "target pos: ~A" target-pos))
     (ros::ros-debug 
