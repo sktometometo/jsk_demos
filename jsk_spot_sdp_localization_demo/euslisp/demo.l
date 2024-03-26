@@ -4,14 +4,54 @@
 
 (ros::load-ros-package "uwb_localization")
 
+
+(setq *odom-vision-to-body* nil)
+(setq *last-moved-stamp* nil)
+
+(setq *last-msg-tables* (make-hash-table :test 'equal))
+
+(defun callback-odom (msg)
+  (setq *odom-vision-to-body*
+    (ros::tf-pose->coords
+      (send msg :pose :pose)))
+    )
+
 (defun callback (msg)
-  (let ()
+  (if (or (not *odom-vision-to-body*)
+          (= 0 (length (send msg :devices))))
+    (return-from callback))
+  (let* ((sorted-list
+           (send msg :devices)
+           (lambda (device-a device-b)
+             (<
+               (distance
+                 (ros::tf-point->pos (send device-a :point))
+                 (send *odom-vision-to-body* :pos)
+                 )
+               (distance
+                 (ros::tf-point->pos (send device-b :point))
+                 (send *odom-vision-to-body* :pos)
+                 ))))
+         (target-device (elt sorted-list 0))
+         (device-name (send target-device :device_name))
+         )
+    (ros::ros-info (format nil "Target device is ~A" (send target-device :device_name)))
+    (point-and-describe
+      (transform-coords
+        (send *odom-vision-to-body* :inverse-transformation)
+        (make-coords :pos (ros::tf-point->pos (send target-device :point))))
+      (send target-device :device_name)
+      ""
+      :walk nil
+      :speak nil)
+    (setq *last-moved-stamp* (send target-device :header :stamp))
    ))
 
 (defun point-and-describe
     (target-coords-from-robot name description
      &key
        (walk t)
+       (speak t)
        )
   (let* ((local-x (elt (send target-coords-from-robot :pos) 0))
          (local-y (elt (send target-coords-from-robot :pos) 1))
@@ -32,14 +72,19 @@
           (send *spot* :head :look-at (float-vector local-x local-y local-z))
           (send *ri* :angle-vector (send *spot* :angle-vector) 1000))
           )
-    (send *ri* :speak-jp (format nil "あそこにあるのは~Aです" name) :wait t)
-    (send *ri* :speak-jp description :wait t)
+    (if speak
+      (progn
+        (send *ri* :speak-jp (format nil "あそこにあるのは~Aです" name) :wait t)
+        (send *ri* :speak-jp description :wait t)))
     ))
 
 (defun main ()
   (spot-init)
 
+  (ros::subscribe "/spot/odometry" nav_msgs::Odometry #'callback-odom)
   (ros::subscribe "/sdpuwb_devices" uwb_localization::SDPUWBDeviceArray #'callback)
 
-  (ros::spin)
+  (while (ros::ok)
+    (ros::spin-once)
+    )
   )
