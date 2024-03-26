@@ -9,6 +9,8 @@
 (setq *last-moved-stamp* nil)
 (setq *last-msg-table* (make-hash-table :test 'equal))
 
+(setq *threshold-distance-max* 5.0)
+
 
 (defun callback-odom (msg)
   (setq *odom-vision-to-body*
@@ -42,6 +44,8 @@
                     (make-coords :pos (ros::tf-point->pos (send target-device :point))))
                :pos)))
          )
+    (if (< distance-robot-to-device *threshold-distance-max*)
+      (return-from callback))
     (if (or (not last-stamp-for-devide)
             (ros::time> (ros::time- (ros::time-now) last-stamp-for-devide) (ros::time 30)))
       (progn
