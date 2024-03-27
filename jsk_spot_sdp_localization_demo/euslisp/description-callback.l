@@ -71,6 +71,17 @@
         (send *ros-lock-mobility* :release)
         (send *ros-lock-arm* :release)
         ))
+
+    (progn
+      (send *ros-lock-arm* :acquire)
+      (point-and-describe
+          target-coords-from-robot
+          (send target-device :device_name)
+          ""
+          :walk nil
+          :speak nil)
+      (send *ros-lock-arm* :release)
+      )
     (setq *last-moved-stamp* (send target-device :header :stamp))
    ))
 
@@ -93,7 +104,7 @@
           (send *ri* :go-pos 0 0 direction :wait t)
           (send *spot* :angle-vector (send *ri* :state :potentio-vector))
           (send *spot* :head :look-at (float-vector distance2point 0 local-z))
-          (send *ri* :angle-vector (send *spot* :angle-vector) 5000))
+          (send *ri* :angle-vector (send *spot* :angle-vector) 1000))
         (progn
           (send *spot* :angle-vector (send *ri* :state :potentio-vector))
           (send *spot* :head :look-at (float-vector local-x local-y local-z))
