@@ -1,6 +1,7 @@
 #!/usr/bin/env roseus
 
 (load "package://spoteus/spot-interface.l")
+(load "package://ros_lock/euslisp/ros_lock.l")
 
 (ros::load-ros-package "uwb_localization")
 
@@ -10,6 +11,11 @@
 (setq *last-msg-table* (make-hash-table :test 'equal))
 
 (setq *threshold-distance-max* 5.0)
+(setq *timeout-duration-move* 3.0)
+(setq *duration-dead-zone* 60)
+
+(setq *ros-lock-mobility* (instance ros-lock :init "mobility"))
+(setq *ros-lock-arm* (instance ros-lock :init "arm"))
 
 
 (defun callback-odom (msg)
@@ -34,34 +40,37 @@
                  (send *odom-vision-to-body* :pos)
                  ))))
          (target-device (elt sorted-list 0))
+         (target-coords-from-robot
+           (transform-coords
+             (send *odom-vision-to-body* :inverse-transformation)
+             (make-coords :pos (ros::tf-point->pos (send target-device :point))))
+           )
          (device-name (send target-device :device_name))
-         (last-stamp-for-devide (gethash device-name *last-msg-table*))
+         (last-stamp-for-device (gethash device-name *last-msg-table*))
          (distance-robot-to-device
-           (norm
-             (send
-               (transform-coords
-                    (send *odom-vision-to-body* :inverse-transformation)
-                    (make-coords :pos (ros::tf-point->pos (send target-device :point))))
-               :pos)))
+           (norm (send target-coords-from-robot :pos)))
          )
+    (ros::ros-info (format nil "Target device is ~A" (send target-device :device_name)))
+    (ros::ros-info (format nil "Target coords: ~A" target-coords-from-robot))
     (if (< distance-robot-to-device *threshold-distance-max*)
       (return-from callback))
-    (if (or (not last-stamp-for-devide)
-            (ros::time> (ros::time- (ros::time-now) last-stamp-for-devide) (ros::time 30)))
+    (if (or (not last-stamp-for-device)
+            (ros::time>
+              (ros::time- (ros::time-now) last-stamp-for-device)
+              (ros::time *duration-dead-zone*)))
       (progn
-        (send *ri* :speak-jp (format nil "あそこにあるのは~Aです" device-name))
+        (send *ros-lock-mobility* :acquire)
+        (send *ros-lock-arm* :acquire)
+        (point-and-describe
+          target-coords-from-robot
+          (send target-device :device_name)
+          ""
+          :walk t
+          :speak t)
         (setf (gethash device-name *last-msg-table*) (send target-device :header :stamp))
+        (send *ros-lock-mobility* :release)
+        (send *ros-lock-arm* :release)
         ))
-
-    (ros::ros-info (format nil "Target device is ~A" (send target-device :device_name)))
-    (point-and-describe
-      (transform-coords
-        (send *odom-vision-to-body* :inverse-transformation)
-        (make-coords :pos (ros::tf-point->pos (send target-device :point))))
-      (send target-device :device_name)
-      ""
-      :walk nil
-      :speak nil)
     (setq *last-moved-stamp* (send target-device :header :stamp))
    ))
 
@@ -73,7 +82,7 @@
        )
   (let* ((local-x (elt (send target-coords-from-robot :pos) 0))
          (local-y (elt (send target-coords-from-robot :pos) 1))
-         (local-z (elt (send target-coords-from-robot :pos) 1))
+         (local-z (elt (send target-coords-from-robot :pos) 2))
          (direction (rad2deg (atan local-y local-x)))
          (distance2point (norm (float-vector local-x local-y 0)))
          )
@@ -102,5 +111,20 @@
   (ros::subscribe "/sdpuwb_devices" uwb_localization::SDPUWBDeviceArray #'callback)
   (while (ros::ok)
     (ros::spin-once)
+    (if (or
+          (not *last-moved-stamp*)
+          (ros::time>
+            (ros::time-
+              (ros::time-now)
+              *last-moved-stamp*)
+            (ros::time *timeout-duration-move*))
+          )
+      (progn
+        (send *ri* :stow-arm)
+        (send *spot* :angle-vector (send *ri* :state :potentio-vector))
+        ))
     )
   )
+
+
+(main)
