@@ -5,6 +5,7 @@
 (ros::load-ros-package "spot_lead_demo_202403")
 
 (load "package://spoteus/spot-interface.l")
+(load "package://ros_lock/euslisp/ros_lock.l")
 
 (setq *follow-active* t)
 (setq *current-target-label* nil)
@@ -20,6 +21,9 @@
 (setq *max-rotation-speed* 1.0)
 
 (setq *timeout-duration* 1.0)
+
+(setq *ros-lock-mobility* (instance ros-lock :init "mobility"))
+(setq *ros-lock-arm* (instance ros-lock :init "arm"))
 
 (defun handler-start-follow 
   (req)
@@ -83,8 +87,8 @@ vtheta))
       (format nil "target distance: ~A" target-distance))
     (ros::ros-debug 
       (format nil "target direction: ~A" target-direction))
-    (if 
-      (or 
+    (if
+      (or
         (> target-distance *distance-max*)
         (< target-distance *distance-min*))
       (progn
@@ -92,6 +96,11 @@ vtheta))
           (format nil "Target distanct ~A out of range." target-distance))
         (return-from move-robot)))
 
+    (if (not (send *ros-lock-mobility* :acquire :timeout 2))
+      (progn
+        (ros::ros-info
+          (format nil "Failed to acquire lock"))
+        (return-from move-robot)))
     (setq msg_target_bbox
       (instance jsk_recognition_msgs::BoundingBox :init))
     (send msg_target_bbox :header :stamp 
@@ -126,6 +135,7 @@ vtheta))
       (progn
         (send *ri* :send-cmd-vel-raw vx 0 vtheta :topic-name "/spot/cmd_vel_unsmoothed")
         (ros::ros-debug "Sent velocity [~A 0 ~A]" vx vtheta)))
+    (send *ros-lock-mobility* :release)
 ))
 
 (defun callback-bbox-array 
