@@ -83,11 +83,13 @@
       (send *ros-lock-arm* :release)
       )
     (setq *last-moved-stamp* (send target-device :header :stamp))
-   ))
+    ))
 
 (defun point-and-describe
-    (target-coords-from-robot name description
+    (target-coords-from-robot
      &key
+       (name "テスト")
+       (description "テスト")
        (walk t)
        (speak t)
        )
@@ -99,16 +101,24 @@
          )
     (ros::ros-info (format nil "direction: ~A" direction))
     (ros::ros-info (format nil "distance: ~A" distance2point))
+    (ros::ros-info (format nil "local-x: ~A" local-x))
+    (ros::ros-info (format nil "local-y: ~A" local-y))
+    (ros::ros-info (format nil "local-z: ~A" local-z))
     (if walk
         (progn
           (send *ri* :go-pos 0 0 direction :wait t)
           (send *spot* :angle-vector (send *ri* :state :potentio-vector))
           (send *spot* :head :look-at (float-vector distance2point 0 local-z))
-          (send *ri* :angle-vector (send *spot* :angle-vector) 1000))
+          (send *ri* :angle-vector (send *spot* :angle-vector) 5000))
         (progn
           (send *spot* :angle-vector (send *ri* :state :potentio-vector))
-          (send *spot* :head :look-at (float-vector local-x local-y local-z))
-          (send *ri* :angle-vector (send *spot* :angle-vector) 1000))
+          (send *spot* :head :look-at
+                (send
+                 (send
+                  (send *spot* :copy-worldcoords)
+                  :translate (float-vector local-x local-y local-z))
+                :pos))
+          (send *ri* :angle-vector (send *spot* :angle-vector) 5000))
           )
     (if speak
       (progn
