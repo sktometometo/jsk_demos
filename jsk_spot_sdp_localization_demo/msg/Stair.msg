@@ -1,0 +1,5 @@
+string stair_name
+geometry_msgs/PointStamped point_top_a
+geometry_msgs/PointStamped point_top_b
+geometry_msgs/PointStamped point_bottom_a
+geometry_msgs/PointStamped point_bottom_b
