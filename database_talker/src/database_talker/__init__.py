@@ -27,6 +27,10 @@ import tempfile
 # import time
 import traceback
 
+IsHeadless = False
+if 'DISPLAY' not in os.environ:
+    IsHeadless = True
+
 from dateutil import tz
 JST = tz.gettz('Asia/Tokyo')
 
@@ -277,7 +281,7 @@ class DatabaseTalkerBase(object):
                                                  start_time = timestamp - datetime.timedelta(minutes=5),
                                                  end_time = timestamp + datetime.timedelta(minutes=5),
                                                  classify = False)
-        if True:
+        if not IsHeadless:
             cv2.imshow('images of today', cv2.hconcat([cv2.imdecode(np.fromstring(result['image'].data, np.uint8), cv2.IMREAD_COLOR) for result in results]))
             cv2.waitKey(100)
 
@@ -546,7 +550,7 @@ class DatabaseTalkerBase(object):
                                                  end_time = end_time,
                                                  classify = False)
         if len(results) > 0:
-            if True:  # debug
+            if not IsHeadless:  # debug
                 try:
                     cv2.imshow('images for response', cv2.hconcat([cv2.imdecode(np.fromstring(result['image'].data, np.uint8), cv2.IMREAD_COLOR) for result in results]))
                     cv2.waitKey(100)
