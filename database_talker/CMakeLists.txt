@@ -15,6 +15,6 @@ catkin_package(
 )
 
 catkin_install_python(PROGRAMS
-  sample/include/store_image_description.py
+  sample/include/store_image_description.py scripts/make_diary.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
