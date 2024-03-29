@@ -15,6 +15,6 @@ catkin_package(
 )
 
 catkin_install_python(PROGRAMS
-  scripts/hoge.py
+  sample/include/store_image_description.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
