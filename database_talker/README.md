@@ -12,7 +12,7 @@ Set up a workspace using the `rosinstall` file and compile it with `catkin build
 
 For a minimum setup, run the following command. This will start the mongodb/lifelog nodes and save the usb camera data to the database.
 ```bash
-roslaunch database_talker demo.launch
+roslaunch database_talker sample.launch
 ```
 
 To generate a diary using robot memory, execute the following command and talk to GoogleChat bot.
