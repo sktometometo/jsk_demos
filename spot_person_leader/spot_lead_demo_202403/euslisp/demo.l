@@ -27,8 +27,8 @@
 
 (defun handler-start-follow 
   (req)
-  (let 
-    ( 
+  (let
+    (
       (res 
         (instance spot_lead_demo_202403::StartFollowResponse :init))
       (target-label 
@@ -96,11 +96,14 @@ vtheta))
           (format nil "Target distanct ~A out of range." target-distance))
         (return-from move-robot)))
 
-    (if (not (send *ros-lock-mobility* :acquire :timeout 2))
+    (if (send *ros-lock-arm* :acquire :timeout 2)
       (progn
-        (ros::ros-info
-          (format nil "Failed to acquire lock"))
-        (return-from move-robot)))
+        (send *spot* :angle-vector (send *ri* :state :potentio-vector))
+        (send *spot* :head :look-at target-pos)
+        (send *ri* :angle-vector (send *spot* :angle-vector) 1000)
+        (send *ros-lock-arm* :release)
+        ))
+
     (setq msg_target_bbox
       (instance jsk_recognition_msgs::BoundingBox :init))
     (send msg_target_bbox :header :stamp 
@@ -125,6 +128,12 @@ vtheta))
       (calc-vtheta target-direction))
     (setq vx 
       (calc-vx target-distance))
+
+    (if (not (send *ros-lock-mobility* :acquire :timeout 2))
+      (progn
+        (ros::ros-info
+          (format nil "Failed to acquire lock"))
+        (return-from move-robot)))
     (if 
       (or 
         (> target-direction 1.5)
@@ -255,6 +264,7 @@ vtheta))
           (string= text "休め"))
         (progn
           (setq *follow-active* nil)
+          (send *ri* :stow-arm)
           (send *ri* :dock 521)
           (send *ri* :sit)
           ))
@@ -287,6 +297,7 @@ vtheta))
           (send *ri* :speak-jp "ここで待ちます" :wait t)
           (setq *follow-active* nil)
           (setq *current-target-label* nil)
+          (send *ri* :stow-arm)
           (send *ri* :stand)))
       (
         (or 
@@ -301,6 +312,7 @@ vtheta))
           (setq *last-target-stamp* nil)
           (setq *last-target-coords-from-vision* nil)
           (setq *follow-active* t)
+          (send *ri* :unstow-arm)
           (send *ri* :stand)))
       (t 
         (progn
