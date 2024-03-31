@@ -312,7 +312,8 @@ vtheta))
           (setq *last-target-stamp* nil)
           (setq *last-target-coords-from-vision* nil)
           (setq *follow-active* t)
-          (send *ri* :unstow-arm)
+          (send *spot* :reset-pose)
+          (send *ri* :angle-vector (send *spot* :angle-vector) 1000)
           (send *ri* :stand)))
       (t 
         (progn
