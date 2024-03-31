@@ -66,11 +66,11 @@ vtheta))
   (* 0.0005 target-distance))
 
 (defun move-robot 
-  (target-coords-from-robot &key (update-last-info t))
+  (target-coords-from-robot &key (update-last-info t) (z-offset 1.5))
   (let* 
     (vx vy vtheta msg_target_bbox
       (target-pos 
-        (send target-coords-from-robot :pos))
+        (v+ (send target-coords-from-robot :pos) (float-vector 0 0 z-offset)))
       (target-x 
         (elt target-pos 0))
       (target-y 
@@ -96,11 +96,12 @@ vtheta))
           (format nil "Target distanct ~A out of range." target-distance))
         (return-from move-robot)))
 
-    (if (send *ros-lock-arm* :acquire :timeout 2)
+    (if (and nil (send *ros-lock-arm* :acquire :timeout 2))
       (progn
         (send *spot* :angle-vector (send *ri* :state :potentio-vector))
         (send *spot* :head :look-at target-pos)
         (send *ri* :angle-vector (send *spot* :angle-vector) 1000)
+        (send *ri* :wait-interpolation)
         (send *ros-lock-arm* :release)
         ))
 

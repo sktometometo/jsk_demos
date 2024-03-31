@@ -63,8 +63,8 @@
         (send *ros-lock-arm* :acquire)
         (point-and-describe
           target-coords-from-robot
-          (send target-device :device_name)
-          ""
+          :name (send target-device :device_name)
+          :describe ""
           :walk t
           :speak t)
         (setf (gethash device-name *last-msg-table*) (send target-device :header :stamp))
@@ -76,8 +76,8 @@
       (send *ros-lock-arm* :acquire)
       (point-and-describe
           target-coords-from-robot
-          (send target-device :device_name)
-          ""
+          :name (send target-device :device_name)
+          :describe ""
           :walk nil
           :speak nil)
       (send *ros-lock-arm* :release)
