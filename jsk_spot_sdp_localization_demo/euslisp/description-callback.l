@@ -64,7 +64,7 @@
         (point-and-describe
           target-coords-from-robot
           :name (send target-device :device_name)
-          :describe ""
+          :description ""
           :walk t
           :speak t)
         (setf (gethash device-name *last-msg-table*) (send target-device :header :stamp))
@@ -77,7 +77,7 @@
       (point-and-describe
           target-coords-from-robot
           :name (send target-device :device_name)
-          :describe ""
+          :description ""
           :walk nil
           :speak nil)
       (send *ros-lock-arm* :release)
@@ -109,7 +109,9 @@
           (send *ri* :go-pos 0 0 direction :wait t)
           (send *spot* :angle-vector (send *ri* :state :potentio-vector))
           (send *spot* :head :look-at (float-vector distance2point 0 local-z))
-          (send *ri* :angle-vector (send *spot* :angle-vector) 5000))
+          (send *ri* :angle-vector (send *spot* :angle-vector) 1000)
+          (send *ri* :wait-interpolation)
+          )
         (progn
           (send *spot* :angle-vector (send *ri* :state :potentio-vector))
           (send *spot* :head :look-at
@@ -118,7 +120,9 @@
                   (send *spot* :copy-worldcoords)
                   :translate (float-vector local-x local-y local-z))
                 :pos))
-          (send *ri* :angle-vector (send *spot* :angle-vector) 5000))
+          (send *ri* :angle-vector (send *spot* :angle-vector) 1000)
+          (send *ri* :wait-interpolation)
+          )
           )
     (if speak
       (progn
