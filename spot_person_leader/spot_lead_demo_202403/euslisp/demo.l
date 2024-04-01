@@ -318,6 +318,7 @@ vtheta))
           (send *ri* :stand)))
       (t 
         (progn
+          (send *ri* :speak-jp "わかりませんでした" :wait t)
           (ros::ros-error "Unknown text")))
 )
 )
