@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-from ast import Dict
 from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
