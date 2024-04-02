@@ -334,7 +334,7 @@ vtheta))
     (setq *follow-active* t)
     (setq *follow-active* nil))
 
-  (spot-init)
+  (spot-init :auto-start nil)
   (ros::subscribe "/spot/odometry" nav_msgs::Odometry #'callback-odom)
   (ros::subscribe "/spot/tracked_world_objects" jsk_recognition_msgs::BoundingBoxArray #'callback-bbox-array)
   (ros::subscribe "/speech_to_text" speech_recognition_msgs::SpeechRecognitionCandidates #'callback-stt)
