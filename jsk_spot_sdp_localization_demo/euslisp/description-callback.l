@@ -78,8 +78,8 @@
 (defun point-and-describe
     (target-coords-from-robot
      &key
-       (name "テスト")
-       (description "テスト")
+       (name "test-name")
+       (description "test-description")
        )
   (let* ((local-x (elt (send target-coords-from-robot :pos) 0))
          (local-y (elt (send target-coords-from-robot :pos) 1))
@@ -102,8 +102,8 @@
     (send *ri* :wait-interpolation)
     (send *ros-lock-mobility* :release)
     (send *ros-lock-arm* :release)
-    (send *ri* :speak-jp (format nil "あそこにあるのは~Aです" name) :wait t)
-    (send *ri* :speak-jp description :wait t)
+    (send *ri* :speak (format nil "There is ~A there." name) :wait t)
+    (send *ri* :speak description :wait t)
     )
   )
 
@@ -113,9 +113,7 @@
   (send *ros-lock-arm* :release)
   (ros::subscribe "/spot/odometry" nav_msgs::Odometry #'callback-odom)
   (ros::subscribe "/sdpuwb_devices" uwb_localization::SDPUWBDeviceArray #'callback-devices)
-  (while (ros::ok)
-    (ros::spin-once)
-    )
+  (ros::spin)
   )
 
 
