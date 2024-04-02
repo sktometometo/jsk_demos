@@ -26,7 +26,7 @@
   (if (or (not *odom-vision-to-body*)
           (= 0 (length (send msg :devices))))
     (return-from callback-devices))
-  (let* (duration-passed
+  (let* (
          (target-device
            (car
              (sort
@@ -58,7 +58,7 @@
                                 distance-robot-to-device
                                 *threshold-distance-max*
                                 ))
-        (return-from callback))
+        (return-from callback-devices))
       )
 
     (if (or (not last-stamp-for-device)
