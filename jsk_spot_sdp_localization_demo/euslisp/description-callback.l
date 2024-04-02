@@ -59,6 +59,7 @@
                                 *threshold-distance-max*
                                 ))
         (return-from callback))
+      )
 
     (if (or (not last-stamp-for-device)
             (ros::time>
