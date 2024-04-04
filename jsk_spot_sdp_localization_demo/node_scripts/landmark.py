@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 import math
-from typing import Dict, Optional
+import threading
+from typing import Dict, List, Optional
 
 import PyKDL
 import rospy
@@ -12,10 +13,6 @@ from smart_device_protocol.smart_device_protocol_interface import UWBSDPInterfac
 from sound_play.libsoundplay import SoundClient
 from spot_ros_client.libspotros import SpotRosClient
 from uwb_localization.msg import SDPUWBDevice, SDPUWBDeviceArray
-
-
-def device_distance_compare(device_a: SDPUWBDevice, device_b: SDPUWBDevice):
-    return device_a.point
 
 
 class Demo:
@@ -30,9 +27,18 @@ class Demo:
         self._sdp_interface = UWBSDPInterface()
         self._sound_client = SoundClient()
 
+        self._sdp_interface.register_interface_callback(
+            ("Landmark information", "S"),
+            self._cb_sdp_landmark_information,
+        )
+
+        self._lock_for_mobility = ROSLock("mobility")
+
         self._frame_vision_to_body: Optional[PyKDL.Frame] = None
         self._last_stamps: Dict[str, rospy.Time] = {}
-        self._lock_for_mobility = ROSLock("mobility")
+
+        self._landmark_information_tables_lock = threading.Lock()
+        self._landmark_information_tables: Dict[str, str] = {}
 
         self._sub_odom = rospy.Subscriber("~odom", Odometry, self._cb_odom)
 
@@ -48,6 +54,15 @@ class Demo:
             self._look_at_client(target_frame_robotbased.p)
             self._sound_client.say(f"There is {name} there.", blocking=True)
             self._sound_client.say(description, blocking=True)
+
+    def _cb_sdp_landmark_information(self, src_address, contents: List):
+        device_content = contents[0]
+        if src_address not in self._sdp_interface.device_interfaces:
+            rospy.logerr(f"Failed to find device interface for {src_address}")
+            return
+        device_name = self._sdp_interface.device_interfaces[src_address]["device_name"]
+        with self._landmark_information_tables_lock:
+            self._landmark_information_tables[device_name] = device_content
 
     def _cb_odom(self, msg: Odometry):
 
@@ -76,7 +91,7 @@ class Demo:
                 - self._frame_vision_to_body.p
             ).Norm(),
         )[0]
-        last_stamp = self._last_stamps.get(target_device.device_id, None)
+        last_stamp = self._last_stamps.get(target_device.device_name, None)
         target_frame_robotbased = self._frame_vision_to_body.Inverse() * PyKDL.Frame(
             PyKDL.Rotation(),
             PyKDL.Vector(
@@ -91,9 +106,19 @@ class Demo:
         if last_stamp is None or rospy.Time.now() - last_stamp > rospy.Duration(
             self._duration_deadzone
         ):
-            self._last_stamps[target_device.device_id] = rospy.Time.now()
+            self._last_stamps[target_device.device_name] = rospy.Time.now()
+            with self._landmark_information_tables_lock:
+                device_description = self._landmark_information_tables.get(
+                    target_device.device_name, ""
+                )
             self.point_and_describe(
                 target_frame_robotbased,
                 name=target_device.device_name,
-                description="This is a UWB device.",
+                description=device_description,
             )
+
+
+if __name__ == "__main__":
+    rospy.init_node("landmark")
+    demo = Demo()
+    rospy.spin()
