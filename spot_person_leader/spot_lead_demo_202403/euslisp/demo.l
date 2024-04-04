@@ -3,11 +3,14 @@
 (ros::load-ros-package "jsk_recognition_msgs")
 (ros::load-ros-package "speech_recognition_msgs")
 (ros::load-ros-package "spot_lead_demo_202403")
+(ros::load-ros-package "jsk_spot_startup")
 
 (load "package://spoteus/spot-interface.l")
+(load "package://jsk_spot_startup/euslisp/look-at-client.l")
 (load "package://ros_lock/euslisp/ros_lock.l")
 
 (setq *follow-active* t)
+(setq *look-around* nil)
 (setq *current-target-label* nil)
 (setq *odom-vision-to-body* nil)
 
@@ -25,21 +28,18 @@
 (setq *ros-lock-mobility* (instance ros-lock :init "mobility"))
 (setq *ros-lock-arm* (instance ros-lock :init "arm"))
 
-(defun handler-start-follow 
-  (req)
+(defun handler-start-follow (req)
   (let
     (
-      (res 
-        (instance spot_lead_demo_202403::StartFollowResponse :init))
+      (res (instance spot_lead_demo_202403::StartFollowResponse :init))
       (target-label 
         (send req :target_label)))
     (setq *current-target-label* target-label)
     (setq *follow-active* t)
     (send res :success t)
-res))
+    res))
 
-(defun convert-robot-based-coords 
-  (pose-vision)
+(defun convert-robot-based-coords (pose-vision)
   (transform-coords
     (send *odom-vision-to-body* :inverse-transformation)
     (ros::tf-pose->coords pose-vision)))
@@ -148,6 +148,27 @@ vtheta))
     (send *ros-lock-mobility* :release)
 ))
 
+(defun callback-people-bbox-array (msg)
+  (if (not (send msg :boxes))
+    (return-from callback-people-bbox-array))
+
+  (let ((
+         target-coords-from-robot
+          (car
+            (sort
+              (mapcar (send msg :boxes)
+                      #'(lambda (msg-box)
+                          (transform-coords
+                            (send *odom-vision-to-body* :inverse-transformation)
+                            (ros::tf-pose->coords (send msg :pose)))))
+              #'(lambda (coords) (norm (send coords :pos)))))))
+    (if (not (send *ros-lock-arm* :acquire :timeout 1))
+      (return-from callback-people-bbox-array))
+    (spot-look-at target-coords-from-robot)
+    (send *ros-lock-arm* :release)
+    )
+  )
+
 (defun callback-bbox-array 
   (msg)
   (if 
@@ -156,76 +177,80 @@ vtheta))
       (= 
         (length 
           (send msg :boxes)) 0)
-      (not *follow-active*))
+      )
     (return-from callback-bbox-array))
 
-  (if *current-target-label*
-    (let* 
-      (target)
-      (dolist 
-        (bbox 
-          (send msg :boxes))
-        (if 
-          (= *current-target-label* 
-            (send bbox :label))
-          (setq target bbox)))
-      (if target
-        (progn
-          (setq target-coords
-            (convert-robot-based-coords
-              (send target :pose)))
-          (move-robot target-coords)
-          (return-from callback-bbox-array))
-        (if (and *last-target-stamp*
-                 (ros::time<
-                   (ros::time- (ros::time-now) *last-target-stamp*)
-                   (ros::time *timeout-duration*)))
-          (let ((last-target-coords-from-robot
-                (transform-coords
-                  (send *odom-vision-to-body* :inverse-transformation)
-                  *last-target-coords-from-vision*)))
-            (move-robot last-target-coords-from-robot :update-last-info nil)
-            (return-from callback-bbox-array))
-          (progn
-            (setq *last-target-stamp* nil)
-            )
-          )
-        )))
+  (if *follow-active*
+    (progn
+      (if *current-target-label*
+        (let* 
+          (target)
+          (dolist 
+            (bbox 
+              (send msg :boxes))
+            (if 
+              (= *current-target-label* 
+                (send bbox :label))
+              (setq target bbox)))
+          (if target
+            (progn
+              (setq target-coords
+                (convert-robot-based-coords
+                  (send target :pose)))
+              (move-robot target-coords)
+              (return-from callback-bbox-array))
+            (if (and *last-target-stamp*
+                     (ros::time<
+                       (ros::time- (ros::time-now) *last-target-stamp*)
+                       (ros::time *timeout-duration*)))
+              (let ((last-target-coords-from-robot
+                    (transform-coords
+                      (send *odom-vision-to-body* :inverse-transformation)
+                      *last-target-coords-from-vision*)))
+                (move-robot last-target-coords-from-robot :update-last-info nil)
+                (return-from callback-bbox-array))
+              (progn
+                (setq *last-target-stamp* nil)
+                )
+              )
+            )))
 
-  (let
-    (nearest-bbox
-     (reference-coords-on-vision
-       (if *last-target-coords-from-vision*
-           (send *last-target-coords-from-vision* :pos)
-         (send *odom-vision-to-body* :pos)))
-       )
-    (dolist
-      (bbox
-        (send msg :boxes))
-      (if 
-        (not nearest-bbox)
-        (setq nearest-bbox bbox)
-        (progn
+      (let
+        (nearest-bbox
+         (reference-coords-on-vision
+           (if *last-target-coords-from-vision*
+               (send *last-target-coords-from-vision* :pos)
+             (send *odom-vision-to-body* :pos)))
+           )
+        (dolist
+          (bbox
+            (send msg :boxes))
           (if 
-            (< 
-              (distance
-                (send 
-                  (ros::tf-pose->coords 
-                    (send bbox :pose)) :pos)
-                reference-coords-on-vision)
-              (distance
-                (send 
-                  (ros::tf-pose->coords 
-                    (send nearest-bbox :pose)) :pos)
-                reference-coords-on-vision)
-                ))
-            (setq nearest-bbox bbox))))
-    (setq *current-target-label*
-      (send nearest-bbox :label))
-    (move-robot
-      (convert-robot-based-coords
-        (send nearest-bbox :pose))))
-)
+            (not nearest-bbox)
+            (setq nearest-bbox bbox)
+            (progn
+              (if 
+                (< 
+                  (distance
+                    (send 
+                      (ros::tf-pose->coords 
+                        (send bbox :pose)) :pos)
+                    reference-coords-on-vision)
+                  (distance
+                    (send 
+                      (ros::tf-pose->coords 
+                        (send nearest-bbox :pose)) :pos)
+                    reference-coords-on-vision)
+                    ))
+                (setq nearest-bbox bbox))))
+        (setq *current-target-label*
+          (send nearest-bbox :label))
+        (move-robot
+          (convert-robot-based-coords
+            (send nearest-bbox :pose))))
+      )
+    )
+  )
 
 (defun callback-odom 
   (msg)
@@ -256,6 +281,7 @@ vtheta))
           (string= text "起きろ"))
         (progn
           (setq *follow-active* nil)
+          (setq *look-around* nil)
           (send *ri* :undock)
           (send *ri* :claim)
           (send *ri* :power-on)))
@@ -265,6 +291,7 @@ vtheta))
           (string= text "休め"))
         (progn
           (setq *follow-active* nil)
+          (setq *look-around* nil)
           (send *ri* :stow-arm)
           (send *ri* :dock 521)
           (send *ri* :sit)
@@ -275,6 +302,7 @@ vtheta))
           (string= text "すわって"))
         (progn
           (setq *follow-active* nil)
+          (setq *look-around* nil)
           (send *ri* :sit)))
       (
         (or 
@@ -283,6 +311,7 @@ vtheta))
           (string= text "たって"))
         (progn
           (setq *follow-active* nil)
+          (setq *look-around* nil)
           (send *ri* :stand)))
       (
         (or 
@@ -297,9 +326,10 @@ vtheta))
         (progn
           (send *ri* :speak-jp "ここで待ちます" :wait t)
           (setq *follow-active* nil)
+          (setq *look-around* nil)
           (setq *current-target-label* nil)
           (send *ri* :stow-arm)
-          (send *ri* :stand)))
+          ))
       (
         (or 
           (string= text "こっちへ来て")
@@ -309,6 +339,7 @@ vtheta))
           (string= text "こっち来て"))
         (progn
           (send *ri* :speak-jp "ついていきます" :wait t)
+          (setq *look-around* nil)
           (setq *current-target-label* nil)
           (setq *last-target-stamp* nil)
           (setq *last-target-coords-from-vision* nil)
@@ -316,6 +347,18 @@ vtheta))
           (send *spot* :reset-pose)
           (send *ri* :angle-vector (send *spot* :angle-vector) 1000)
           (send *ri* :stand)))
+      (
+        (or 
+          (string= text "見張ってて")
+          (string= text "ここで見張ってて")
+          )
+        (progn
+          (send *ri* :speak-jp "見張ります" :wait t)
+          (setq *look-around* t)
+          (setq *follow-active* nil)
+          (send *spot* :reset-pose)
+          (send *ri* :angle-vector (send *spot* :angle-vector) 1000)
+          ))
       (t 
         (progn
           (send *ri* :speak-jp "わかりませんでした" :wait t)
