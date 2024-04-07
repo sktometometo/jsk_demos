@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import copy
 import math
 import threading
 from typing import Dict, List, Optional
@@ -98,9 +99,29 @@ class Demo:
                 target_device.point.x, target_device.point.y, target_device.point.z
             ),
         )
+        with self._landmark_information_tables_lock:
+            if target_device.device_name not in self._landmark_information_tables:
+                return
+            device_description = self._landmark_information_tables[
+                target_device.device_name
+            ]
+        device_interfaces = copy.deepcopy(self._sdp_interface.device_interfaces)
+        if target_device.device_name not in [
+            di["device_name"] for di in device_interfaces.values()
+        ]:
+            rospy.logerr(
+                f"Failed to find device interface for {target_device.device_name}"
+            )
+            return
+        src_address = [
+            k
+            for k, v in device_interfaces.items()
+            if v["device_name"] == target_device.device_name
+        ][0]
+        distance = device_interfaces[src_address]["distance"]
 
-        if target_frame_robotbased.p.Norm() > self._threshold_distance_max:
-            rospy.logerr(f"Distance {target_frame_robotbased.p.Norm()} is too far.")
+        if distance > self._threshold_distance_max:
+            rospy.logerr(f"Distance {distance} is too far.")
             return
 
         if last_stamp is None or rospy.Time.now() - last_stamp > rospy.Duration(
