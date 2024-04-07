@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import copy
 import math
@@ -7,10 +7,10 @@ from typing import Dict, List, Optional
 
 import PyKDL
 import rospy
-from jsk_spot_utils.look_at_client import SpotLookAtClient
+from jsk_spot_lib.look_at_client import SpotLookAtClient
 from nav_msgs.msg import Odometry
 from ros_lock import ROSLock, roslock_acquire
-from smart_device_protocol.smart_device_protocol_interface import UWBSDPInterface
+from smart_device_protocol.smart_device_protocol_interface import UWBSDPInterface, DataFrame
 from sound_play.libsoundplay import SoundClient
 from spot_ros_client.libspotros import SpotRosClient
 from uwb_localization.msg import SDPUWBDevice, SDPUWBDeviceArray
@@ -20,7 +20,7 @@ class Demo:
 
     def __init__(self):
 
-        self._threshold_distance_max = rospy.get_param("~threshold_distance_max", 30.0)
+        self._threshold_distance_max = rospy.get_param("~threshold_distance_max", 10.0)
         self._duration_deadzone = rospy.get_param("~duration_deadzone", 60.0)
 
         self._spot_client = SpotRosClient()
@@ -41,7 +41,9 @@ class Demo:
         self._landmark_information_tables_lock = threading.Lock()
         self._landmark_information_tables: Dict[str, str] = {}
 
-        self._sub_odom = rospy.Subscriber("~odom", Odometry, self._cb_odom)
+        self._sub_odom = rospy.Subscriber("/spot/odometry", Odometry, self._cb_odom)
+        self._sub_devices = rospy.Subscriber("/sdpuwb_devices", SDPUWBDeviceArray, self._cb_device)
+
 
     def point_and_describe(self, target_frame_robotbased, name="", description=""):
 
@@ -52,12 +54,12 @@ class Demo:
                 math.atan2(target_frame_robotbased.p[1], target_frame_robotbased.p[0]),
                 blocking=True,
             )
-            self._look_at_client(target_frame_robotbased.p)
+            self._look_at_client.look_at(target_frame_robotbased.p)
             self._sound_client.say(f"There is {name} there.", blocking=True)
             self._sound_client.say(description, blocking=True)
 
-    def _cb_sdp_landmark_information(self, src_address, contents: List):
-        device_content = contents[0]
+    def _cb_sdp_landmark_information(self, src_address, data_frame: DataFrame):
+        device_content = data_frame.content[0]
         if src_address not in self._sdp_interface.device_interfaces:
             rospy.logerr(f"Failed to find device interface for {src_address}")
             return
@@ -82,7 +84,12 @@ class Demo:
         )
 
     def _cb_device(self, msg: SDPUWBDeviceArray):
-        if len(msg.devices) == 0 or self._frame_vision_to_body is None:
+        if len(msg.devices) == 0:
+            rospy.logwarn('lengh of meessag is zero. skpped')
+            return
+
+        if self._frame_vision_to_body is None:
+            rospy.logwarn('Odom not initialized. skpped')
             return
 
         target_device = sorted(
@@ -119,10 +126,15 @@ class Demo:
             if v["device_name"] == target_device.device_name
         ][0]
         distance = device_interfaces[src_address]["distance"]
+        if distance is None:
+            rospy.logerr('Distance is None')
+            return
 
         if distance > self._threshold_distance_max:
             rospy.logerr(f"Distance {distance} is too far.")
             return
+
+        rospy.loginfo(f"Distance {distance}.")
 
         if last_stamp is None or rospy.Time.now() - last_stamp > rospy.Duration(
             self._duration_deadzone
