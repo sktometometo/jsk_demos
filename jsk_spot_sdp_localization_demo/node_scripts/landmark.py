@@ -47,6 +47,8 @@ class Demo:
 
     def point_and_describe(self, target_frame_robotbased, name="", description=""):
 
+        rospy.loginfo(f"target_frame_robotbased: {target_frame_robotbased}")
+
         with roslock_acquire(self._lock_for_mobility):
             self._spot_client.trajectory(
                 0,
@@ -54,7 +56,11 @@ class Demo:
                 math.atan2(target_frame_robotbased.p[1], target_frame_robotbased.p[0]),
                 blocking=True,
             )
-            self._look_at_client.look_at(target_frame_robotbased.p)
+            self._look_at_client.look_at([
+                target_frame_robotbased.p[0],
+                target_frame_robotbased.p[1],
+                target_frame_robotbased.p[2],
+                ])
             self._sound_client.say(f"There is {name} there.", blocking=True)
             self._sound_client.say(description, blocking=True)
 
@@ -144,6 +150,9 @@ class Demo:
                 device_description = self._landmark_information_tables.get(
                     target_device.device_name, ""
                 )
+            rospy.loginfo(f"msg.devices: {msg.devices}")
+            rospy.loginfo(f"target_device: {target_device}")
+            rospy.loginfo(f"target_frame_robotbased: {target_frame_robotbased}")
             self.point_and_describe(
                 target_frame_robotbased,
                 name=target_device.device_name,
