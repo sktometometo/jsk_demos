@@ -149,19 +149,25 @@ vtheta))
 ))
 
 (defun callback-people-bbox-array (msg)
-  (if (not (send msg :boxes))
+  (if (or (not *look-around*) (not (send msg :boxes)))
     (return-from callback-people-bbox-array))
 
   (let ((
          target-coords-from-robot
           (car
             (sort
-              (mapcar (send msg :boxes)
-                      #'(lambda (msg-box)
+              (mapcar
+                #'(lambda (msg-box)
                           (transform-coords
                             (send *odom-vision-to-body* :inverse-transformation)
-                            (ros::tf-pose->coords (send msg :pose)))))
-              #'(lambda (coords) (norm (send coords :pos)))))))
+                            (ros::tf-pose->coords (send msg-box :pose))))
+                (send msg :boxes)
+                )
+              #'(lambda (coords-a coords-b)
+                  (<= (norm (send coords-a :pos))
+                      (norm (send coords-a :pos)))
+                  )
+              ))))
     (if (not (send *ros-lock-arm* :acquire :timeout 1))
       (return-from callback-people-bbox-array))
     (spot-look-at target-coords-from-robot)
@@ -396,6 +402,9 @@ vtheta))
   ()
   (ros::roseus "spot_lead_demo_main")
 
+  (send *ros-lock-arm* :release)
+  (send *ros-lock-mobility* :release)
+
   (setq *auto-start* (ros::get-param "~auto_start" t))
   (if *auto-start*
     (setq *follow-active* t)
@@ -404,6 +413,7 @@ vtheta))
   (spot-init :auto-start nil)
   (ros::subscribe "/spot/odometry" nav_msgs::Odometry #'callback-odom)
   (ros::subscribe "/spot/tracked_world_objects" jsk_recognition_msgs::BoundingBoxArray #'callback-bbox-array)
+  (ros::subscribe "/spot_recognition/bbox_array" jsk_recognition_msgs::BoundingBoxArray #'callback-people-bbox-array)
   (ros::subscribe "/speech_to_text" speech_recognition_msgs::SpeechRecognitionCandidates #'callback-stt)
   (ros::advertise "/spot/target_bbox" jsk_recognition_msgs::BoundingBox)
   (ros::advertise-service "/spot/start_follow" spot_lead_demo_202403::StartFollow #'handler-start-follow)
