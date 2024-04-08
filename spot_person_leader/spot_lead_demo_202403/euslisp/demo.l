@@ -14,6 +14,8 @@
 (setq *current-target-label* nil)
 (setq *odom-vision-to-body* nil)
 
+(setq *save-target-autowalk* "/home/spot/default.walk")
+
 (setq *last-target-coords-from-vision* nil)
 (setq *last-target-stamp* nil)
 
