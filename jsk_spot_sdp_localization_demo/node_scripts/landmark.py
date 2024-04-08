@@ -151,6 +151,8 @@ class Demo:
                     target_device.device_name, ""
                 )
             rospy.loginfo(f"msg.devices: {msg.devices}")
+            rospy.loginfo(f"vision_to_body: {self._frame_vision_to_body}")
+            rospy.loginfo(f"vision_to_body.Inverse(): {self._frame_vision_to_body.Inverse()}")
             rospy.loginfo(f"target_device: {target_device}")
             rospy.loginfo(f"target_frame_robotbased: {target_frame_robotbased}")
             self.point_and_describe(
