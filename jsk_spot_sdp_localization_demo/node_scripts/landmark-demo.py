@@ -47,13 +47,15 @@ class Demo:
 
     def point_and_describe(self, target_frame_robotbased, name="", description=""):
 
+        target_theta = math.atan2(target_frame_robotbased.p[1], target_frame_robotbased.p[0]),
         rospy.loginfo(f"target_frame_robotbased: {target_frame_robotbased}")
+        rospy.loginfo(f"target_theta: {target_theta}")
 
         with roslock_acquire(self._lock_for_mobility):
             self._spot_client.trajectory(
                 0,
                 0,
-                math.atan2(target_frame_robotbased.p[1], target_frame_robotbased.p[0]),
+                target_theta,
                 blocking=True,
             )
             self._look_at_client.look_at([
