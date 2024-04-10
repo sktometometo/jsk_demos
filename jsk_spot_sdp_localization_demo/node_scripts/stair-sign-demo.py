@@ -11,7 +11,7 @@ import rospy
 from geometry_msgs.msg import Point
 from nav_msgs.msg import Odometry
 from ros_lock import ROSLock
-from smart_device_protocol import UWBSDPInterface
+from smart_device_protocol import UWBSDPInterface, DataFrame
 from spot_ros_client import SpotROSClient
 from uwb_localization.msg import SDPUWBDeviceArray
 from visualization_msgs.msg import Marker, MarkerArray
@@ -63,7 +63,6 @@ class StairExecutor:
         self._client = SpotROSClient()
         self._lock_mobility = ROSLock("mobility")
 
-        self._sub_odom = rospy.Subscriber("/spot/odometry", Odometry, self._cb_odom)
         self._odom_to_base: Optional[PyKDL.Frame] = None
         self._odom_frame_id: Optional[str] = None
         self._lock_odom = threading.Lock()
@@ -84,8 +83,11 @@ class StairExecutor:
 
         self._pub_markers = rospy.Publisher("/stair_markers", MarkerArray, queue_size=1)
 
-    def _cb_sdp_landmark_information(self, src_address, contents: List):
-        device_content = contents[0]
+        self._sub_odom = rospy.Subscriber("/spot/odometry", Odometry, self._cb_odom)
+        self._sub_devices = rospy.Subscriber("/sdpuwb_devices", SDPUWBDeviceArray, self._cb_device)
+
+    def _cb_sdp_landmark_information(self, src_address, data_frame: DataFrame):
+        device_content = data_frame.content[0]
         ret = parse_device_text(device_content)
         if ret is None:
             return
