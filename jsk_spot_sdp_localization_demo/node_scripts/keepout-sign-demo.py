@@ -20,7 +20,6 @@ class KeepoutSignExecutor:
         self._interface = UWBSDPInterface()
         self._client = SpotRosClient()
         self._sdp_interface = UWBSDPInterface()
-        self._lock_mobility = ROSLock("mobility")
 
         self._odom_to_base: Optional[PyKDL.Frame] = None
         self._lock_odom = threading.Lock()
@@ -32,6 +31,7 @@ class KeepoutSignExecutor:
         self._sub_sdpuwb = rospy.Subscriber(
             "/sdpuwb_devices", SDPUWBDeviceArray, self._cb_device
         )
+        print("initialized")
 
     @property
     def odom_to_base(self):
@@ -61,33 +61,34 @@ class KeepoutSignExecutor:
 
     def _cb_device(self, msg: SDPUWBDeviceArray):
         if len(msg.devices) == 0:
-            rospy.logdebug('lengh of meessag is zero. skpped')
+            rospy.logwarn('lengh of meessag is zero. skpped')
             return
 
-        with self._lock_odom:
-            if self.odom_to_base is None:
-                return
+        if self.odom_to_base is None:
+            rospy.logwarn('Odom is None. skpped')
+            return
 
         dev_ifs = copy.deepcopy(self._sdp_interface.device_interfaces)
+        print(f"dev_ifs: {dev_ifs}")
 
         valid_devices = [
                     msg_dev
                     for msg_dev in msg.devices
-                    if msg_dev.device_name in dev_ifs
-                    and dev_ifs[msg_dev.device_name]["distance"] is not None
+                    if msg_dev.device_name in [ devif['device_name'] for devif in dev_ifs.values() ] # and dev_ifs[msg_dev.device_name]["distance"] is not None
                     and 'KeepoutSign' in msg_dev.device_name
                 ]
         if len(valid_devices) == 0:
-            rospy.logdebug('lengh of valid devices is zero. skpped')
+            rospy.logwarn('lengh of valid devices is zero. skpped')
             return
 
         target_device = sorted(
                 valid_devices,
-                key=lambda x: dev_ifs[x.device_name]["distance"]
+                key=lambda x: { devif['device_name']: devif for devif in dev_ifs.values()}[x.device_name]["distance"]
                 )[0]
 
         with self._lock_nearest_keepout_sign_dist:
-            self._nearest_keepout_sign_dist = dev_ifs[target_device.device_name]["distance"]
+            self._nearest_keepout_sign_dist = { devif['device_name']: devif for devif in dev_ifs.values()}[target_device.device_name]["distance"]
+            rospy.logwarn(f"updated to {self._nearest_keepout_sign_dist}")
 
 
     def run(self):
@@ -118,7 +119,7 @@ class KeepoutSignExecutor:
         while not rospy.is_shutdown():
             if self._client.wait_for_navigate_to_result(duration=rospy.Duration(1)):
                 return
-            if self._nearest_keepout_sign_dist < 5.0:
+            if self.nearest_keepout_sign_dist is not None and self.nearest_keepout_sign_dist < 5.0:
                 self._client.cancel_navigate_to()
                 break
 
@@ -126,6 +127,6 @@ class KeepoutSignExecutor:
 
 
 if __name__ == '__main__':
-    rospy.init_node('hoge')
+    rospy.init_node('keepout_sign_demo')
     node = KeepoutSignExecutor()
     node.run()
