@@ -2,15 +2,14 @@
 
 import copy
 import threading
-from dataclasses import dataclass
 from typing import Optional
 
 import PyKDL
 import rospy
 from nav_msgs.msg import Odometry
 from ros_lock import ROSLock
-from smart_device_protocol import UWBSDPInterface
-from spot_ros_client import SpotROSClient
+from smart_device_protocol.smart_device_protocol_interface import UWBSDPInterface
+from spot_ros_client.libspotros import SpotRosClient
 from uwb_localization.msg import SDPUWBDeviceArray
 
 
@@ -19,7 +18,7 @@ class KeepoutSignExecutor:
     def __init__(self):
 
         self._interface = UWBSDPInterface()
-        self._client = SpotROSClient()
+        self._client = SpotRosClient()
         self._sdp_interface = UWBSDPInterface()
         self._lock_mobility = ROSLock("mobility")
 
@@ -41,7 +40,7 @@ class KeepoutSignExecutor:
 
     @property
     def nearest_keepout_sign_dist(self):
-        with self._lock_nearest_keepout_sign_dist
+        with self._lock_nearest_keepout_sign_dist:
             return self._nearest_keepout_sign_dist
 
     def _cb_odom(self, msg: Odometry):
@@ -62,7 +61,7 @@ class KeepoutSignExecutor:
 
     def _cb_device(self, msg: SDPUWBDeviceArray):
         if len(msg.devices) == 0:
-            rospy.logwarn('lengh of meessag is zero. skpped')
+            rospy.logdebug('lengh of meessag is zero. skpped')
             return
 
         with self._lock_odom:
@@ -79,7 +78,7 @@ class KeepoutSignExecutor:
                     and 'KeepoutSign' in msg_dev.device_name
                 ]
         if len(valid_devices) == 0:
-            rospy.logwarn('lengh of valid devices is zero. skpped')
+            rospy.logdebug('lengh of valid devices is zero. skpped')
             return
 
         target_device = sorted(
@@ -93,18 +92,24 @@ class KeepoutSignExecutor:
 
     def run(self):
 
-        rospy.loginfo("First, move the robot to the 2F elevator hall of eng2.")
+        rospy.loginfo("First, move the robot to the mai hall of eng2.")
         input("Press Enter > ")
-        self._client.upload_graph("/home/spot/default.walk")
-        self._client.set_localization_waypoint('daft-fleece-OI80B3zjIRf0G4nxz5YLwA==')
-        self._client.set_localization_fiducial()
+        ret = self._client.upload_graph("/home/spot/default.walk")
+        print(f"ret: {ret}")
+        ret = self._client.set_localization_fiducial()
+        print(f"ret: {ret}")
+        input("Move to the elevator hall. Press Enter > ")
+        ret = self._client.navigate_to("daft-fleece-OI80B3zjIRf0G4nxz5YLwA==", blocking=True)
+        print(f"ret: {ret}")
 
         self._client.gripper_open()
         input("Give me document. Press Enter > ")
         self._client.gripper_close()
 
         rospy.loginfo("Move to Reppincan")
-        self._client.navigate_to("staple-finch-GrUHQoxOBscHvFykmFcrkQ==", blocking=True)
+        ret = self._client.navigate_to("staple-finch-GrUHQoxOBscHvFykmFcrkQ==", blocking=True)
+        print(f"ret: {ret}")
+
 
         input("Give me document. Press Enter > ")
         self._client.gripper_open()
@@ -122,5 +127,5 @@ class KeepoutSignExecutor:
 
 if __name__ == '__main__':
     rospy.init_node('hoge')
-    node = keepoutSignExecutor()
+    node = KeepoutSignExecutor()
     node.run()
