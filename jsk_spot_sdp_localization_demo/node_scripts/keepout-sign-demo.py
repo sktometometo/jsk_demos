@@ -14,7 +14,7 @@ from spot_ros_client import SpotROSClient
 from uwb_localization.msg import SDPUWBDeviceArray
 
 
-class PauseSignExecutor:
+class KeepoutSignExecutor:
 
     def __init__(self):
 
@@ -26,8 +26,8 @@ class PauseSignExecutor:
         self._odom_to_base: Optional[PyKDL.Frame] = None
         self._lock_odom = threading.Lock()
 
-        self._nearest_pause_sign_dist: Optional[float] = None
-        self._lock_nearest_pause_sign_dist = threading.Lock()
+        self._nearest_keepout_sign_dist: Optional[float] = None
+        self._lock_nearest_keepout_sign_dist = threading.Lock()
 
         self._sub_odom = rospy.Subscriber("/spot/odometry", Odometry, self._cb_odom)
         self._sub_sdpuwb = rospy.Subscriber(
@@ -40,9 +40,9 @@ class PauseSignExecutor:
             return copy.deepcopy(self._odom_to_base)
 
     @property
-    def nearest_pause_sign_dist(self):
-        with self._lock_nearest_pause_sign_dist
-            return self._nearest_pause_sign_dist
+    def nearest_keepout_sign_dist(self):
+        with self._lock_nearest_keepout_sign_dist
+            return self._nearest_keepout_sign_dist
 
     def _cb_odom(self, msg: Odometry):
         with self._lock_odom:
@@ -76,7 +76,7 @@ class PauseSignExecutor:
                     for msg_dev in msg.devices
                     if msg_dev.device_name in dev_ifs
                     and dev_ifs[msg_dev.device_name]["distance"] is not None
-                    and 'PauseSign' in msg_dev.device_name
+                    and 'KeepoutSign' in msg_dev.device_name
                 ]
         if len(valid_devices) == 0:
             rospy.logwarn('lengh of valid devices is zero. skpped')
@@ -87,8 +87,8 @@ class PauseSignExecutor:
                 key=lambda x: dev_ifs[x.device_name]["distance"]
                 )[0]
 
-        with self._lock_nearest_pause_sign_dist:
-            self._nearest_pause_sign_dist = dev_ifs[target_device.device_name]["distance"]
+        with self._lock_nearest_keepout_sign_dist:
+            self._nearest_keepout_sign_dist = dev_ifs[target_device.device_name]["distance"]
 
 
     def run(self):
@@ -113,7 +113,7 @@ class PauseSignExecutor:
         while not rospy.is_shutdown():
             if self._client.wait_for_navigate_to_result(duration=rospy.Duration(1)):
                 return
-            if self._nearest_pause_sign_dist < 5.0:
+            if self._nearest_keepout_sign_dist < 5.0:
                 self._client.cancel_navigate_to()
                 break
 
@@ -122,5 +122,5 @@ class PauseSignExecutor:
 
 if __name__ == '__main__':
     rospy.init_node('hoge')
-    node = PauseSignExecutor()
+    node = keepoutSignExecutor()
     node.run()
