@@ -1,0 +1,10 @@
+<launch>
+  <arg name="start_aibo_driver" value="false" />
+
+  <include file="$(find aibo_driver)/launch/aibo_driver.launch" if="$(arg start_aibo_driver)" />
+
+  <include file="$(find database_talker)/launch/include/database_talker.launch" >
+    <arg name="google_credentials_json" value="$(find database_talker)/auth/jsk-aibo-37d42e158287.json" />
+    <arg name="google_credentials_project_id" value="jsk-aibo" />
+  </include>
+</launch>
