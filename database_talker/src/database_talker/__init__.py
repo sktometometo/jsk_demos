@@ -139,6 +139,7 @@ class DatabaseTalkerBase(object):
     def query_mongo_data(self, types, start_time, end_time):
         "Query activities for aibo robot, returns list of tuple (msg, meta)"
         rospy.logwarn("Query activities from {} until {}".format(start_time, end_time))
+        rospy.logwarn("                 for types {}".format(types))
         meta_query= {'published_at': {"$lt": end_time, "$gt": start_time}}
         meta_tuple = (StringPair(MongoQueryMsgRequest.JSON_QUERY, json.dumps(meta_query, default=json_util.default)),)
         mongo_msgs = self.query_multiple_types(types, meta_tuple)
