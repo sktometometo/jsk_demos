@@ -5,19 +5,23 @@ import rospy
 import argparse
 import logging
 import sys
+import datetime
+from dateutil import tz
+JST = tz.gettz('Asia/Tokyo')
 
 from database_talker import DatabaseTalkerBase
 
 class MessageListener(DatabaseTalkerBase):
 
     def __init__(self, *args, **kwargs):
+        self.make_robot_activities_raw = self.make_aibo_activities_raw
+        super(MessageListener, self).__init__(*args, **kwargs)
 
+        # override query_type after super__.init()
         self.query_types = ['aibo_driver/StringStatus',
                             'aibo_driver/ObjectStatusArray',
                             'jsk_recognition_msgs/VQATaskActionResult']
 
-        self.make_robot_activities_raw = self.make_aibo_activities_raw
-        super(MessageListener, self).__init__(*args, **kwargs)
         rospy.loginfo("all done, ready")
 
 
