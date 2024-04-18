@@ -93,15 +93,15 @@ class KeepoutSignExecutor:
 
     def run(self):
 
-        rospy.loginfo("First, move the robot to the mai hall of eng2.")
-        input("Press Enter > ")
-        ret = self._client.upload_graph("/home/spot/default.walk")
-        print(f"ret: {ret}")
-        ret = self._client.set_localization_fiducial()
-        print(f"ret: {ret}")
-        input("Move to the elevator hall. Press Enter > ")
-        ret = self._client.navigate_to("daft-fleece-OI80B3zjIRf0G4nxz5YLwA==", blocking=True)
-        print(f"ret: {ret}")
+        #rospy.loginfo("First, move the robot to the mai hall of eng2.")
+        #input("Press Enter > ")
+        #ret = self._client.upload_graph("/home/spot/default.walk")
+        #print(f"ret: {ret}")
+        #ret = self._client.set_localization_fiducial()
+        #print(f"ret: {ret}")
+        #input("Move to the elevator hall. Press Enter > ")
+        #ret = self._client.navigate_to("daft-fleece-OI80B3zjIRf0G4nxz5YLwA==", blocking=True)
+        #print(f"ret: {ret}")
 
         self._client.gripper_open()
         input("Give me document. Press Enter > ")
