@@ -61,56 +61,63 @@ class KeepoutSignExecutor:
 
     def _cb_device(self, msg: SDPUWBDeviceArray):
         if len(msg.devices) == 0:
-            rospy.logwarn('lengh of meessag is zero. skpped')
+            rospy.logwarn("lengh of meessag is zero. skpped")
             return
 
         if self.odom_to_base is None:
-            rospy.logwarn('Odom is None. skpped')
+            rospy.logwarn("Odom is None. skpped")
             return
 
         dev_ifs = copy.deepcopy(self._sdp_interface.device_interfaces)
         print(f"dev_ifs: {dev_ifs}")
 
         valid_devices = [
-                    msg_dev
-                    for msg_dev in msg.devices
-                    if msg_dev.device_name in [ devif['device_name'] for devif in dev_ifs.values() ] # and dev_ifs[msg_dev.device_name]["distance"] is not None
-                    and 'KeepoutSign' in msg_dev.device_name
-                ]
+            msg_dev
+            for msg_dev in msg.devices
+            if msg_dev.device_name
+            in [
+                devif["device_name"] for devif in dev_ifs.values()
+            ]  # and dev_ifs[msg_dev.device_name]["distance"] is not None
+            and "KeepoutSign" in msg_dev.device_name
+        ]
         if len(valid_devices) == 0:
-            rospy.logwarn('lengh of valid devices is zero. skpped')
+            rospy.logwarn("lengh of valid devices is zero. skpped")
             return
 
         target_device = sorted(
-                valid_devices,
-                key=lambda x: { devif['device_name']: devif for devif in dev_ifs.values()}[x.device_name]["distance"]
-                )[0]
+            valid_devices,
+            key=lambda x: {devif["device_name"]: devif for devif in dev_ifs.values()}[
+                x.device_name
+            ]["distance"],
+        )[0]
 
         with self._lock_nearest_keepout_sign_dist:
-            self._nearest_keepout_sign_dist = { devif['device_name']: devif for devif in dev_ifs.values()}[target_device.device_name]["distance"]
+            self._nearest_keepout_sign_dist = {
+                devif["device_name"]: devif for devif in dev_ifs.values()
+            }[target_device.device_name]["distance"]
             rospy.logwarn(f"updated to {self._nearest_keepout_sign_dist}")
-
 
     def run(self):
 
-        #rospy.loginfo("First, move the robot to the mai hall of eng2.")
-        #input("Press Enter > ")
-        #ret = self._client.upload_graph("/home/spot/default.walk")
-        #print(f"ret: {ret}")
-        #ret = self._client.set_localization_fiducial()
-        #print(f"ret: {ret}")
-        #input("Move to the elevator hall. Press Enter > ")
-        #ret = self._client.navigate_to("daft-fleece-OI80B3zjIRf0G4nxz5YLwA==", blocking=True)
-        #print(f"ret: {ret}")
+        # rospy.loginfo("First, move the robot to the mai hall of eng2.")
+        # input("Press Enter > ")
+        # ret = self._client.upload_graph("/home/spot/default.walk")
+        # print(f"ret: {ret}")
+        # ret = self._client.set_localization_fiducial()
+        # print(f"ret: {ret}")
+        # input("Move to the elevator hall. Press Enter > ")
+        # ret = self._client.navigate_to("daft-fleece-OI80B3zjIRf0G4nxz5YLwA==", blocking=True)
+        # print(f"ret: {ret}")
 
         self._client.gripper_open()
         input("Give me document. Press Enter > ")
         self._client.gripper_close()
 
         rospy.loginfo("Move to Reppincan")
-        ret = self._client.navigate_to("staple-finch-GrUHQoxOBscHvFykmFcrkQ==", blocking=True)
+        ret = self._client.navigate_to(
+            "staple-finch-GrUHQoxOBscHvFykmFcrkQ==", blocking=True
+        )
         print(f"ret: {ret}")
-
 
         input("Give me document. Press Enter > ")
         self._client.gripper_open()
@@ -119,14 +126,17 @@ class KeepoutSignExecutor:
         while not rospy.is_shutdown():
             if self._client.wait_for_navigate_to_result(duration=rospy.Duration(1)):
                 return
-            if self.nearest_keepout_sign_dist is not None and self.nearest_keepout_sign_dist < 5.0:
+            if (
+                self.nearest_keepout_sign_dist is not None
+                and self.nearest_keepout_sign_dist < 5.0
+            ):
                 self._client.cancel_navigate_to()
                 break
 
         self._client.navigate_to("alike-tapir-5izZBNcxp+fG+UmYKLniNQ==", blocking=True)
 
 
-if __name__ == '__main__':
-    rospy.init_node('keepout_sign_demo')
+if __name__ == "__main__":
+    rospy.init_node("keepout_sign_demo")
     node = KeepoutSignExecutor()
     node.run()
