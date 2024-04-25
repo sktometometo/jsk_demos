@@ -83,7 +83,7 @@
   </include>
 
   <!-- -->
-  <include file="$(find database_talker)/sample/resize.launch"  unless="$(arg start_camera_driver)" >
+  <include file="$(find database_talker)/sample/include/resize.launch"  unless="$(arg start_camera_driver)" >
     <arg name="image_ns" value="$(arg resize_image_ns)" />
   </include>
 </launch>
