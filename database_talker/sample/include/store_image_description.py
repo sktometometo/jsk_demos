@@ -102,10 +102,15 @@ def cb(msg):
         if len(images) > 10:
             images = images[1:]
 
-        answer = vqa(question, [msg.data], temperature = 1.0)
-        result_pub.publish(VQATaskActionResult(header=Header(stamp=rospy.Time.now()),
-                                               result=VQATaskResult(result=VQAResult(result=[QuestionAndAnswerText(question=question, answer=answer)]), done=True)))
-        image_pub.publish(msg)
+        try:
+            answer = vqa(question, [msg.data], temperature = 1.0)
+            result_pub.publish(VQATaskActionResult(header=Header(stamp=rospy.Time.now()),
+                                                   result=VQATaskResult(result=VQAResult(result=[QuestionAndAnswerText(question=question, answer=answer)]), done=True)))
+            image_pub.publish(msg)
+        except Exception as e:
+            filename = '/tmp/image.jpg'
+            rospy.logerr("write current image to {}, due to {}".format(filename, e))
+            cv2.imwrite(filename, cv2.imdecode(np.fromstring(msg.data, np.uint8), cv2.IMREAD_COLOR))
     return
 
 if __name__ == '__main__':
