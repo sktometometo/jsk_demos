@@ -52,7 +52,6 @@ class StairEntry:
 
 def get_markers_msg(
     stair_tables: Dict[str, StairEntry],
-    sdp_device_parent_frame_id: str,
 ) -> MarkerArray:
     msg = MarkerArray()
     for stair_name, entry in stair_tables.items():
@@ -77,15 +76,15 @@ def get_markers_msg(
                 ),
             ]:
                 marker = Marker()
-                marker.header.frame_id = sdp_device_parent_frame_id
+                marker.header.frame_id = entry.frame_id
                 marker.header.stamp = rospy.Time.now()
                 marker.ns = "stair"
-                marker.id = hash(stair_name + point_name + "shere")
+                marker.id = hash(stair_name + point_name + "sphere") % 2147483648
                 marker.type = Marker.SPHERE
                 marker.action = Marker.ADD
-                marker.pose.position.x = point.x()
-                marker.pose.position.y = point.y()
-                marker.pose.position.z = point.z()
+                marker.pose.position.x = point[0]
+                marker.pose.position.y = point[1]
+                marker.pose.position.z = point[2]
                 marker.pose.orientation.w = 1.0
                 marker.scale.x = 1.0
                 marker.scale.y = 1.0
@@ -95,10 +94,10 @@ def get_markers_msg(
                 msg.markers.append(marker)
 
             marker = Marker()
-            marker.header.frame_id = sdp_device_parent_frame_id
+            marker.header.frame_id = entry.frame_id
             marker.header.stamp = rospy.Time.now()
             marker.ns = "stair"
-            marker.id = hash(stair_name)
+            marker.id = hash(stair_name) % 2147483648
             marker.type = Marker.LINE_STRIP
             marker.action = Marker.ADD
             marker.pose.orientation.w = 1.0

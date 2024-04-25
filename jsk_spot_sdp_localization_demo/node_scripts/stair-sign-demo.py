@@ -6,13 +6,13 @@ from typing import Dict, List, Optional, Tuple
 import PyKDL
 import rospy
 from ros_lock import ROSLock
-from smart_device_protocol import DataFrame, UWBSDPInterface
+from smart_device_protocol.smart_device_protocol_interface import DataFrame, UWBSDPInterface
 from spot_localization_demo.stair_demo_util import (
     StairEntry,
     StairPointType,
     get_markers_msg,
 )
-from spot_ros_client import SpotROSClient
+from spot_ros_client.libspotros import SpotRosClient
 from uwb_localization.msg import SDPUWBDeviceArray
 from visualization_msgs.msg import Marker, MarkerArray
 
@@ -36,7 +36,7 @@ class StairExecutor:
         self._pub_markers = rospy.Publisher("/stair_markers", MarkerArray, queue_size=1)
 
         self._interface = UWBSDPInterface()
-        self._client = SpotROSClient()
+        self._client = SpotRosClient()
         self._lock_mobility = ROSLock("mobility")
 
         self._lock_stair_tables = threading.Lock()
@@ -45,7 +45,7 @@ class StairExecutor:
 
         self._sdp_interface = UWBSDPInterface()
         self._sdp_interface.register_interface_callback(
-            ("Landmark information", "S"),
+            ("Landmark information", "s"),
             self._cb_sdp_landmark_information,
         )
 
@@ -96,39 +96,39 @@ class StairExecutor:
                     if stair_entry.stair_top_a_device_name == device_name:
                         stair_entry.frame_id = msg_device.header.frame_id
                         stair_entry.stair_top_point_a = PyKDL.Vector(
-                            msg_device.position.x,
-                            msg_device.position.y,
-                            msg_device.position.z,
+                            msg_device.point.x,
+                            msg_device.point.y,
+                            msg_device.point.z,
                         )
                     elif stair_entry.stair_top_b_device_name == device_name:
                         stair_entry.frame_id = msg_device.header.frame_id
                         stair_entry.stair_top_point_b = PyKDL.Vector(
-                            msg_device.position.x,
-                            msg_device.position.y,
-                            msg_device.position.z,
+                            msg_device.point.x,
+                            msg_device.point.y,
+                            msg_device.point.z,
                         )
                     elif stair_entry.stair_bottom_a_device_name == device_name:
                         stair_entry.frame_id = msg_device.header.frame_id
                         stair_entry.stair_bottom_point_a = PyKDL.Vector(
-                            msg_device.position.x,
-                            msg_device.position.y,
-                            msg_device.position.z,
+                            msg_device.point.x,
+                            msg_device.point.y,
+                            msg_device.point.z,
                         )
                     elif stair_entry.stair_bottom_b_device_name == device_name:
                         stair_entry.frame_id = msg_device.header.frame_id
                         stair_entry.stair_bottom_point_b = PyKDL.Vector(
-                            msg_device.position.x,
-                            msg_device.position.y,
-                            msg_device.position.z,
+                            msg_device.point.x,
+                            msg_device.point.y,
+                            msg_device.point.z,
                         )
 
     def marker_publish_spin(self):
         rate = rospy.Rate(1)
         while not rospy.is_shutdown():
             with self._lock_stair_tables:
-                msg = get_markers_msg(
-                    self._stair_tables, self._sdp_device_parent_frame_id
-                )
+                print(f"stair_tables: {self._stair_tables}")
+                msg = get_markers_msg(self._stair_tables)
+                print(f"Publish markers: {msg}")
                 self._pub_markers.publish(msg)
             rate.sleep()
 
@@ -170,4 +170,5 @@ class StairExecutor:
 if __name__ == "__main__":
     rospy.init_node("stair_executor")
     executor = StairExecutor()
-    executor.run()
+    rospy.spin()
+    #executor.run()
