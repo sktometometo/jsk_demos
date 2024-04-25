@@ -3,6 +3,7 @@
   <arg name="google_credentials_json" default="$(find database_talker)/auth/eternal-byte-236613-4bc6962824d1.json" />
   <arg name="google_credentials_project_id" default="eternal-byte-236613" />
   <arg name="gdrive_credentials_yaml" default="$(find database_talker)/auth/pydrive_settings.yaml" />
+  <arg name="start_periodic_mongodb_trigger" default="true" />
 
   <include file="$(find jsk_robot_startup)/launch/lifelog.launch" >
     <arg name="logger_save_rgb" value="false" />
@@ -22,7 +23,7 @@
       <arg name="manager" value="mongodb_record_nodelet_manager" />
     </include>
   </group>
-  <node pkg="rostopic" type="rostopic" name="periodic_mongodb_trigger"
+  <node pkg="rostopic" type="rostopic" name="periodic_mongodb_trigger" if="$(arg start_periodic_mongodb_trigger)"
         launch-prefix="bash -c 'set -x; while [ 1 ]; do ${@:0:$#-2} &quot;${@: -3}&quot; ; sleep 1000; done;' "
         args="pub -s -1 /publish_trigger_mongodb_event roseus/StringStamped &quot;{header: auto}&quot;" />
 
