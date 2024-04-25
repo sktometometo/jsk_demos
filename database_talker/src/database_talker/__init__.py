@@ -856,9 +856,9 @@ class DatabaseTalkerBase(object):
         if msg._type == 'google_chat_ros/MessageEvent':
             text = msg.message.argument_text.lstrip() or msg.message.text.lstrip()
             space = msg.space.name
-            rospy.logwarn("Received chat message '{}'".format(text))
+            rospy.logwarn("Received chat message '{}' on {}".format(text, datetime.datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')))
         else:
-            rospy.logerr("Unknown message type {}".format(msg._type))
+            rospy.logerr("Unknown message type {} on {}".format(msg._type, datetime.datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')))
             return
 
         try:
@@ -875,7 +875,7 @@ class DatabaseTalkerBase(object):
                     # remove cache #### FIXME
                     self.use_activities_cache = False
                 except Exception as e:
-                    rospy.logwarn("No date information included {}".format(e))
+                    rospy.logwarn("No date information included in '{}' ({})".format(text, e))
 
                 ret = self.make_diary(language)
                 if 'filename' in ret:
