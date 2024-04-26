@@ -553,9 +553,14 @@ class DatabaseTalkerBase(object):
         if len(results) > 0:
             if not IsHeadless:  # debug
                 try:
-                    cv2.imshow('images for response', cv2.hconcat([cv2.imdecode(np.fromstring(result['image'].data, np.uint8), cv2.IMREAD_COLOR) for result in results]))
+                    concat_images = cv2.hconcat([cv2.imdecode(np.fromstring(result['image'].data, np.uint8), cv2.IMREAD_COLOR) for result in results])
+                    filename = tempfile.mktemp(suffix=".jpg", dir=rospkg.get_ros_home())
+                    cv2.imwrite(filename, concat_images)
+                    rospy.logwarn("save all images to {}".format(filename))
+                    cv2.imshow('images for response', concat_images)
                     cv2.waitKey(100)
-                except:
+                except Exception as e:
+                    rospy.logerr(e)
                     pass
             # pubish as card
             filename = tempfile.mktemp(suffix=".jpg", dir=rospkg.get_ros_home())
