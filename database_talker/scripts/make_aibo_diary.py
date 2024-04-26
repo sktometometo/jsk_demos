@@ -145,7 +145,8 @@ class MessageListener(DatabaseTalkerBase):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--test', action='store_true')
+    parser.add_argument('--test-diary', '--test', action='store_true')
+    parser.add_argument('--test-response', type=str, default=None)
     parser.add_argument('--prompt-type', default='basic', choices=['basic','personality'])
 
     args = parser.parse_args(rospy.myargv()[1:])
@@ -155,9 +156,14 @@ if __name__ == '__main__':
     logger = logging.getLogger('rosout')
     logger.setLevel(rospy.impl.rosout._rospy_to_logging_levels[rospy.DEBUG])
 
-    ml = MessageListener(wait_for_chat_server=not args.test, prompt_type=args.prompt_type)
-    if args.test:
+    ml = MessageListener(wait_for_chat_server=not (args.test_diary or args.test_response), prompt_type=args.prompt_type)
+    if args.test_diary:
         ret = ml.make_diary()
+        if 'filename' in ret:
+            rospy.loginfo("image is saved at {}".format(ret['filename']))
+        sys.exit(0)
+    elif args.test_response:
+        ret = ml.make_response(args.test_response)
         if 'filename' in ret:
             rospy.loginfo("image is saved at {}".format(ret['filename']))
         sys.exit(0)
