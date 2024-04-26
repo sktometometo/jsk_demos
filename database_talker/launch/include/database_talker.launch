@@ -21,6 +21,7 @@
       <arg name="node_name" value="thorottled_color_logger" />
       <arg name="image" value="/store_image_description/result/image/compressed" />
       <arg name="manager" value="mongodb_record_nodelet_manager" />
+      <arg name="respawn" value="true" />
     </include>
   </group>
   <node pkg="rostopic" type="rostopic" name="periodic_mongodb_trigger" if="$(arg start_periodic_mongodb_trigger)"
