@@ -516,7 +516,7 @@ class DatabaseTalkerBase(object):
             if no >= 0 and no < len(image_activities):
                 image_activity = list(image_activities.items())[no]
                 answer, timestamp = image_activity
-                rospy.loginfo("Choose {} : {} as corresponging memory".format(no, answer))
+                rospy.loginfo("Choose {} : {} as corresponging memory ({})".format(no, answer, timestamp))
         
 
         # create response
@@ -562,7 +562,10 @@ class DatabaseTalkerBase(object):
                 except Exception as e:
                     rospy.logerr(e)
                     pass
+            # select closest image for response
             # pubish as card
+            if timestamp:
+                results.sort(key=lambda x: abs((x['timestamp'] - timestamp).total_seconds()))
             filename = tempfile.mktemp(suffix=".jpg", dir=rospkg.get_ros_home())
             self.write_image_with_annotation(filename, results[0], "")
             return {'text': response, 'filename': filename}
