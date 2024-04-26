@@ -27,6 +27,7 @@ result_pub = None
 image_pub = None
 chat_completion = None
 images = [np.array(cv2.imencode('.jpg',  np.zeros((120,160,3), np.uint8))[1]).tostring()]
+answers = []
 
 def vqa(question, images, temperature = 0.0, max_tokens = 300, debug = False):
     global chat_completion
@@ -72,9 +73,8 @@ def debug_cb(data):
     mongodb_event_sub = rospy.Subscriber('/publish_trigger_mongodb_event', rospy.AnyMsg, debug_cb, queue_size=1)
     
 def cb(msg):
-    rospy.logerr("debug cb")
     global chat_completion
-    global images
+    global images, answers
     global result_pub, image_pub
     global debug_msg
 
@@ -82,7 +82,7 @@ def cb(msg):
     if len(images) == 0:
         images.extend([small_msg_data])
 
-    questions = rospy.get_param('~questions', ['Provide a brief caption under 140 characters for this image, focusing on the most striking aspect and overall atmosphere.'])
+    questions = rospy.get_param('~questions', ['Provide a brief caption under 140 characters for this image, focusing on the most striking aspect and overall atmosphere. If the images is black, blurred, disturbed or shows meaningless objects, answer "NO"'])
     question = ' '.join(questions) if type(questions) == list else questions
 
     if (not IsHeadless):
@@ -97,13 +97,32 @@ def cb(msg):
                                 [small_msg_data] + images, temperature = 1.0, debug=True)
     use_this_image = 'YES' in use_this_image_answer[:10]
     '''
-    if abs((rospy.Time.now() - debug_msg.header.stamp).to_sec()) < 5 and debug_msg.data == 'debug':
+    elapsed_from_trigger = abs((rospy.Time.now() - debug_msg.header.stamp).to_sec())
+    rospy.loginfo("received images, {} sec after trigger event".format(elapsed_from_trigger))
+    if elapsed_from_trigger < 5 and debug_msg.data == 'debug':
         images.extend([small_msg_data])
         if len(images) > 10:
             images = images[1:]
 
         try:
             answer = vqa(question, [msg.data], temperature = 1.0)
+            if answer == 'NO':
+                raise Exception('Invalid image')
+            rospy.loginfo("- {}".format(answer))
+            for a in answers:
+                rospy.loginfo(" .. {}".format(a))
+            req = ChatCompletionsRequest(model="gpt-3.5-turbo",
+                                         messages = json.dumps([{"role": "system", "content": "You can compare whether your sentenses describe the same scene and returns with 'YES' or 'NO'"},
+                                                                {"role": "user", "content": "Return 'YES' if given text '{}' is similar to one of the following list '{}', otherwise return 'NO'".format(answer, answers)}
+                                        ]))
+            rospy.loginfo("Q: {}".format(req.messages[0:255]))
+            ret = chat_completion(req)
+            rospy.loginfo("A: {}".format(ret.content))
+            if ret.content == 'YES':
+                raise Exception('Duplicates image')
+            answers.extend([answer])
+            if len(answers) > 5:
+                answers = answers[1:]
             result_pub.publish(VQATaskActionResult(header=Header(stamp=rospy.Time.now()),
                                                    result=VQATaskResult(result=VQAResult(result=[QuestionAndAnswerText(question=question, answer=answer)]), done=True)))
             image_pub.publish(msg)
