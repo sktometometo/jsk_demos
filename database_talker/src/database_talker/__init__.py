@@ -44,7 +44,7 @@ bridge = CvBridge()
 from mongodb_store.util import deserialise_message
 
 from google_chat_ros.msg import Card, Section, WidgetMarkup, Image
-from google_chat_ros.msg import MessageEvent, SendMessageAction, SendMessageGoal
+from google_chat_ros.msg import MessageEvent, SendMessageAction, SendMessageGoal, SendMessageResult
 
 from mongodb_store_msgs.msg import StringPairList, StringPair
 from mongodb_store_msgs.srv import MongoQueryMsg, MongoQueryMsgRequest, MongoQueryMsgResponse
@@ -118,6 +118,8 @@ class DatabaseTalkerBase(object):
 
         rospy.loginfo("subscribe '/google_chat_ros/message_activity'")
         self.sub = rospy.Subscriber('/google_chat_ros/message_activity', MessageEvent, self.cb)
+        self.sas = actionlib.SimpleActionServer('~message', SendMessageAction, self.action_cb, auto_start=False)
+        self.sas.start()
 
         rospy.loginfo("all done, ready")
 
@@ -831,7 +833,12 @@ class DatabaseTalkerBase(object):
             goal.cards = [Card(sections=[Section(widgets=[WidgetMarkup(image=Image(localpath=filename))])])]
         goal.space = space
         rospy.logwarn("send {} to {}".format(goal.text, goal.space))
-        self.chat_ros_ac.send_goal_and_wait(goal, execute_timeout=rospy.Duration(0.10))
+        ret = self.chat_ros_ac.send_goal_and_wait(goal, execute_timeout=rospy.Duration(0.10))
+        result = self.chat_ros_ac.get_result()
+        if not result.done:
+            rospy.logerr("publish_google_chat_card: failed to send message, send_goal_and_wait({}), result.done({})".format(ret, result.done))
+            return False
+        return True
 
     def text_to_salience(self, text):
         goal = AnalyzeTextGoal()
@@ -860,6 +867,7 @@ class DatabaseTalkerBase(object):
 
 
     def cb(self, msg):
+        ac_ret = False
         space = 'spaces/AAAAoTwLBL0' ## default space JskRobotBot
         if msg._type == 'google_chat_ros/MessageEvent':
             text = msg.message.argument_text.lstrip() or msg.message.text.lstrip()
@@ -867,7 +875,7 @@ class DatabaseTalkerBase(object):
             rospy.logwarn("Received chat message '{}' on {}".format(text, datetime.datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')))
         else:
             rospy.logerr("Unknown message type {} on {}".format(msg._type, datetime.datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')))
-            return
+            return False
 
         try:
             language = 'English' if is_ascii(text) else 'Japanese'
@@ -906,4 +914,19 @@ class DatabaseTalkerBase(object):
         except Exception as e:
             rospy.logerr("Callback failed {} {}".format(e, traceback.format_exc()))
             self.publish_google_chat_card("💀 {}".format(e), space)
+        return True
 
+
+    def action_cb(self, goal):
+        msg = MessageEvent()
+        msg.message.text = goal.text
+        msg.message.argument_text = goal.text
+        msg.space.name = goal.space
+        self.cb(msg)
+        ret = self.chat_ros_ac.wait_for_result(rospy.Duration(5.0))
+        result = self.chat_ros_ac.get_result()
+        rospy.logwarn("action_cb: set_succeeded, wait_for_result({}), result.done({})".format(ret, result.done))
+        if ret and result.done:
+            self.sas.set_succeeded(SendMessageResult(done=True))
+        else:
+            self.sas.set_aborted()
