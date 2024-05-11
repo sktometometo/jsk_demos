@@ -11,12 +11,11 @@ from jsk_spot_lib.look_at_client import SpotLookAtClient
 from nav_msgs.msg import Odometry
 from ros_lock import ROSLock, roslock_acquire
 from smart_device_protocol.smart_device_protocol_interface import (
-    DataFrame,
-    UWBSDPInterface,
-)
+    DataFrame, UWBSDPInterface)
 from sound_play.libsoundplay import SoundClient
 from spot_ros_client.libspotros import SpotRosClient
 from uwb_localization.msg import SDPUWBDevice, SDPUWBDeviceArray
+from jsk_recognition_msgs.msg import BoundingBoxArray
 
 
 class LightRoomDemo:
@@ -35,6 +34,9 @@ class LightRoomDemo:
         self._odom_to_base: Optional[PyKDL.Frame] = None
         self._lock_odom = threading.Lock()
 
+        self._odom_to_people: List[PyKDL.Frame] = []
+        self._lock_people = threading.Lock()
+
         self._light_status_table_lock = threading.Lock()
         self._light_status_table: Dict[str, bool] = {}
 
@@ -48,6 +50,11 @@ class LightRoomDemo:
     def odom_to_base(self):
         with self._lock_odom:
             return copy.deepcopy(self._odom_to_base)
+
+    @property
+    def people(self)
+        with self._lock_people:
+            return copy.deepcopy(self._odom_to_people)
 
     def _cb_odom(self, msg: Odometry):
         with self._lock_odom:
@@ -79,6 +86,25 @@ class LightRoomDemo:
             rospy.logwarn("lengh of meessag is zero. skpped")
             return
 
+    def _cb_people_bbox(self, msg: BoundingBoxArray):
+        with self._lock_people:
+            self._odom_to_people = [
+                PyKDL.Frame(
+                    PyKDL.Rotation.Quaternion(
+                        msg_box.pose.pose.orientation.x,
+                        msg_box.pose.pose.orientation.y,
+                        msg_box.pose.pose.orientation.z,
+                        msg_box.pose.pose.orientation.w,
+                    ),
+                    PyKDL.Vector(
+                        msg_box.pose.pose.position.x,
+                        msg_box.pose.pose.position.y,
+                        msg_box.pose.pose.position.z,
+                    ),
+                )
+                for msg_box in msg.boxes:
+            ]
+
     def turn_light(self, device_name: str, status: str):
         self._sdp_interface.send(
             device_name,
@@ -88,13 +114,21 @@ class LightRoomDemo:
             ),
         )
         while not rospy.is_shutdown():
-            break
+            rospy.sleep(1.)
+            with self._light_status_table_lock:
+                try:
+                    if self._light_status_table[device_name] == status:
+                        break
+                except KeyError:
+                    pass
 
+    def no_people_behind(self):
+        odom_to_base = self.odom_to_base
+        return len([odom_to_base.Inverse() * person_frame for person_frame in people if (odom_to_base.Inverse() * person_frame).p[0] < 0]) == 0
 
     def demo(self):
 
         while not rospy.is_shutdown():
-
             with self._light_status_table_lock:
                 for device_name, status in self._light_status_table.items():
                     device_interfaces = self._interface.device_interfaces
@@ -111,7 +145,7 @@ class LightRoomDemo:
                                     print("turn on")
                                     self.turn_light(device_name, True)
                             else:
-                                if status:
+                                if status and self.no_people_behind():
                                     print("turn off")
                                     self.turn_light(device_name, False)
 
