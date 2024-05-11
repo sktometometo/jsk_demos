@@ -1,0 +1,119 @@
+#!/usr/bin/env python3
+
+import copy
+import math
+import threading
+from typing import Dict, List, Optional
+
+import PyKDL
+import rospy
+from jsk_spot_lib.look_at_client import SpotLookAtClient
+from nav_msgs.msg import Odometry
+from ros_lock import ROSLock, roslock_acquire
+from smart_device_protocol.smart_device_protocol_interface import (
+    DataFrame,
+    UWBSDPInterface,
+)
+from sound_play.libsoundplay import SoundClient
+from spot_ros_client.libspotros import SpotRosClient
+from uwb_localization.msg import SDPUWBDevice, SDPUWBDeviceArray
+
+
+class LightRoomDemo:
+
+    def __init__(self):
+
+        self._interface = UWBSDPInterface()
+        self._client = SpotRosClient()
+        self._sdp_interface = UWBSDPInterface()
+
+        self._sdp_interface.register_interface_callback(
+            ("Light status", "?"),
+            self._cb_sdp,
+        )
+
+        self._odom_to_base: Optional[PyKDL.Frame] = None
+        self._lock_odom = threading.Lock()
+
+        self._light_status_table_lock = threading.Lock()
+        self._light_status_table: Dict[str, bool] = {}
+
+        self._sub_odom = rospy.Subscriber("/spot/odometry", Odometry, self._cb_odom)
+        self._sub_sdpuwb = rospy.Subscriber(
+            "/sdpuwb_devices", SDPUWBDeviceArray, self._cb_device
+        )
+        print("initialized")
+
+    @property
+    def odom_to_base(self):
+        with self._lock_odom:
+            return copy.deepcopy(self._odom_to_base)
+
+    def _cb_odom(self, msg: Odometry):
+        with self._lock_odom:
+            self._odom_to_base = PyKDL.Frame(
+                PyKDL.Rotation.Quaternion(
+                    msg.pose.pose.orientation.x,
+                    msg.pose.pose.orientation.y,
+                    msg.pose.pose.orientation.z,
+                    msg.pose.pose.orientation.w,
+                ),
+                PyKDL.Vector(
+                    msg.pose.pose.position.x,
+                    msg.pose.pose.position.y,
+                    msg.pose.pose.position.z,
+                ),
+            )
+
+    def _cb_sdp(self, src_address, data_frame: DataFrame):
+        device_content = data_frame.content[0]
+        if src_address not in self._sdp_interface.device_interfaces:
+            rospy.logerr(f"Failed to find device interface for {src_address}")
+            return
+        device_name = self._sdp_interface.device_interfaces[src_address]["device_name"]
+        with self._light_status_table_lock:
+            self._light_status_table[device_name] = device_content
+
+    def _cb_device(self, msg: SDPUWBDeviceArray):
+        if len(msg.devices) == 0:
+            rospy.logwarn("lengh of meessag is zero. skpped")
+            return
+
+    def turn_light(self, device_name: str, status: str):
+        if status not in ["on", "off"]:
+            rospy.logwarn(f"Unknown status {status}")
+            return
+
+        self._sdp_interface.send(
+            device_name,
+            DataFrame(
+                packet_description="Light status",
+                content=[status],
+            ),
+        )
+
+    def demo(self):
+
+        while not rospy.is_shutdown():
+
+            with self._light_status_table_lock:
+                for device_name, status in self._light_status_table.items():
+                    distance = self._interface.device_interfaces[device_name][
+                        "distance"
+                    ]
+                    if distance is None:
+                        continue
+                    if distance < 5.0:
+                        if not status:
+                            self.turn_light(device_name, True)
+                    else:
+                        if status:
+                            self.turn_light(device_name, False)
+
+            rospy.sleep(1)
+
+
+if __name__ == "__main__":
+    rospy.init_node("hoge")
+    node = LightRoomDemo()
+    node.demo()
