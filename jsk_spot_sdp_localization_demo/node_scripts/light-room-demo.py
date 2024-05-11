@@ -80,17 +80,16 @@ class LightRoomDemo:
             return
 
     def turn_light(self, device_name: str, status: str):
-        if status not in ["on", "off"]:
-            rospy.logwarn(f"Unknown status {status}")
-            return
-
         self._sdp_interface.send(
             device_name,
             DataFrame(
-                packet_description="Light status",
+                packet_description="Light control",
                 content=[status],
             ),
         )
+        while not rospy.is_shutdown():
+            break
+
 
     def demo(self):
 
@@ -98,17 +97,23 @@ class LightRoomDemo:
 
             with self._light_status_table_lock:
                 for device_name, status in self._light_status_table.items():
-                    distance = self._interface.device_interfaces[device_name][
-                        "distance"
-                    ]
-                    if distance is None:
-                        continue
-                    if distance < 5.0:
-                        if not status:
-                            self.turn_light(device_name, True)
-                    else:
-                        if status:
-                            self.turn_light(device_name, False)
+                    device_interfaces = self._interface.device_interfaces
+                    for addr, dev_if in device_interfaces.items():
+                        if dev_if["device_name"] == device_name:
+                            distance = dev_if["distance"]
+                            print(f"device_name: {device_name}")
+                            print(f"distance: {distance}")
+                            print(f"status: {status}")
+                            if distance is None:
+                                continue
+                            if distance < 5.0:
+                                if not status:
+                                    print("turn on")
+                                    self.turn_light(device_name, True)
+                            else:
+                                if status:
+                                    print("turn off")
+                                    self.turn_light(device_name, False)
 
             rospy.sleep(1)
 
