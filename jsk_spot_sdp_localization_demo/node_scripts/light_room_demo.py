@@ -44,6 +44,11 @@ class LightRoomDemo:
         self._sub_sdpuwb = rospy.Subscriber(
             "/sdpuwb_devices", SDPUWBDeviceArray, self._cb_device
         )
+        self._sub_people_bbox = rospy.Subscriber(
+                "/spot_recognition/bbox_array",
+                BoundingBoxArray,
+                self._cb_people_bbox,
+        )
         print("initialized")
 
     @property
@@ -52,7 +57,7 @@ class LightRoomDemo:
             return copy.deepcopy(self._odom_to_base)
 
     @property
-    def people(self)
+    def odom_to_people(self):
         with self._lock_people:
             return copy.deepcopy(self._odom_to_people)
 
@@ -91,18 +96,18 @@ class LightRoomDemo:
             self._odom_to_people = [
                 PyKDL.Frame(
                     PyKDL.Rotation.Quaternion(
-                        msg_box.pose.pose.orientation.x,
-                        msg_box.pose.pose.orientation.y,
-                        msg_box.pose.pose.orientation.z,
-                        msg_box.pose.pose.orientation.w,
+                        msg_box.pose.orientation.x,
+                        msg_box.pose.orientation.y,
+                        msg_box.pose.orientation.z,
+                        msg_box.pose.orientation.w,
                     ),
                     PyKDL.Vector(
-                        msg_box.pose.pose.position.x,
-                        msg_box.pose.pose.position.y,
-                        msg_box.pose.pose.position.z,
+                        msg_box.pose.position.x,
+                        msg_box.pose.position.y,
+                        msg_box.pose.position.z,
                     ),
                 )
-                for msg_box in msg.boxes:
+                for msg_box in msg.boxes
             ]
 
     def turn_light(self, device_name: str, status: str):
@@ -117,6 +122,7 @@ class LightRoomDemo:
             rospy.sleep(1.)
             with self._light_status_table_lock:
                 try:
+                    print(f"status: {self._light_status_table[device_name]}")
                     if self._light_status_table[device_name] == status:
                         break
                 except KeyError:
@@ -124,7 +130,7 @@ class LightRoomDemo:
 
     def no_people_behind(self):
         odom_to_base = self.odom_to_base
-        return len([odom_to_base.Inverse() * person_frame for person_frame in people if (odom_to_base.Inverse() * person_frame).p[0] < 0]) == 0
+        return len([odom_to_base.Inverse() * person_frame for person_frame in self.odom_to_people if (odom_to_base.Inverse() * person_frame).p[0] < 0]) == 0
 
     def demo(self):
 
