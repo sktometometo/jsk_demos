@@ -3,19 +3,22 @@
 import copy
 import math
 import threading
+from operator import is_
 from typing import Dict, List, Optional
 
 import PyKDL
 import rospy
+from jsk_recognition_msgs.msg import BoundingBoxArray
 from jsk_spot_lib.look_at_client import SpotLookAtClient
 from nav_msgs.msg import Odometry
 from ros_lock import ROSLock, roslock_acquire
 from smart_device_protocol.smart_device_protocol_interface import (
-    DataFrame, UWBSDPInterface)
+    DataFrame,
+    UWBSDPInterface,
+)
 from sound_play.libsoundplay import SoundClient
 from spot_ros_client.libspotros import SpotRosClient
 from uwb_localization.msg import SDPUWBDevice, SDPUWBDeviceArray
-from jsk_recognition_msgs.msg import BoundingBoxArray
 
 
 class LightRoomDemo:
@@ -45,9 +48,9 @@ class LightRoomDemo:
             "/sdpuwb_devices", SDPUWBDeviceArray, self._cb_device
         )
         self._sub_people_bbox = rospy.Subscriber(
-                "/spot_recognition/bbox_array",
-                BoundingBoxArray,
-                self._cb_people_bbox,
+            "/spot_recognition/bbox_array",
+            BoundingBoxArray,
+            self._cb_people_bbox,
         )
         print("initialized")
 
@@ -119,7 +122,7 @@ class LightRoomDemo:
             ),
         )
         while not rospy.is_shutdown():
-            rospy.sleep(1.)
+            rospy.sleep(1.0)
             with self._light_status_table_lock:
                 try:
                     print(f"status: {self._light_status_table[device_name]}")
@@ -130,11 +133,20 @@ class LightRoomDemo:
 
     def no_people_behind(self):
         odom_to_base = self.odom_to_base
-        return len([odom_to_base.Inverse() * person_frame for person_frame in self.odom_to_people if (odom_to_base.Inverse() * person_frame).p[0] < 0]) == 0
+        return (
+            len(
+                [
+                    odom_to_base.Inverse() * person_frame
+                    for person_frame in self.odom_to_people
+                    if (odom_to_base.Inverse() * person_frame).p[0] < 0
+                ]
+            )
+            == 0
+        )
 
     def demo(self):
-
         while not rospy.is_shutdown():
+            is_out = True
             with self._light_status_table_lock:
                 for device_name, status in self._light_status_table.items():
                     device_interfaces = self._interface.device_interfaces
@@ -146,11 +158,13 @@ class LightRoomDemo:
                             print(f"status: {status}")
                             if distance is None:
                                 continue
-                            if distance < 5.0:
+                            if distance < 5.0 and is_out:
+                                is_out = False
                                 if not status:
                                     print("turn on")
                                     self.turn_light(device_name, True)
-                            else:
+                            elif distance > 5.0 and not is_out:
+                                is_out = True
                                 if status and self.no_people_behind():
                                     print("turn off")
                                     self.turn_light(device_name, False)
