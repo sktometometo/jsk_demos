@@ -44,14 +44,15 @@ class LightRoomDemo:
         self._light_status_table: Dict[str, bool] = {}
 
         self._sub_odom = rospy.Subscriber("/spot/odometry", Odometry, self._cb_odom)
-        self._sub_sdpuwb = rospy.Subscriber(
-            "/sdpuwb_devices", SDPUWBDeviceArray, self._cb_device
-        )
         self._sub_people_bbox = rospy.Subscriber(
             "/spot_recognition/bbox_array",
             BoundingBoxArray,
             self._cb_people_bbox,
         )
+
+        self._thread_demo = threading.Thread(target=self.demo)
+        self._thread_demo.start()
+
         print("initialized")
 
     @property
@@ -88,11 +89,6 @@ class LightRoomDemo:
         device_name = self._sdp_interface.device_interfaces[src_address]["device_name"]
         with self._light_status_table_lock:
             self._light_status_table[device_name] = device_content
-
-    def _cb_device(self, msg: SDPUWBDeviceArray):
-        if len(msg.devices) == 0:
-            rospy.logwarn("lengh of meessag is zero. skpped")
-            return
 
     def _cb_people_bbox(self, msg: BoundingBoxArray):
         with self._lock_people:
@@ -182,8 +178,12 @@ class LightRoomDemo:
 
             rospy.sleep(1)
 
+    def walk(self):
+
+        default_7f_walk_path = '/home/spot/default_7f.walk'
+
 
 if __name__ == "__main__":
     rospy.init_node("light_room_demo")
     node = LightRoomDemo()
-    node.demo()
+    rospy.spin()
