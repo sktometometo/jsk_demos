@@ -179,11 +179,21 @@ class LightRoomDemo:
             rospy.sleep(1)
 
     def walk(self):
-
         default_7f_walk_path = '/home/spot/default_7f.walk'
+        target_id_inside = 'broke-monkey-bvC0nPB6RBONSOjzgZIN0w=='
+        start_id = 'balky-dingo-SKaN7KTafgMIqJD+6FkFoA=='
+
+        client.upload_graph(default_7f_walk_path)
+        client.navigate_to(start_id, blocking=True)
+        rospy.logwarn('Start')
+
+        client.navigate_to(target_id_inside, blockin=True)
+
+        client.navigate_to(start_id, blocking=True)
+        rospy.logwarn('End')
 
 
 if __name__ == "__main__":
     rospy.init_node("light_room_demo")
     node = LightRoomDemo()
-    rospy.spin()
+    node.walk()
