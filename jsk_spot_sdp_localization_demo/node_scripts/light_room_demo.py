@@ -50,6 +50,7 @@ class LightRoomDemo:
             self._cb_people_bbox,
         )
 
+        self._running_demo_thread = True
         self._thread_demo = threading.Thread(target=self.demo)
         self._thread_demo.start()
 
@@ -142,9 +143,18 @@ class LightRoomDemo:
             == 0
         )
 
+    def no_people_around(self):
+        return len(self.odom_to_people) == 0
+
+    def stop_demo(self):
+        self._running_demo_thread = False
+        self._thread_demo.join()
+
     def demo(self):
         self.is_out = True
-        while not rospy.is_shutdown():
+        rospy.logwarn('Demo Started')
+        while not rospy.is_shutdown() and self._running_demo_thread:
+            rospy.sleep(1)
             with self._light_status_table_lock:
                 for device_name, status in self._light_status_table.items():
                     device_interfaces = self._interface.device_interfaces
@@ -170,26 +180,32 @@ class LightRoomDemo:
                                 print("is_out -> True")
                                 if status and self.no_people_behind():
                                     print("turn off")
-                                    self.turn_light(device_name, False)
+                                    #self.turn_light(device_name, False)
                             else:
                                 print("hoge")
                             print(f"is_out2: {self.is_out}")
-
-
-            rospy.sleep(1)
+        rospy.logwarn('Demo stopped')
 
     def walk(self):
         default_7f_walk_path = '/home/spot/default_7f.walk'
-        target_id_inside = 'broke-monkey-bvC0nPB6RBONSOjzgZIN0w=='
-        start_id = 'balky-dingo-SKaN7KTafgMIqJD+6FkFoA=='
+        target_id_inside = 'jawed-pigeon-9xLW4VzxDmzeP6yWPYjBzw=='
+        start_id = 'swept-kiwi-0phR6suSB7SB92YYWzbHKw=='
+        goal_id = 'mussy-rodent-yu6WUIh8.8HhMVd+K06gFA=='
 
-        client.upload_graph(default_7f_walk_path)
-        client.navigate_to(start_id, blocking=True)
+        self._client.upload_graph(default_7f_walk_path)
+        self._client.set_localization_fiducial()
+        self._client.navigate_to(start_id, blocking=True)
         rospy.logwarn('Start')
+        self._client.navigate_to(target_id_inside, blocking=True)
 
-        client.navigate_to(target_id_inside, blockin=True)
+        no_people_around = self.no_people_around()
 
-        client.navigate_to(start_id, blocking=True)
+        self._client.navigate_to(start_id)
+        if no_people_around:
+            self.turn_light("SDP Switchbot", False)
+        self._client.wait_for_navigate_to_result()
+
+        self._client.navigate_to(goal_id, blocking=True)
         rospy.logwarn('End')
 
 
@@ -197,3 +213,4 @@ if __name__ == "__main__":
     rospy.init_node("light_room_demo")
     node = LightRoomDemo()
     node.walk()
+    node.stop_demo()
