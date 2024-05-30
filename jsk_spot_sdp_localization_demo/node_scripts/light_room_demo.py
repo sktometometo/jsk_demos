@@ -27,12 +27,15 @@ class LightRoomDemo:
 
         self._interface = UWBSDPInterface()
         self._client = SpotRosClient()
+        self._sound_client = SoundClient()
         self._sdp_interface = UWBSDPInterface()
 
         self._sdp_interface.register_interface_callback(
             ("Light status", "?"),
             self._cb_sdp,
         )
+
+        self._turn_on_distance_threshold: float = 3.0
 
         self._odom_to_base: Optional[PyKDL.Frame] = None
         self._lock_odom = threading.Lock()
@@ -169,13 +172,13 @@ class LightRoomDemo:
                             if distance is None:
                                 print("fuga")
                                 continue
-                            if distance < 5.0 and self.is_out:
+                            if distance < self._turn_on_distance_threshold and self.is_out:
                                 self.is_out = False
                                 print("is_out -> False")
                                 if not status:
                                     print("turn on")
                                     self.turn_light(device_name, True)
-                            elif distance >= 5.0 and not self.is_out:
+                            elif distance >= self._turn_on_distance_threshold and not self.is_out:
                                 self.is_out = True
                                 print("is_out -> True")
                                 if status and self.no_people_behind():
@@ -188,24 +191,46 @@ class LightRoomDemo:
 
     def walk(self):
         default_7f_walk_path = '/home/spot/default_7f.walk'
-        target_id_inside = 'jawed-pigeon-9xLW4VzxDmzeP6yWPYjBzw=='
+        target_id_73b1 = 'jawed-pigeon-9xLW4VzxDmzeP6yWPYjBzw=='
+        target_id_73b2 = 'jawed-pigeon-9xLW4VzxDmzeP6yWPYjBzw=='
+        target_id_73a4 = 'jawed-pigeon-9xLW4VzxDmzeP6yWPYjBzw=='
         start_id = 'swept-kiwi-0phR6suSB7SB92YYWzbHKw=='
         goal_id = 'mussy-rodent-yu6WUIh8.8HhMVd+K06gFA=='
 
         self._client.upload_graph(default_7f_walk_path)
         self._client.set_localization_fiducial()
         self._client.navigate_to(start_id, blocking=True)
+
         rospy.logwarn('Start')
-        self._client.navigate_to(target_id_inside, blocking=True)
 
+        # 73B1
+        self._client.navigate_to(target_id_73b1, blocking=True)
         no_people_around = self.no_people_around()
+        if not no_people_around:
+            self._sound_client.say("Please make sure to lock all doors and windows before leaving the house")
+        self._client.navigate_to(target_id_73b2, blocking=False)
+        if no_people_around:
+            self.turn_light("SDP Switchbot 73B1", False)
+        self._client.wait_for_navigate_to_result()
 
-        self._client.navigate_to(start_id)
+        # 73B2
+        no_people_around = self.no_people_around()
+        if not no_people_around:
+            self._sound_client.say("Please make sure to lock all doors and windows before leaving the house")
+        self._client.navigate_to(target_id_73a4, blocking=False)
         if no_people_around:
             self.turn_light("SDP Switchbot", False)
         self._client.wait_for_navigate_to_result()
 
-        self._client.navigate_to(goal_id, blocking=True)
+        # 73A4
+        no_people_around = self.no_people_around()
+        if not no_people_around:
+            self._sound_client.say("Please make sure to lock all doors and windows before leaving the house")
+        self._client.navigate_to(goal_id, blocking=False)
+        if no_people_around:
+            self.turn_light("SDP Switchbot 73A4", False)
+        self._client.wait_for_navigate_to_result()
+
         rospy.logwarn('End')
 
 
