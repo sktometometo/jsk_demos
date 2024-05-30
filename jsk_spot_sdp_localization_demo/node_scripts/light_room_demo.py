@@ -35,6 +35,8 @@ class LightRoomDemo:
             self._cb_sdp,
         )
 
+        self._vel_limit = (0.5, 0.5, 0.3)
+
         self._turn_on_distance_threshold: float = 3.0
 
         self._odom_to_base: Optional[PyKDL.Frame] = None
@@ -154,39 +156,45 @@ class LightRoomDemo:
         self._thread_demo.join()
 
     def demo(self):
-        self.is_out = True
+        #self.is_out = True
+        self.is_out = {}
         rospy.logwarn('Demo Started')
         while not rospy.is_shutdown() and self._running_demo_thread:
             rospy.sleep(1)
             with self._light_status_table_lock:
+                rospy.loginfo("==========================")
+                rospy.loginfo(f"is_out: {self.is_out}")
                 for device_name, status in self._light_status_table.items():
                     device_interfaces = self._interface.device_interfaces
                     for addr, dev_if in device_interfaces.items():
                         if dev_if["device_name"] == device_name:
+                            if device_name not in self.is_out:
+                                self.is_out[device_name] = True
                             distance = dev_if["distance"]
-                            print("==========================")
-                            print(f"device_name: {device_name}")
-                            print(f"distance: {distance}")
-                            print(f"status: {status}")
-                            print(f"is_out: {self.is_out}")
+                            rospy.loginfo( "  =======================")
+                            rospy.loginfo(f"  device_name: {device_name}")
+                            rospy.loginfo(f"  distance: {distance}")
+                            rospy.loginfo(f"  status: {status}")
+                            rospy.loginfo( "  =======================")
                             if distance is None:
-                                print("fuga")
+                                rospy.logdebug("Distance is none")
                                 continue
-                            if distance < self._turn_on_distance_threshold and self.is_out:
-                                self.is_out = False
-                                print("is_out -> False")
+                            if distance < self._turn_on_distance_threshold and self.is_out[device_name]:
+                                self.is_out[device_name] = False
+                                rospy.logwarn(f"is_out[{device_name}] -> False")
                                 if not status:
-                                    print("turn on")
+                                    rospy.logwarn(f"turn on to {device_name}")
                                     self.turn_light(device_name, True)
-                            elif distance >= self._turn_on_distance_threshold and not self.is_out:
-                                self.is_out = True
-                                print("is_out -> True")
-                                if status and self.no_people_behind():
-                                    print("turn off")
+                            elif distance >= self._turn_on_distance_threshold and not self.is_out[device_name]:
+                                self.is_out[device_name] = True
+                                rospy.logdebug(f"is_out[{device_name}] -> True")
+                                if status:
+                                    pass
+                                    #rospy.logwarn(f"turn off to {device_name}")
                                     #self.turn_light(device_name, False)
                             else:
-                                print("hoge")
-                            print(f"is_out2: {self.is_out}")
+                                rospy.logdebug("skipped")
+                rospy.loginfo("==========================")
         rospy.logwarn('Demo stopped')
 
     def walk(self):
@@ -206,18 +214,21 @@ class LightRoomDemo:
         self._client.navigate_to(start_id, blocking=True)
 
         rospy.logwarn('Start')
-        success, message = self._client.navigate_to(target_id_73b1, blocking=True)
+        success, message = self._client.navigate_to(target_id_73b1, velocity_limit=self._vel_limit, blocking=True)
 
         # 73B1
         if success:
             no_people_around = self.no_people_around()
             if not no_people_around:
+                rospy.logwarn("There is people in the room. So I will warn them and leave")
                 self._sound_client.say("Please make sure to lock all doors and windows before leaving the house")
-            self._client.navigate_to(target_id_73b2, blocking=False)
-            if no_people_around:
+            else:
+                rospy.logwarn("No people around. So turn off the light")
                 self.turn_light("SDP Switchbot 73B1", False)
+            self._client.navigate_to(target_id_73b2, velocity_limit=self._vel_limit, blocking=False)
         else:
-            self._client.navigate_to(target_id_73b2, blocking=False)
+            rospy.logwarn("Failed to reach 73B1")
+            self._client.navigate_to(target_id_73b2, velocity_limit=self._vel_limit, blocking=False)
         self._client.wait_for_navigate_to_result()
         success, message = self._client.get_navigate_to_result()
 
@@ -226,12 +237,15 @@ class LightRoomDemo:
         if success:
             no_people_around = self.no_people_around()
             if not no_people_around:
+                rospy.logwarn("There is people in the room. So I will warn them and leave")
                 self._sound_client.say("Please make sure to lock all doors and windows before leaving the house")
-            self._client.navigate_to(target_id_73a4, blocking=False)
-            if no_people_around:
+            else:
+                rospy.logwarn("No people around. So turn off the light")
                 self.turn_light("SDP Switchbot", False)
+            self._client.navigate_to(target_id_73a4, velocity_limit=self._vel_limit, blocking=False)
         else:
-            self._client.navigate_to(target_id_73a4, blocking=False)
+            rospy.logwarn("Failed to reach 73B2")
+            self._client.navigate_to(target_id_73a4, velocity_limit=self._vel_limit, blocking=False)
         self._client.wait_for_navigate_to_result()
         success, message = self._client.get_navigate_to_result()
 
@@ -239,20 +253,28 @@ class LightRoomDemo:
         if success:
             no_people_around = self.no_people_around()
             if not no_people_around:
+                rospy.logwarn("There is people in the room. So I will warn them and leave")
                 self._sound_client.say("Please make sure to lock all doors and windows before leaving the house")
-            self._client.navigate_to(goal_id, blocking=False)
-            if no_people_around:
+            else:
+                rospy.logwarn("No people around. So turn off the light")
                 self.turn_light("SDP Switchbot 73A4", False)
+            self._client.navigate_to(start_id, velocity_limit=self._vel_limit, blocking=False)
         else:
-            self._client.navigate_to(goal_id, blocking=False)
+            rospy.logwarn("Failed to reach 73A4")
+            self._client.navigate_to(start_id, velocity_limit=self._vel_limit, blocking=False)
         self._client.wait_for_navigate_to_result()
         success, message = self._client.get_navigate_to_result()
 
+        self._client.navigate_to(goal_id, blocking=True)
         rospy.logwarn('End')
 
 
 if __name__ == "__main__":
     rospy.init_node("light_room_demo")
+    do_walk = rospy.get_param('~do_walk', True)
     node = LightRoomDemo()
-    node.walk()
+    if do_walk:
+        node.walk()
+    else:
+        rospy.spin()
     node.stop_demo()
