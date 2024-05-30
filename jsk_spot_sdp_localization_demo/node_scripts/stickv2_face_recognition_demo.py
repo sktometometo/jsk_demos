@@ -44,6 +44,7 @@ class LightRoomDemo:
 
         self._target_person_name = 'shinjo'
         self._trigger = False
+        self._trigger_known = False
         self._triggered_device_addr = None
 
         self._current_waypoint = ""
@@ -87,9 +88,13 @@ class LightRoomDemo:
     def _cb_sdp(self, src_address, data_frame: DataFrame):
         person_name = data_frame.content[0]
         rospy.loginfo("person_detection: {}".format(person_name))
-        if person_name == self._target_person_name:
+        if not self._trigger:
             self._triggered_device_addr = src_address
             self._trigger = True
+            if person_name == self._target_person_name:
+                self._trigger_known = True
+            else:
+                self._trigger_known = False
 
     def _cb_people_bbox(self, msg: BoundingBoxArray):
         pass
@@ -112,7 +117,7 @@ class LightRoomDemo:
         self._client.set_localization_fiducial()
 
         # Walk and find a nearest node to each camera
-        self._client.navigate_to(patrol_id, blocking=False)
+        self._client.navigate_to(patrol_id, velocity_limit=(0.3, 0.3, 0.5), blocking=False)
         rospy.logwarn('Start')
         rate = rospy.Rate(1)
         while not rospy.is_shutdown():
@@ -152,10 +157,29 @@ class LightRoomDemo:
         self._client.navigate_to(entry.nearest_node_id, blocking=True)
 
         # Find person and bring it to 73B2
-        person_point = [0, -1, 0]
-        self._client.look_at(target_point, blocking=True)
-
-        self._sound_client.say("Wellcome to JSK laboratory. Follow me.", blocking=True)
+        while not rospy.is_shutdown():
+            msg = rospy.wait_for_message(
+                    "/spot/tracked_world_objects",
+                    BoundingBoxArray,
+                    )
+            if len(msg.boxes) > 0:
+                break
+        person_point_kdl = self.odom_to_base.Inverse() * PyKDL.Vector(
+                msg.boxes[0].pose.position.x,
+                msg.boxes[0].pose.position.y,
+                msg.boxes[0].pose.position.z,
+                )
+        rospy.loginfo('person_point_kdl: {}'.format(person_point_kdl))
+        self._client.unstow_arm()
+        self._client.look_at(
+                [person_point_kdl.x(),
+                 person_point_kdl.y(),
+                 person_point_kdl.z() + 1.5],
+                blocking=True)
+        if self._trigger_known:
+            self._sound_client.say("Wellcome back to JSK laboratory.", blocking=True)
+        else:
+            self._sound_client.say("Wellcome to JSK laboratory. Follow me.", blocking=True)
 
         self._client.stow_arm()
         self._client.navigate_to(dock_id, blocking=True)
