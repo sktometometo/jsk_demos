@@ -26,7 +26,7 @@ from uwb_localization.msg import SDPUWBDevice, SDPUWBDeviceArray
 @dataclass
 class TableEntry:
     device_name: str
-    address = None
+    address: Tuple
     nearest_node_id: Optional[str] = None
     nearest_distance: Optional[float] = None
 
@@ -37,6 +37,7 @@ class LightRoomDemo:
 
         self._interface = UWBSDPInterface()
         self._client = SpotRosClient()
+        self._sound_client = SoundClient()
         self._sdp_interface = UWBSDPInterface()
 
         self._detected_face_id = ("Detected face", "s")
@@ -85,6 +86,7 @@ class LightRoomDemo:
 
     def _cb_sdp(self, src_address, data_frame: DataFrame):
         person_name = data_frame.content[0]
+        rospy.loginfo("person_detection: {}".format(person_name))
         if person_name == self._target_person_name:
             self._triggered_device_addr = src_address
             self._trigger = True
@@ -105,6 +107,7 @@ class LightRoomDemo:
         dock_id = 'fanned-craw-1uaBLxMUEpHL+J6M3F+F1w=='
 
         input("Start from 73B2")
+
         self._client.upload_graph(default_7f_walk_path)
         self._client.set_localization_fiducial()
 
@@ -126,23 +129,36 @@ class LightRoomDemo:
                     if address not in self._device_table.keys():
                         self._device_table[address] = TableEntry(address=address, device_name=device_name)
                     if distance is not None:
-                        if self._device_table[address].nearest_distance is None or distance < self._device_table[address].nearest_distance:
+                        if self._device_table[address].nearest_distance is None \
+                                or distance < self._device_table[address].nearest_distance:
                             self._device_table[address].nearest_distance = distance
                             self._device_table[address].nearest_node_id = current_node
 
         print("result: {}".format(self._device_table))
         self._client.navigate_to(dock_id, blocking=True)
-
         self._client.dock(521)
+
         self._sdp_interface.register_interface_callback(
             self._detected_face_id,
             self._cb_sdp,
         )
+        rate = rospy.Rate(1)
         while not rospy.is_shutdown() and not self._trigger:
             rate.sleep()
+        self._client.undock()
+        #self._client.navigate_to("agaze-kiwi-zUicg.Z+5tsonwp8LKEdAQ==", blocking=True)
         entry = self._device_table[self._triggered_device_addr]
-        self.client.undock()
-        self.client.navigate_to(entry.nearest_node_id, blocking=True)
+        print(f"target: {entry}")
+        self._client.navigate_to(entry.nearest_node_id, blocking=True)
+
+        # Find person and bring it to 73B2
+        person_point = [0, -1, 0]
+        self._client.look_at(target_point, blocking=True)
+
+        self._sound_client.say("Wellcome to JSK laboratory. Follow me.", blocking=True)
+
+        self._client.stow_arm()
+        self._client.navigate_to(dock_id, blocking=True)
         rospy.logwarn('End')
 
 
