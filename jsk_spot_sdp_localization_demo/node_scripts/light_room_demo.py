@@ -193,43 +193,60 @@ class LightRoomDemo:
         default_7f_walk_path = '/home/spot/default_7f.walk'
         target_id_73b1 = 'sudden-rook-a88CxeUG38pvEQyTxEyeSg=='
         target_id_73b2 = 'jawed-pigeon-9xLW4VzxDmzeP6yWPYjBzw=='
-        target_id_73a4 = 'lilac-ibis-iMlKN8Hnq3se6cWyton93g==,'
+        target_id_73a4 = 'lilac-ibis-iMlKN8Hnq3se6cWyton93g=='
         start_id = 'swept-kiwi-0phR6suSB7SB92YYWzbHKw=='
         goal_id = 'mussy-rodent-yu6WUIh8.8HhMVd+K06gFA=='
 
         self._client.upload_graph(default_7f_walk_path)
-        self._client.set_localization_fiducial()
+        success, message = self._client.set_localization_fiducial()
+        if not success:
+            rospy.logerror("Failed to localize. Aborting.")
+            return
+
         self._client.navigate_to(start_id, blocking=True)
 
         rospy.logwarn('Start')
+        success, message = self._client.navigate_to(target_id_73b1, blocking=True)
 
         # 73B1
-        self._client.navigate_to(target_id_73b1, blocking=True)
-        no_people_around = self.no_people_around()
-        if not no_people_around:
-            self._sound_client.say("Please make sure to lock all doors and windows before leaving the house")
-        self._client.navigate_to(target_id_73b2, blocking=False)
-        if no_people_around:
-            self.turn_light("SDP Switchbot 73B1", False)
+        if success:
+            no_people_around = self.no_people_around()
+            if not no_people_around:
+                self._sound_client.say("Please make sure to lock all doors and windows before leaving the house")
+            self._client.navigate_to(target_id_73b2, blocking=False)
+            if no_people_around:
+                self.turn_light("SDP Switchbot 73B1", False)
+        else:
+            self._client.navigate_to(target_id_73b2, blocking=False)
         self._client.wait_for_navigate_to_result()
+        success, message = self._client.get_navigate_to_result()
+
 
         # 73B2
-        no_people_around = self.no_people_around()
-        if not no_people_around:
-            self._sound_client.say("Please make sure to lock all doors and windows before leaving the house")
-        self._client.navigate_to(target_id_73a4, blocking=False)
-        if no_people_around:
-            self.turn_light("SDP Switchbot", False)
+        if success:
+            no_people_around = self.no_people_around()
+            if not no_people_around:
+                self._sound_client.say("Please make sure to lock all doors and windows before leaving the house")
+            self._client.navigate_to(target_id_73a4, blocking=False)
+            if no_people_around:
+                self.turn_light("SDP Switchbot", False)
+        else:
+            self._client.navigate_to(target_id_73a4, blocking=False)
         self._client.wait_for_navigate_to_result()
+        success, message = self._client.get_navigate_to_result()
 
         # 73A4
-        no_people_around = self.no_people_around()
-        if not no_people_around:
-            self._sound_client.say("Please make sure to lock all doors and windows before leaving the house")
-        self._client.navigate_to(goal_id, blocking=False)
-        if no_people_around:
-            self.turn_light("SDP Switchbot 73A4", False)
+        if success:
+            no_people_around = self.no_people_around()
+            if not no_people_around:
+                self._sound_client.say("Please make sure to lock all doors and windows before leaving the house")
+            self._client.navigate_to(goal_id, blocking=False)
+            if no_people_around:
+                self.turn_light("SDP Switchbot 73A4", False)
+        else:
+            self._client.navigate_to(goal_id, blocking=False)
         self._client.wait_for_navigate_to_result()
+        success, message = self._client.get_navigate_to_result()
 
         rospy.logwarn('End')
 
