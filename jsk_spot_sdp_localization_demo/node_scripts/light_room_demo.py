@@ -191,9 +191,9 @@ class LightRoomDemo:
 
     def walk(self):
         default_7f_walk_path = '/home/spot/default_7f.walk'
-        target_id_73b1 = 'jawed-pigeon-9xLW4VzxDmzeP6yWPYjBzw=='
+        target_id_73b1 = 'sudden-rook-a88CxeUG38pvEQyTxEyeSg=='
         target_id_73b2 = 'jawed-pigeon-9xLW4VzxDmzeP6yWPYjBzw=='
-        target_id_73a4 = 'jawed-pigeon-9xLW4VzxDmzeP6yWPYjBzw=='
+        target_id_73a4 = 'lilac-ibis-iMlKN8Hnq3se6cWyton93g==,'
         start_id = 'swept-kiwi-0phR6suSB7SB92YYWzbHKw=='
         goal_id = 'mussy-rodent-yu6WUIh8.8HhMVd+K06gFA=='
 
