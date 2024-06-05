@@ -5,6 +5,7 @@ import math
 import threading
 from operator import is_
 from typing import Dict, List, Optional
+import time
 
 import PyKDL
 import rospy
@@ -19,6 +20,7 @@ from smart_device_protocol.smart_device_protocol_interface import (
 from sound_play.libsoundplay import SoundClient
 from spot_ros_client.libspotros import SpotRosClient
 from uwb_localization.msg import SDPUWBDevice, SDPUWBDeviceArray
+from std_srvs.srv import Trigger, TriggerRequest
 
 
 class LightRoomDemo:
@@ -29,6 +31,8 @@ class LightRoomDemo:
         self._client = SpotRosClient()
         self._sound_client = SoundClient()
         self._sdp_interface = UWBSDPInterface()
+
+        self._reset_localize = rospy.ServiceProxy("/device_localization_node/reset", Trigger)
 
         self._sdp_interface.register_interface_callback(
             ("Light status", "?"),
@@ -62,6 +66,10 @@ class LightRoomDemo:
         print("initialized")
 
     @property
+    def device_interfaces(self):
+        return copy.deepcopy(self._interface.device_interfaces)
+
+    @property
     def odom_to_base(self):
         with self._lock_odom:
             return copy.deepcopy(self._odom_to_base)
@@ -89,10 +97,11 @@ class LightRoomDemo:
 
     def _cb_sdp(self, src_address, data_frame: DataFrame):
         device_content = data_frame.content[0]
-        if src_address not in self._sdp_interface.device_interfaces:
+        device_interfaces = self.device_interfaces
+        if src_address not in device_interfaces:
             rospy.logerr(f"Failed to find device interface for {src_address}")
             return
-        device_name = self._sdp_interface.device_interfaces[src_address]["device_name"]
+        device_name = device_interfaces[src_address]["device_name"]
         with self._light_status_table_lock:
             self._light_status_table[device_name] = device_content
 
@@ -124,12 +133,26 @@ class LightRoomDemo:
                 content=[status],
             ),
         )
+        self._sdp_interface.send(
+            device_name,
+            DataFrame(
+                packet_description="Light control",
+                content=[status],
+            ),
+        )
+        self._sdp_interface.send(
+            device_name,
+            DataFrame(
+                packet_description="Light control",
+                content=[status],
+            ),
+        )
         print("sent frame")
         deadline = rospy.Time.now() + rospy.Duration(timeout)
         while not rospy.is_shutdown() and rospy.Time.now() < deadline:
             rospy.sleep(1.0)
             try:
-                print(f"status: {self._light_status_table[device_name]}")
+                print(f"Waiting for status updated: {self._light_status_table[device_name]}")
                 if self._light_status_table[device_name] == status:
                     break
             except KeyError:
@@ -165,19 +188,23 @@ class LightRoomDemo:
                 rospy.loginfo("==========================")
                 rospy.loginfo(f"is_out: {self.is_out}")
                 for device_name, status in self._light_status_table.items():
-                    device_interfaces = self._interface.device_interfaces
+                    device_interfaces = self.device_interfaces
                     for addr, dev_if in device_interfaces.items():
                         if dev_if["device_name"] == device_name:
                             if device_name not in self.is_out:
                                 self.is_out[device_name] = True
-                            distance = dev_if["distance"]
+                            try:
+                                distance = self._sdp_interface.device_interfaces[addr]["distance"]
+                            except KeyError:
+                                distance = None
                             rospy.loginfo( "  =======================")
                             rospy.loginfo(f"  device_name: {device_name}")
                             rospy.loginfo(f"  distance: {distance}")
                             rospy.loginfo(f"  status: {status}")
+                            rospy.loginfo(f"  is_out: {self.is_out[device_name]}")
                             rospy.loginfo( "  =======================")
                             if distance is None:
-                                rospy.logdebug("Distance is none")
+                                rospy.loginfo("Distance is none")
                                 continue
                             if distance < self._turn_on_distance_threshold and self.is_out[device_name]:
                                 self.is_out[device_name] = False
@@ -187,23 +214,23 @@ class LightRoomDemo:
                                     self.turn_light(device_name, True)
                             elif distance >= self._turn_on_distance_threshold and not self.is_out[device_name]:
                                 self.is_out[device_name] = True
-                                rospy.logdebug(f"is_out[{device_name}] -> True")
+                                rospy.loginfo(f"is_out[{device_name}] -> True")
                                 if status:
                                     pass
                                     #rospy.logwarn(f"turn off to {device_name}")
                                     #self.turn_light(device_name, False)
                             else:
-                                rospy.logdebug("skipped")
+                                rospy.loginfo("skipped")
                 rospy.loginfo("==========================")
         rospy.logwarn('Demo stopped')
 
     def walk(self):
-        default_7f_walk_path = '/home/spot/default_7f.walk'
-        target_id_73b1 = 'sudden-rook-a88CxeUG38pvEQyTxEyeSg=='
-        target_id_73b2 = 'jawed-pigeon-9xLW4VzxDmzeP6yWPYjBzw=='
-        target_id_73a4 = 'lilac-ibis-iMlKN8Hnq3se6cWyton93g=='
-        start_id = 'swept-kiwi-0phR6suSB7SB92YYWzbHKw=='
-        goal_id = 'mussy-rodent-yu6WUIh8.8HhMVd+K06gFA=='
+        default_7f_walk_path = '/home/spot/default_7f_with_door.walk'
+        target_id_73b1 = 'chief-iguana-rCeWvuq9uAAhdq7D+trwMw=='
+        target_id_73b2 = 'yonder-adder-cjebDHNMdwNaax8EdVqs0A=='
+        target_id_73a4 = 'soured-cocoon-KRBT4IqkmBwCauxpgDhFEQ=='
+        start_id = 'holy-puffin-dfM.pGS6xCB4m190VUNPWw=='
+        goal_id = 'unsold-shrew-.KEEBLDLzp+zG8MLyAWU.Q=='
 
         self._client.upload_graph(default_7f_walk_path)
         success, message = self._client.set_localization_fiducial()
@@ -212,12 +239,14 @@ class LightRoomDemo:
             return
 
         self._client.navigate_to(start_id, blocking=True)
+        self._reset_localize(TriggerRequest())
 
         rospy.logwarn('Start')
         success, message = self._client.navigate_to(target_id_73b1, velocity_limit=self._vel_limit, blocking=True)
 
         # 73B1
         if success:
+            time.sleep(10.)
             no_people_around = self.no_people_around()
             if not no_people_around:
                 rospy.logwarn("There is people in the room. So I will warn them and leave")
@@ -235,6 +264,7 @@ class LightRoomDemo:
 
         # 73B2
         if success:
+            time.sleep(10.)
             no_people_around = self.no_people_around()
             if not no_people_around:
                 rospy.logwarn("There is people in the room. So I will warn them and leave")
@@ -251,6 +281,7 @@ class LightRoomDemo:
 
         # 73A4
         if success:
+            time.sleep(10.)
             no_people_around = self.no_people_around()
             if not no_people_around:
                 rospy.logwarn("There is people in the room. So I will warn them and leave")
