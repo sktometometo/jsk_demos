@@ -6,6 +6,7 @@ import threading
 from operator import is_
 from typing import Dict, List, Optional
 import time
+import yaml
 
 import PyKDL
 import rospy
@@ -21,6 +22,7 @@ from sound_play.libsoundplay import SoundClient
 from spot_ros_client.libspotros import SpotRosClient
 from uwb_localization.msg import SDPUWBDevice, SDPUWBDeviceArray
 from std_srvs.srv import Trigger, TriggerRequest
+from std_msgs.msg import String
 
 
 class LightRoomDemo:
@@ -48,6 +50,8 @@ class LightRoomDemo:
 
         self._odom_to_people: List[PyKDL.Frame] = []
         self._lock_people = threading.Lock()
+
+        self._pub_demo_debug = rospy.Publisher('~debug', String, queue_size=1)
 
         self._light_status_table_lock = threading.Lock()
         self._light_status_table: Dict[str, bool] = {}
@@ -203,6 +207,16 @@ class LightRoomDemo:
                             rospy.loginfo(f"  status: {status}")
                             rospy.loginfo(f"  is_out: {self.is_out[device_name]}")
                             rospy.loginfo( "  =======================")
+                            debug_message = yaml.dump(
+                                {
+                                    "device_name": device_name,
+                                    "distance": distance,
+                                    "status": status,
+                                    "is_out": self.is_out[device_name],
+                                }
+                                )
+                            self._pub_demo_debug.publish(
+                                    String(data=debug_message))
                             if distance is None:
                                 rospy.loginfo("Distance is none")
                                 continue
