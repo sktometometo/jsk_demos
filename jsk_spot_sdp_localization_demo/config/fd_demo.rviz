@@ -302,11 +302,15 @@ Visualization Manager:
           Value: true
         waypoint_dank-buck-sRxmNcrlzklDgLjlqxq0tA==:
           Value: true
+        waypoint_dapper-jackal-qH7M5HUStbSL0s0EKr6nUw==:
+          Value: true
         waypoint_dormie-platypus-eRbOoq0pKwBELt4hqdkZ8A==:
           Value: true
         waypoint_doughy-wren-u90R2nChpx29UPfGkjAOgA==:
           Value: true
         waypoint_dreary-taipan-y1WPtsy64J+x2Rj22OW.jg==:
+          Value: true
+        waypoint_ended-marlin-UyrEkasMejnm6AmJzie24w==:
           Value: true
         waypoint_faced-larva-olGaSjYC334EG88ZHX4j9w==:
           Value: true
@@ -330,11 +334,19 @@ Visualization Manager:
           Value: true
         waypoint_jawed-pigeon-9xLW4VzxDmzeP6yWPYjBzw==:
           Value: true
+        waypoint_jinxed-redbug-P.V48Mok3KGmkiaZ9M9AFg==:
+          Value: true
         waypoint_key-trout-YTjivZ9DuPPrbs3TabZzpg==:
           Value: true
         waypoint_leafed-gnu-ZMct0zR8OTzXyQbC0RBKpw==:
           Value: true
+        waypoint_lilac-ibis-iMlKN8Hnq3se6cWyton93g==:
+          Value: true
         waypoint_mighty-mink-QqLb3VmqExS98NpirkP9wA==:
+          Value: true
+        waypoint_mono-pincer-TXzk5NokpniBg3Jr1U0a6w==:
+          Value: true
+        waypoint_morose-goby-KG4L1H8dkSSqEl0o5SZRIQ==:
           Value: true
         waypoint_mussy-rodent-yu6WUIh8.8HhMVd+K06gFA==:
           Value: true
@@ -350,6 +362,8 @@ Visualization Manager:
           Value: true
         waypoint_pearly-husky-IFVtZ3e.bP36mq8wJ80MUA==:
           Value: true
+        waypoint_perky-chetah-N2n+EJVE9RQXycoCyKJbWg==:
+          Value: true
         waypoint_ruled-pika-2vsscTva893ro6Z8tzgoFg==:
           Value: true
         waypoint_rushy-iguana-Mlv9sXSK+WxxmD1rn9r2tQ==:
@@ -357,6 +371,8 @@ Visualization Manager:
         waypoint_shirty-hogg-rOIYHFH75fFNPBslrtSHpg==:
           Value: true
         waypoint_stagey-cub-34kuCc8ty4.Csvhbb34jxA==:
+          Value: true
+        waypoint_sudden-rook-a88CxeUG38pvEQyTxEyeSg==:
           Value: true
         waypoint_swart-horse-AEcVeORBgQsiGwpw3So7HA==:
           Value: true
@@ -368,7 +384,11 @@ Visualization Manager:
           Value: true
         waypoint_tiring-ewe-lOGwAqKr8VX1y7z+SUJZ7A==:
           Value: true
+        waypoint_trusty-kelp-Ghnt4b8wvjyREEUoFc7VrQ==:
+          Value: true
         waypoint_tubby-redbug-QIyhUOTOmr74UfM59bZ2vA==:
+          Value: true
+        waypoint_uppity-canary-VeF1L3zjwWCbk6LBsJa8oQ==:
           Value: true
         waypoint_waking-rabbit-Ag8EjG.sDSRKAJkrR69SOg==:
           Value: true
@@ -479,11 +499,15 @@ Visualization Manager:
               {}
             waypoint_dank-buck-sRxmNcrlzklDgLjlqxq0tA==:
               {}
+            waypoint_dapper-jackal-qH7M5HUStbSL0s0EKr6nUw==:
+              {}
             waypoint_dormie-platypus-eRbOoq0pKwBELt4hqdkZ8A==:
               {}
             waypoint_doughy-wren-u90R2nChpx29UPfGkjAOgA==:
               {}
             waypoint_dreary-taipan-y1WPtsy64J+x2Rj22OW.jg==:
+              {}
+            waypoint_ended-marlin-UyrEkasMejnm6AmJzie24w==:
               {}
             waypoint_faced-larva-olGaSjYC334EG88ZHX4j9w==:
               {}
@@ -507,11 +531,19 @@ Visualization Manager:
               {}
             waypoint_jawed-pigeon-9xLW4VzxDmzeP6yWPYjBzw==:
               {}
+            waypoint_jinxed-redbug-P.V48Mok3KGmkiaZ9M9AFg==:
+              {}
             waypoint_key-trout-YTjivZ9DuPPrbs3TabZzpg==:
               {}
             waypoint_leafed-gnu-ZMct0zR8OTzXyQbC0RBKpw==:
               {}
+            waypoint_lilac-ibis-iMlKN8Hnq3se6cWyton93g==:
+              {}
             waypoint_mighty-mink-QqLb3VmqExS98NpirkP9wA==:
+              {}
+            waypoint_mono-pincer-TXzk5NokpniBg3Jr1U0a6w==:
+              {}
+            waypoint_morose-goby-KG4L1H8dkSSqEl0o5SZRIQ==:
               {}
             waypoint_mussy-rodent-yu6WUIh8.8HhMVd+K06gFA==:
               {}
@@ -527,6 +559,8 @@ Visualization Manager:
               {}
             waypoint_pearly-husky-IFVtZ3e.bP36mq8wJ80MUA==:
               {}
+            waypoint_perky-chetah-N2n+EJVE9RQXycoCyKJbWg==:
+              {}
             waypoint_ruled-pika-2vsscTva893ro6Z8tzgoFg==:
               {}
             waypoint_rushy-iguana-Mlv9sXSK+WxxmD1rn9r2tQ==:
@@ -534,6 +568,8 @@ Visualization Manager:
             waypoint_shirty-hogg-rOIYHFH75fFNPBslrtSHpg==:
               {}
             waypoint_stagey-cub-34kuCc8ty4.Csvhbb34jxA==:
+              {}
+            waypoint_sudden-rook-a88CxeUG38pvEQyTxEyeSg==:
               {}
             waypoint_swart-horse-AEcVeORBgQsiGwpw3So7HA==:
               {}
@@ -545,7 +581,11 @@ Visualization Manager:
               {}
             waypoint_tiring-ewe-lOGwAqKr8VX1y7z+SUJZ7A==:
               {}
+            waypoint_trusty-kelp-Ghnt4b8wvjyREEUoFc7VrQ==:
+              {}
             waypoint_tubby-redbug-QIyhUOTOmr74UfM59bZ2vA==:
+              {}
+            waypoint_uppity-canary-VeF1L3zjwWCbk6LBsJa8oQ==:
               {}
             waypoint_waking-rabbit-Ag8EjG.sDSRKAJkrR69SOg==:
               {}
@@ -840,8 +880,8 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 3.174686908721924
-        Min Value: -2.609793186187744
+        Max Value: 3.436016082763672
+        Min Value: -3.3945937156677246
         Value: true
       Axis: Z
       Channel Name: intensity
@@ -955,6 +995,14 @@ Visualization Manager:
           Value: true
       Enabled: true
       Name: SDPUWBLocalization
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /face_recognition_marker_array
+      Name: MarkerArray
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -983,7 +1031,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 8.224468231201172
+      Distance: 11.10360336303711
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -999,9 +1047,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.6602029204368591
+      Pitch: 0.34020301699638367
       Target Frame: body
-      Yaw: 1.6859116554260254
+      Yaw: 4.815918445587158
     Saved: ~
 Window Geometry:
   Displays:

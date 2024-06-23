@@ -33,7 +33,16 @@
         name="$(anon rviz)"
         output="screen"
         args="-d $(find jsk_spot_sdp_localization_demo)/config/fd_demo.rviz">
-</node>
+    </node>
+
+    <node
+        pkg="jsk_spot_sdp_localization_demo"
+        type="stickv2_face_recognition_demo_visualizer.py"
+        name="$(anon stickv2_viz)"
+        output="screen"
+    >
+
+    </node>
 
     <!-- <include
         file="$(find jsk_spot_startup)/launch/uwb_localization.launch"
