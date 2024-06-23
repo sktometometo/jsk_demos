@@ -20,6 +20,7 @@ from spot_msgs.msg import GraphNavLocalization
 from spot_ros_client.libspotros import SpotRosClient
 from std_msgs.msg import String
 from uwb_localization.msg import SDPUWBDevice, SDPUWBDeviceArray
+from std_srvs.srv import Trigger, TriggerRequest
 
 
 @dataclass
@@ -33,6 +34,8 @@ class TableEntry:
 class LightRoomDemo:
 
     def __init__(self):
+
+        self._reset_localize = rospy.ServiceProxy("/device_localization_node/reset", Trigger)
 
         self._interface = UWBSDPInterface()
         self._client = SpotRosClient()
@@ -59,6 +62,9 @@ class LightRoomDemo:
             String,
             queue_size=1,
         )
+
+        self._thread_debug = threading.Thread(target=self._publish_debug)
+        self._thread_debug.start()
 
         self._sub_graph_nav_localization = rospy.Subscriber(
             "/spot/graph_nav_localization_state",
@@ -90,6 +96,29 @@ class LightRoomDemo:
                 ),
             )
 
+    def _publish_debug(self):
+        rate = rospy.Rate(1)
+        while not rospy.is_shutdown():
+            rate.sleep()
+            message_yaml = ""
+            if self._triggered_device_addr is None:
+                message_yaml = yaml.dump(
+                        {},
+                        )
+            else:
+                with self._device_table_lock:
+                    message_yaml = yaml.dump(
+                        {
+                            "device_neareset_node": self._device_table[
+                                self._triggered_device_addr
+                            ],
+                            "trigger_known": self._trigger_known,
+                            "trigger": self._trigger,
+                            "address": self._triggered_device_addr,
+                        },
+                    )
+            self._pub_debug_string.publish(String(data=message_yaml))
+
     def _cb_sdp(self, src_address, data_frame: DataFrame):
         person_name = data_frame.content[0]
         rospy.loginfo("person_detection: {}".format(person_name))
@@ -100,23 +129,6 @@ class LightRoomDemo:
                 self._trigger_known = True
             else:
                 self._trigger_known = False
-
-            message_yaml = ""
-            with self._device_table_lock:
-                yaml.dump(
-                    {
-                        "device_neareset_node": self._device_table[
-                            self._triggered_device_addr
-                        ],
-                        "trigger_known": self._trigger_known,
-                        "trigger": self._trigger,
-                        "address": self._triggered_device_addr,
-                    },
-                    message_yaml,
-                )
-
-    def _cb_people_bbox(self, msg: BoundingBoxArray):
-        pass
 
     def _cb_graph_nav_localization(self, msg: GraphNavLocalization):
         self._current_waypoint = msg.waypoint_id
@@ -130,6 +142,7 @@ class LightRoomDemo:
 
         self._client.upload_graph(default_7f_walk_path)
         self._client.set_localization_fiducial()
+        self._reset_localize(TriggerRequest())
 
         # Walk and find a nearest node to each camera
         self._client.navigate_to(
@@ -143,7 +156,6 @@ class LightRoomDemo:
             rate.sleep()
             dis = self._interface.device_interfaces
             current_node = self._current_waypoint
-            print(dis)
             with self._device_table_lock:
                 for address, entry in dis.items():
                     device_name = entry["device_name"]
@@ -210,5 +222,13 @@ class LightRoomDemo:
 
 if __name__ == "__main__":
     rospy.init_node("light_room_demo")
+    dummy = rospy.get_param('~dummy', False)
     node = LightRoomDemo()
-    node.demo()
+    if dummy:
+        node._sdp_interface.register_interface_callback(
+            node._detected_face_id,
+            node._cb_sdp,
+        )
+        rospy.spin()
+    else:
+        node.demo()
