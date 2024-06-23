@@ -1,0 +1,41 @@
+<launch>
+    <arg name="rosbag" doc="rosbag file path" />
+    <arg name="use_decompress" default="true" />
+    <arg
+        name="loop" default="true" />
+    <arg name="gui" default="true" />
+    <arg name="loop_flag"
+        value="--loop" if="$(arg loop)" />
+    <arg name="loop_flag" value="" unless="$(arg loop)" />
+    <arg
+        name="start_time" default="0" />
+    <arg name="duration_time" default="0" />
+    <arg name="duration"
+        default="--duration $(arg duration_time)" if="$(eval duration_time != 0)" />
+    <arg
+        name="duration" default="" if="$(eval duration_time == 0)" />
+    <arg name="skip_rosbag"
+        default="false" />
+
+    <include file="$(find jsk_spot_startup)/launch/rosbag_play.launch">
+        <arg name="rosbag" value="$(arg rosbag)" />
+        <arg name="use_decompress" value="$(arg use_decompress)" />
+        <arg name="loop" value="$(arg loop)" />
+        <arg name="gui" value="false" />
+        <arg name="start_time" value="$(arg start_time)" />
+        <arg name="duration_time" value="$(arg duration_time)" />
+        <arg name="skip_rosbag" value="$(arg skip_rosbag)" />
+    </include>
+
+    <node
+        pkg="rviz"
+        type="rviz"
+        name="$(anon rviz)"
+        output="screen"
+        args="-d $(find jsk_spot_sdp_localization_demo)/config/fd_demo.rviz">
+</node>
+
+    <!-- <include
+        file="$(find jsk_spot_startup)/launch/uwb_localization.launch"
+    > </include> -->
+</launch>

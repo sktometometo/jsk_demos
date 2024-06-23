@@ -1,25 +1,24 @@
 #!/usr/bin/env python3
 
 import copy
-import math
 import threading
-from operator import is_
-from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
 
 import PyKDL
 import rospy
+import yaml
 from jsk_recognition_msgs.msg import BoundingBoxArray
-from jsk_spot_lib.look_at_client import SpotLookAtClient
 from nav_msgs.msg import Odometry
 from ros_lock import ROSLock, roslock_acquire
-from spot_msgs.msg import GraphNavLocalization
 from smart_device_protocol.smart_device_protocol_interface import (
     DataFrame,
     UWBSDPInterface,
 )
 from sound_play.libsoundplay import SoundClient
+from spot_msgs.msg import GraphNavLocalization
 from spot_ros_client.libspotros import SpotRosClient
+from std_msgs.msg import String
 from uwb_localization.msg import SDPUWBDevice, SDPUWBDeviceArray
 
 
@@ -42,7 +41,7 @@ class LightRoomDemo:
 
         self._detected_face_id = ("Detected face", "s")
 
-        self._target_person_name = 'shinjo'
+        self._target_person_name = "shinjo"
         self._trigger = False
         self._trigger_known = False
         self._triggered_device_addr = None
@@ -55,8 +54,14 @@ class LightRoomDemo:
         self._device_table_lock = threading.Lock()
         self._device_table: Dict[Tuple, TableEntry] = {}
 
+        self._pub_debug_string = rospy.Publisher(
+            "/debug_string",
+            String,
+            queue_size=1,
+        )
+
         self._sub_graph_nav_localization = rospy.Subscriber(
-            '/spot/graph_nav_localization_state',
+            "/spot/graph_nav_localization_state",
             GraphNavLocalization,
             self._cb_graph_nav_localization,
         )
@@ -96,20 +101,30 @@ class LightRoomDemo:
             else:
                 self._trigger_known = False
 
+            message_yaml = ""
+            with self._device_table_lock:
+                yaml.dump(
+                    {
+                        "device_neareset_node": self._device_table[
+                            self._triggered_device_addr
+                        ],
+                        "trigger_known": self._trigger_known,
+                        "trigger": self._trigger,
+                        "address": self._triggered_device_addr,
+                    },
+                    message_yaml,
+                )
+
     def _cb_people_bbox(self, msg: BoundingBoxArray):
         pass
 
     def _cb_graph_nav_localization(self, msg: GraphNavLocalization):
         self._current_waypoint = msg.waypoint_id
 
-    def stop_demo(self):
-        self._running_demo_thread = False
-        self._thread_demo.join()
-
     def demo(self):
-        default_7f_walk_path = '/home/spot/default_7f.walk'
-        patrol_id = 'leafed-gnu-ZMct0zR8OTzXyQbC0RBKpw=='
-        dock_id = 'fanned-craw-1uaBLxMUEpHL+J6M3F+F1w=='
+        default_7f_walk_path = "/home/spot/default_7f.walk"
+        patrol_id = "leafed-gnu-ZMct0zR8OTzXyQbC0RBKpw=="
+        dock_id = "fanned-craw-1uaBLxMUEpHL+J6M3F+F1w=="
 
         input("Start from 73B2")
 
@@ -117,8 +132,10 @@ class LightRoomDemo:
         self._client.set_localization_fiducial()
 
         # Walk and find a nearest node to each camera
-        self._client.navigate_to(patrol_id, velocity_limit=(0.3, 0.3, 0.5), blocking=False)
-        rospy.logwarn('Start')
+        self._client.navigate_to(
+            patrol_id, velocity_limit=(0.3, 0.3, 0.5), blocking=False
+        )
+        rospy.logwarn("Start")
         rate = rospy.Rate(1)
         while not rospy.is_shutdown():
             if self._client.wait_for_navigate_to_result(duration=rospy.Duration(1.0)):
@@ -129,13 +146,17 @@ class LightRoomDemo:
             print(dis)
             with self._device_table_lock:
                 for address, entry in dis.items():
-                    device_name = entry['device_name']
-                    distance = entry['distance']
+                    device_name = entry["device_name"]
+                    distance = entry["distance"]
                     if address not in self._device_table.keys():
-                        self._device_table[address] = TableEntry(address=address, device_name=device_name)
+                        self._device_table[address] = TableEntry(
+                            address=address, device_name=device_name
+                        )
                     if distance is not None:
-                        if self._device_table[address].nearest_distance is None \
-                                or distance < self._device_table[address].nearest_distance:
+                        if (
+                            self._device_table[address].nearest_distance is None
+                            or distance < self._device_table[address].nearest_distance
+                        ):
                             self._device_table[address].nearest_distance = distance
                             self._device_table[address].nearest_node_id = current_node
 
@@ -151,7 +172,7 @@ class LightRoomDemo:
         while not rospy.is_shutdown() and not self._trigger:
             rate.sleep()
         self._client.undock()
-        #self._client.navigate_to("agaze-kiwi-zUicg.Z+5tsonwp8LKEdAQ==", blocking=True)
+        # self._client.navigate_to("agaze-kiwi-zUicg.Z+5tsonwp8LKEdAQ==", blocking=True)
         entry = self._device_table[self._triggered_device_addr]
         print(f"target: {entry}")
         self._client.navigate_to(entry.nearest_node_id, blocking=True)
@@ -159,31 +180,32 @@ class LightRoomDemo:
         # Find person and bring it to 73B2
         while not rospy.is_shutdown():
             msg = rospy.wait_for_message(
-                    "/spot/tracked_world_objects",
-                    BoundingBoxArray,
-                    )
+                "/spot/tracked_world_objects",
+                BoundingBoxArray,
+            )
             if len(msg.boxes) > 0:
                 break
         person_point_kdl = self.odom_to_base.Inverse() * PyKDL.Vector(
-                msg.boxes[0].pose.position.x,
-                msg.boxes[0].pose.position.y,
-                msg.boxes[0].pose.position.z,
-                )
-        rospy.loginfo('person_point_kdl: {}'.format(person_point_kdl))
+            msg.boxes[0].pose.position.x,
+            msg.boxes[0].pose.position.y,
+            msg.boxes[0].pose.position.z,
+        )
+        rospy.loginfo("person_point_kdl: {}".format(person_point_kdl))
         self._client.unstow_arm()
         self._client.look_at(
-                [person_point_kdl.x(),
-                 person_point_kdl.y(),
-                 person_point_kdl.z() + 1.5],
-                blocking=True)
+            [person_point_kdl.x(), person_point_kdl.y(), person_point_kdl.z() + 1.5],
+            blocking=True,
+        )
         if self._trigger_known:
             self._sound_client.say("Wellcome back to JSK laboratory.", blocking=True)
         else:
-            self._sound_client.say("Wellcome to JSK laboratory. Follow me.", blocking=True)
+            self._sound_client.say(
+                "Wellcome to JSK laboratory. Follow me.", blocking=True
+            )
 
         self._client.stow_arm()
         self._client.navigate_to(dock_id, blocking=True)
-        rospy.logwarn('End')
+        rospy.logwarn("End")
 
 
 if __name__ == "__main__":
