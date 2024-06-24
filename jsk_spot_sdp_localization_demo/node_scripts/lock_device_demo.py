@@ -12,13 +12,12 @@ import tf2_geometry_msgs
 import tf2_ros
 import yaml
 from geometry_msgs.msg import Point
-from jsk_recognition_msgs.msg import BoundingBoxArray
 from nav_msgs.msg import Odometry
-from ros_lock import ROSLock, roslock_acquire
 from smart_device_protocol.smart_device_protocol_interface import (
-    DataFrame, UWBSDPInterface)
+    DataFrame,
+    UWBSDPInterface,
+)
 from sound_play.libsoundplay import SoundClient
-from spot_msgs.msg import GraphNavLocalization
 from spot_ros_client.libspotros import SpotRosClient
 from std_msgs.msg import Header, String
 from std_srvs.srv import Trigger, TriggerRequest
@@ -183,6 +182,8 @@ class Demo:
         frame_base_to_waypoint = self._look_up_transform(
             "waypoint_" + target_waypoint_id
         )
+        if frame_base_to_waypoint is None:
+            return []
         points_base_to_devices: Dict[str, PyKDL.Vector] = {
             device_name: self.frame_odom_to_base.Inverse()
             * PyKDL.Vector(
@@ -200,12 +201,12 @@ class Demo:
 
     def run_demo(self):
 
-        graph_path = ""
-        waypoint_id_73B2_door_inside = "eng2_73B2_door_inside"
-        waypoint_id_breeze_way = "eng2_7F_northeast_crossload_nearpoint"
-        waypoint_id_73B2_door_outside = "eng2_73B2_door_outside"
+        graph_path = "/home/spot/default_7f_with_door.walk"
+        waypoint_id_73B2_door_inside = "yonder-adder-cjebDHNMdwNaax8EdVqs0A=="
+        waypoint_id_breeze_way = "holy-puffin-dfM.pGS6xCB4m190VUNPWw=="
+        waypoint_id_73B2_door_outside = ""
 
-        device_name_73B2_door_lock = "73B2_door"
+        device_name_73B2_door_lock = "SDP Lock 73B2"
 
         input("Press Enter to start demo. Please make sure that the robot is in 73B2")
 
@@ -233,12 +234,16 @@ class Demo:
         device_name = target_devices[0]
         rospy.logwarn("Target device name is : {}".format(device_name))
         self.control_key(False, device_name)
-        
+
         self.spot_client.navigate_to(waypoint_id_73B2_door_inside, blocking=True)
 
 
 if __name__ == "__main__":
 
     rospy.init_node("demo")
+    dummy = rospy.get_param("~dummy", False)
     demo = Demo()
-    demo.run_demo()
+    if dummy:
+        rospy.spin()
+    else:
+        demo.run_demo()
