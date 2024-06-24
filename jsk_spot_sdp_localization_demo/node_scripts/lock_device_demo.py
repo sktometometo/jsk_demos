@@ -199,7 +199,7 @@ class Demo:
             > math.cos(threshold_direction_angle)
         ]
 
-    def run_demo(self):
+    def run_demo(self, dummy: bool = False):
 
         graph_path = "/home/spot/default_7f_with_door.walk"
         waypoint_id_73B2_door_inside = "yonder-adder-cjebDHNMdwNaax8EdVqs0A=="
@@ -212,30 +212,34 @@ class Demo:
 
         self.spot_client.upload_graph(graph_path)
         self.spot_client.set_localization_fiducial()
-        self.spot_client.navigate_to(waypoint_id_73B2_door_inside, blocking=True)
 
-        self.spot_client.navigate_to(waypoint_id_73B2_door_outside, blocking=True)
-        self.control_key(True, device_name_73B2_door_lock)
+        if dummy:
+            rospy.spin()
+        else:
+            self.spot_client.navigate_to(waypoint_id_73B2_door_inside, blocking=True)
 
-        rospy.loginfo("Moving to breezeway")
-        self.spot_client.navigate_to(waypoint_id_breeze_way, blocking=True)
+            self.spot_client.navigate_to(waypoint_id_73B2_door_outside, blocking=True)
+            self.control_key(True, device_name_73B2_door_lock)
 
-        self._reset_localize(TriggerRequest())
-        rospy.logwarn("Demo started")
+            rospy.loginfo("Moving to breezeway")
+            self.spot_client.navigate_to(waypoint_id_breeze_way, blocking=True)
 
-        rospy.loginfo("Moving back to 73B2")
-        self.spot_client.navigate_to(waypoint_id_73B2_door_outside, blocking=True)
+            self._reset_localize(TriggerRequest())
+            rospy.logwarn("Demo started")
 
-        target_waypoint = waypoint_id_73B2_door_outside
-        target_devices = self.get_devices_from_direction(target_waypoint)
-        if len(target_devices) == 0:
-            rospy.logwarn("No devices found in the direction of target waypoint")
-            return
-        device_name = target_devices[0]
-        rospy.logwarn("Target device name is : {}".format(device_name))
-        self.control_key(False, device_name)
+            rospy.loginfo("Moving back to 73B2")
+            self.spot_client.navigate_to(waypoint_id_73B2_door_outside, blocking=True)
 
-        self.spot_client.navigate_to(waypoint_id_73B2_door_inside, blocking=True)
+            target_waypoint = waypoint_id_73B2_door_outside
+            target_devices = self.get_devices_from_direction(target_waypoint)
+            if len(target_devices) == 0:
+                rospy.logwarn("No devices found in the direction of target waypoint")
+                return
+            device_name = target_devices[0]
+            rospy.logwarn("Target device name is : {}".format(device_name))
+            self.control_key(False, device_name)
+
+            self.spot_client.navigate_to(waypoint_id_73B2_door_inside, blocking=True)
 
 
 if __name__ == "__main__":
