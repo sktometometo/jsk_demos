@@ -49,7 +49,7 @@ class Demo:
         self.lock_device_dict = threading.Lock()
 
         self.interface = UWBSDPInterface()
-        self.interface.register_interface_callback(("Key status", "s"), self.key_status_callback,)
+        self.interface.register_interface_callback(("Key status", "?"), self.key_status_callback,)
 
         self._frame_odom_to_base: Optional[PyKDL.Frame] = None
         self._lock_frame_odom_to_base = threading.Lock()
@@ -107,8 +107,8 @@ class Demo:
 
         try:
             trans = self.tf_buffer.lookup_transform(
-                target_frame_id,
                 base_frame_id,
+                target_frame_id,
                 rospy.Time(),
             )
             return tf2_geometry_msgs.transform_to_kdl(trans)
@@ -123,26 +123,31 @@ class Demo:
 
         device_interfaces = copy.deepcopy(self.interface.device_interfaces)
         if src_address in device_interfaces:
-            status = frame.content[0]
+            lock_status = frame.content[0]
             device_name = device_interfaces[src_address]["device_name"]
-            self.device_dict[device_name].lock_status = (
-                False if status == "unlocked" else True
-            )
+            with self.lock_device_dict:
+                if device_name in self.device_dict:
+                    self.device_dict[device_name].lock_status = lock_status
+                else:
+                    self.device_dict[device_name] = TableEntry(device_name=device_name, lock_status=lock_status)
 
     def _callback_uwb_device(self, msg: SDPUWBDeviceArray):
 
+        device_interfaces = copy.deepcopy(self.interface.device_interfaces)
+        device_interfaces = { dev_if["device_name"]: dev_if["interfaces"] for addr, dev_if in device_interfaces.items() }
         for uwb_dev in msg.devices:
             assert uwb_dev.header.frame_id == self.frame_id_odom
-            with self.lock_device_dict:
-                if uwb_dev.device_name not in self.device_dict:
-                    self.device_dict[uwb_dev.device_name] = TableEntry(
-                        header=uwb_dev.header,
-                        point=uwb_dev.point,
-                        device_name=uwb_dev.device_name,
-                    )
-                else:
-                    self.device_dict[uwb_dev.device_name].header = uwb_dev.header
-                    self.device_dict[uwb_dev.device_name].point = uwb_dev.point
+            if uwb_dev.device_name in device_interfaces and ('Key control', 's') in device_interfaces[uwb_dev.device_name]:
+                with self.lock_device_dict:
+                    if uwb_dev.device_name not in self.device_dict:
+                        self.device_dict[uwb_dev.device_name] = TableEntry(
+                            header=uwb_dev.header,
+                            point=uwb_dev.point,
+                            device_name=uwb_dev.device_name,
+                        )
+                    else:
+                        self.device_dict[uwb_dev.device_name].header = uwb_dev.header
+                        self.device_dict[uwb_dev.device_name].point = uwb_dev.point
 
         with self.lock_device_dict:
             for device_name, device_info in self.device_dict.items():
@@ -156,8 +161,8 @@ class Demo:
             device_name,
             DataFrame(
                 packet_description="Key control",
-                serialization_format="?",
-                content=[lock],
+                serialization_format="s",
+                content=["lock" if lock else "unlock"],
             ),
         )
         rate = rospy.Rate(1.0)
@@ -166,7 +171,7 @@ class Demo:
             rate.sleep()
             if (
                 device_name in self.device_dict
-                and self.device_dict[device_name].lock_status != lock
+                and self.device_dict[device_name].lock_status == lock
             ):
                 return True
         return False
@@ -189,11 +194,15 @@ class Demo:
             for device_name, device_info in self.device_dict.items()
             if device_info.point is not None
         }
+        rospy.loginfo(f"frame_base_to_waypoint: {frame_base_to_waypoint}")
+        rospy.loginfo(f"points_base_to_devices: {points_base_to_devices}")
         return [
             device_name
             for device_name, point in points_base_to_devices.items()
-            if frame_base_to_waypoint.p.Unit().Dot(point.Unit())
-            > math.cos(threshold_direction_angle)
+            if PyKDL.dot(
+                (frame_base_to_waypoint.p / frame_base_to_waypoint.p.Norm()),
+                (point / point.Norm()),
+                ) > math.cos(threshold_direction_angle)
         ]
 
     def run_demo(self, dummy: bool = False):
@@ -201,7 +210,7 @@ class Demo:
         graph_path = "/home/spot/default_7f_with_door.walk"
         waypoint_id_73B2_door_inside = "yonder-adder-cjebDHNMdwNaax8EdVqs0A=="
         waypoint_id_breeze_way = "holy-puffin-dfM.pGS6xCB4m190VUNPWw=="
-        waypoint_id_73B2_door_outside = ""
+        waypoint_id_73B2_door_outside = "deific-toad-MtBK4mWxiBSG4N8xF7rYDg=="
 
         device_name_73B2_door_lock = "SDP Lock 73B2"
 
@@ -225,7 +234,7 @@ class Demo:
             rospy.logwarn("Demo started")
 
             rospy.loginfo("Moving back to 73B2")
-            self.spot_client.navigate_to(waypoint_id_73B2_door_outside, blocking=True)
+            self.spot_client.navigate_to(waypoint_id_73B2_door_outside, blocking=True, velocity_limit=(0.3, 0.3, 0.3))
 
             target_waypoint = waypoint_id_73B2_door_outside
             target_devices = self.get_devices_from_direction(target_waypoint)
