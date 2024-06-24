@@ -14,9 +14,7 @@ import yaml
 from geometry_msgs.msg import Point
 from nav_msgs.msg import Odometry
 from smart_device_protocol.smart_device_protocol_interface import (
-    DataFrame,
-    UWBSDPInterface,
-)
+    DataFrame, UWBSDPInterface)
 from sound_play.libsoundplay import SoundClient
 from spot_ros_client.libspotros import SpotRosClient
 from std_msgs.msg import Header, String
@@ -50,9 +48,8 @@ class Demo:
         self.device_dict: Dict[str, TableEntry] = {}
         self.lock_device_dict = threading.Lock()
 
-        self.interface = UWBSDPInterface(
-            callbacks_data={("Key status", "s"): self.key_status_callback}
-        )
+        self.interface = UWBSDPInterface()
+        self.interface.register_interface_callback(("Key status", "s"), self.key_status_callback,)
 
         self._frame_odom_to_base: Optional[PyKDL.Frame] = None
         self._lock_frame_odom_to_base = threading.Lock()
