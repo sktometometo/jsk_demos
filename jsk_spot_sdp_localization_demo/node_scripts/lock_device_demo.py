@@ -237,7 +237,7 @@ class Demo:
             self.spot_client.navigate_to(waypoint_id_73B2_door_outside, blocking=True, velocity_limit=(0.3, 0.3, 0.3))
 
             target_waypoint = waypoint_id_73B2_door_outside
-            target_devices = self.get_devices_from_direction(target_waypoint)
+            target_devices = self.get_devices_from_direction(target_waypoint, threshold_direction_angle=math.radians(60))
             if len(target_devices) == 0:
                 rospy.logwarn("No devices found in the direction of target waypoint")
                 return
