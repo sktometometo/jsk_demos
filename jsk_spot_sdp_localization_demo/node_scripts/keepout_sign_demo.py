@@ -6,10 +6,12 @@ from typing import Optional
 
 import PyKDL
 import rospy
+import yaml
 from nav_msgs.msg import Odometry
 from ros_lock import ROSLock
 from smart_device_protocol.smart_device_protocol_interface import UWBSDPInterface
 from spot_ros_client.libspotros import SpotRosClient
+from std_msgs.msg import String
 from uwb_localization.msg import SDPUWBDeviceArray
 
 
@@ -26,6 +28,8 @@ class KeepoutSignExecutor:
 
         self._nearest_keepout_sign_dist: Optional[float] = None
         self._lock_nearest_keepout_sign_dist = threading.Lock()
+
+        self._pub_debug_string = rospy.Publisher("/debug_string", String, queue_size=1)
 
         self._sub_odom = rospy.Subscriber("/spot/odometry", Odometry, self._cb_odom)
         self._sub_sdpuwb = rospy.Subscriber(
@@ -114,6 +118,11 @@ class KeepoutSignExecutor:
         self._client.gripper_close()
 
         rospy.loginfo("Move to Reppincan")
+        dump_str = ""
+        yaml.dump(
+            {"target_waypoint_id": "staple-finch-GrUHQoxOBscHvFykmFcrkQ=="}, dump_str
+        )
+        self._pub_debug_string.publish(String(data=dump_str))
         ret = self._client.navigate_to(
             "staple-finch-GrUHQoxOBscHvFykmFcrkQ==", blocking=True
         )
@@ -121,6 +130,12 @@ class KeepoutSignExecutor:
 
         input("Give me document. Press Enter > ")
         self._client.gripper_open()
+
+        dump_str = ""
+        yaml.dump(
+            {"target_waypoint_id": "daft-fleece-OI80B3zjIRf0G4nxz5YLwA=="}, dump_str
+        )
+        self._pub_debug_string.publish(String(data=dump_str))
 
         self._client.navigate_to("daft-fleece-OI80B3zjIRf0G4nxz5YLwA==", blocking=False)
         while not rospy.is_shutdown():
@@ -133,6 +148,11 @@ class KeepoutSignExecutor:
                 self._client.cancel_navigate_to()
                 break
 
+        dump_str = ""
+        yaml.dump(
+            {"target_waypoint_id": "alike-tapir-5izZBNcxp+fG+UmYKLniNQ=="}, dump_str
+        )
+        self._pub_debug_string.publish(String(data=dump_str))
         self._client.navigate_to("alike-tapir-5izZBNcxp+fG+UmYKLniNQ==", blocking=True)
 
 

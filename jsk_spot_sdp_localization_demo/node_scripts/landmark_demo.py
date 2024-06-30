@@ -10,9 +10,13 @@ import rospy
 from jsk_spot_lib.look_at_client import SpotLookAtClient
 from nav_msgs.msg import Odometry
 from ros_lock import ROSLock, roslock_acquire
-from smart_device_protocol.smart_device_protocol_interface import UWBSDPInterface, DataFrame
+from smart_device_protocol.smart_device_protocol_interface import (
+    DataFrame,
+    UWBSDPInterface,
+)
 from sound_play.libsoundplay import SoundClient
 from spot_ros_client.libspotros import SpotRosClient
+from std_msgs.msg import String
 from uwb_localization.msg import SDPUWBDevice, SDPUWBDeviceArray
 
 
@@ -28,6 +32,8 @@ class Demo:
         self._sdp_interface = UWBSDPInterface()
         self._sound_client = SoundClient()
 
+        self._pub_speech_text = rospy.Publisher("/speech_text", String, queue_size=1)
+
         self._sdp_interface.register_interface_callback(
             ("Landmark information", "S"),
             self._cb_sdp_landmark_information,
@@ -42,12 +48,20 @@ class Demo:
         self._landmark_information_tables: Dict[str, str] = {}
 
         self._sub_odom = rospy.Subscriber("/spot/odometry", Odometry, self._cb_odom)
-        self._sub_devices = rospy.Subscriber("/sdpuwb_devices", SDPUWBDeviceArray, self._cb_device)
+        self._sub_devices = rospy.Subscriber(
+            "/sdpuwb_devices", SDPUWBDeviceArray, self._cb_device
+        )
 
+    def point_and_describe(
+        self,
+        target_frame_robotbased: PyKDL.Frame,
+        name: str = "",
+        description: str = "",
+    ):
 
-    def point_and_describe(self, target_frame_robotbased, name="", description=""):
-
-        target_theta = math.atan2(target_frame_robotbased.p[1], target_frame_robotbased.p[0]),
+        target_theta = (
+            math.atan2(target_frame_robotbased.p[1], target_frame_robotbased.p[0]),
+        )
         rospy.loginfo(f"target_frame_robotbased: {target_frame_robotbased}")
         rospy.loginfo(f"target_theta: {target_theta}")
 
@@ -58,12 +72,16 @@ class Demo:
                 target_theta,
                 blocking=True,
             )
-            self._look_at_client.look_at([
-                target_frame_robotbased.p[0],
-                target_frame_robotbased.p[1],
-                target_frame_robotbased.p[2],
-                ])
+            self._look_at_client.look_at(
+                [
+                    target_frame_robotbased.p[0],
+                    target_frame_robotbased.p[1],
+                    target_frame_robotbased.p[2],
+                ]
+            )
+            self._pub_speech_text.publish(f"There is {name} there.")
             self._sound_client.say(f"There is {name} there.", blocking=True)
+            self._pub_speech_text.publish(description)
             self._sound_client.say(description, blocking=True)
 
     def _cb_sdp_landmark_information(self, src_address, data_frame: DataFrame):
@@ -93,11 +111,10 @@ class Demo:
 
     def _cb_device(self, msg: SDPUWBDeviceArray):
         if len(msg.devices) == 0:
-            rospy.logwarn('lengh of meessag is zero. skpped')
+            rospy.logwarn("lengh of meessag is zero. skpped")
             return
-
         if self._frame_vision_to_body is None:
-            rospy.logwarn('Odom not initialized. skpped')
+            rospy.logwarn("Odom not initialized. skpped")
             return
 
         target_device = sorted(
@@ -135,7 +152,7 @@ class Demo:
         ][0]
         distance = device_interfaces[src_address]["distance"]
         if distance is None:
-            rospy.logerr('Distance is None')
+            rospy.logerr("Distance is None")
             return
 
         if distance > self._threshold_distance_max:
@@ -154,7 +171,9 @@ class Demo:
                 )
             rospy.loginfo(f"msg.devices: {msg.devices}")
             rospy.loginfo(f"vision_to_body: {self._frame_vision_to_body}")
-            rospy.loginfo(f"vision_to_body.Inverse(): {self._frame_vision_to_body.Inverse()}")
+            rospy.loginfo(
+                f"vision_to_body.Inverse(): {self._frame_vision_to_body.Inverse()}"
+            )
             rospy.loginfo(f"target_device: {target_device}")
             rospy.loginfo(f"target_frame_robotbased: {target_frame_robotbased}")
             self.point_and_describe(
