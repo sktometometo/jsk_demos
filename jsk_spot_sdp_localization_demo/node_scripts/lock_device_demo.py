@@ -211,6 +211,7 @@ class Demo:
         waypoint_id_73B2_door_inside = "yonder-adder-cjebDHNMdwNaax8EdVqs0A=="
         waypoint_id_breeze_way = "holy-puffin-dfM.pGS6xCB4m190VUNPWw=="
         waypoint_id_73B2_door_outside = "deific-toad-MtBK4mWxiBSG4N8xF7rYDg=="
+        waypoint_id_73A4_door_outside = 'ivied-mamba-exgntSAsmmo.715WHYfo7w=='
 
         device_name_73B2_door_lock = "SDP Lock 73B2"
 
@@ -234,14 +235,16 @@ class Demo:
             rospy.logwarn("Demo started")
 
             rospy.loginfo("Moving back to 73B2")
+            self.spot_client.navigate_to(waypoint_id_73A4_door_outside, blocking=True, velocity_limit=(0.3, 0.3, 0.3))
             self.spot_client.navigate_to(waypoint_id_73B2_door_outside, blocking=True, velocity_limit=(0.3, 0.3, 0.3))
 
-            target_waypoint = waypoint_id_73B2_door_outside
+            target_waypoint = waypoint_id_73B2_door_inside
             target_devices = self.get_devices_from_direction(target_waypoint, threshold_direction_angle=math.radians(60))
             if len(target_devices) == 0:
                 rospy.logwarn("No devices found in the direction of target waypoint")
-                return
-            device_name = target_devices[0]
+                device_name = device_name_73B2_door_lock
+            else:
+                device_name = target_devices[0]
             rospy.logwarn("Target device name is : {}".format(device_name))
             self.control_key(False, device_name)
 
