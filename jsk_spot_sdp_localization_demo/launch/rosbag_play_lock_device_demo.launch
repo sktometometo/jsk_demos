@@ -26,13 +26,13 @@
         type="rviz"
         name="$(anon rviz)"
         output="screen"
-        args="-d $(find jsk_spot_sdp_localization_demo)/config/light_room_demo.rviz">
+        args="-d $(find jsk_spot_sdp_localization_demo)/config/lock_device_demo.rviz">
     </node>
 
     <node
         pkg="jsk_spot_sdp_localization_demo"
-        type="light_room_demo_visualizer.py"
-        name="light_room_demo_visualizer"
+        type="lock_device_demo_visualizer.py"
+        name="lock_device_demo_visualizer"
         output="screen">
     </node>
 </launch>
