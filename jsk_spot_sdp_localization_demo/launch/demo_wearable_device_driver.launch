@@ -1,0 +1,18 @@
+<launch>
+    <arg name="port" default="/dev/ttyACM0" />
+    <arg name="tag_id" default="12" />
+
+    <include file="$(find jsk_spot_sdp_localization_demo)/launch/rs_t265.launch" />
+
+    <include
+        file="$(find smart_device_protocol)/launch/demo.launch"
+        >
+        <arg name="port" value="$(arg port)" />
+        <arg name="tag_id" value="$(arg tag_id)" />
+    </include>
+
+    <include
+        file="$(find jsk_spot_sdp_localization_demo)/launch/libuvc_camera.launch"
+        />
+
+</launch>
