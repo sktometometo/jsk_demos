@@ -63,7 +63,7 @@ Argument (name: "{}" and type: "{}") : """.format(
         )
         response = self.api_client.completions.create(
             model="text-davinci-003",
-            prompt=prompt,
+            prompt=prompt,m
             max_tokens=100,
         )
         print(response)

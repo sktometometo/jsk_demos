@@ -10,6 +10,7 @@
 
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>catkin_virtualenv</build_depend>
+  <exec_depend>catkin_virtualenv</exec_depend>
 
   <export>
   </export>
