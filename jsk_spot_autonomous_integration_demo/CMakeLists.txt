@@ -12,7 +12,7 @@ catkin_package(
 catkin_generate_virtualenv(
     INPUT_REQUIREMENTS requirements.txt
     PYTHON_INTERPRETER python3.8
-    USE_SYSTEM_PACKAGES TRUE
+    USE_SYSTEM_PACKAGES FALSE
     CHECK_VENV FALSE
 )
 
