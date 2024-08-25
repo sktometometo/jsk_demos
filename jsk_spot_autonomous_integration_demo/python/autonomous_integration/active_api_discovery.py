@@ -3,10 +3,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 import numpy as np
 import openai
 
-from . import (
-    ARGUMENT_NAMES_AND_TYPES,
-    RESPONSE_NAMES_AND_TYPES,
-)
+from . import ARGUMENT_NAMES_AND_TYPES, RESPONSE_NAMES_AND_TYPES
 
 
 def cosine_similarity(vec1, vec2) -> float:
@@ -70,8 +67,8 @@ class ActiveAPIDiscovery:
     def select_api(
         self,
         description_intension: str,
-        description_argument_names_and_types: ARGUMENT_NAMES_AND_TYPES,
-        description_response_names_and_types: RESPONSE_NAMES_AND_TYPES,
+        argument_names_and_types_intension: ARGUMENT_NAMES_AND_TYPES,
+        response_names_and_types_intension: RESPONSE_NAMES_AND_TYPES,
         list_api: List[Tuple[str, ARGUMENT_NAMES_AND_TYPES, RESPONSE_NAMES_AND_TYPES]],
         threshold: float = 0.5,
     ) -> Optional[Tuple[str, ARGUMENT_NAMES_AND_TYPES, RESPONSE_NAMES_AND_TYPES]]:
@@ -87,8 +84,8 @@ class ActiveAPIDiscovery:
         ) in list_api:
             similarity = self._calc_semantic_similarity(
                 description_intension,
-                description_argument_names_and_types,
-                description_response_names_and_types,
+                argument_names_and_types_intension,
+                response_names_and_types_intension,
                 description_api,
                 api_arguments,
                 api_response,
