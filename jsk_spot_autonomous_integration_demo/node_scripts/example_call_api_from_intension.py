@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
 import argparse
+import time
 
+import rospy
 from autonomous_integration import ARGUMENT_NAMES_AND_TYPES, RESPONSE_NAMES_AND_TYPES
 from autonomous_integration.active_api_discovery import ActiveAPIDiscovery
 from autonomous_integration.autonomous_argument_completion import ArgumentCompletion
@@ -16,6 +18,9 @@ if __name__ == "__main__":
     parser.add_argument("--api-key", type=str, required=True)
     parser.add_argument("--example-number", type=int, default=0)
     args = parser.parse_args()
+
+    rospy.init_node("example_call_api_from_intension")
+    time.sleep(5.0)
 
     completion = ArgumentCompletion(api_key=args.api_key)
     discovery = ActiveAPIDiscovery(api_key=args.api_key)
