@@ -3,7 +3,9 @@ from enum import Enum
 from typing import Any, List, Optional, Tuple, Union
 
 from smart_device_protocol.smart_device_protocol_interface import (
-    DataFrame, UWBSDPInterface)
+    DataFrame,
+    UWBSDPInterface,
+)
 
 from . import ARGUMENT_LIST, ARGUMENT_NAMES_AND_TYPES, RESPONSE_NAMES_AND_TYPES
 from .active_api_discovery import ActiveAPIDiscovery
@@ -33,7 +35,7 @@ def call_from_intension(
     description_intension: str,
     arguments_intension: ARGUMENT_LIST,
     response_names_and_types_intension: RESPONSE_NAMES_AND_TYPES,
-) -> Optional[Tuple[Any]]:
+) -> Optional[Tuple]:
     arguments_names_and_types = []
     for arg_name, arg in arguments_intension.items():
         if isinstance(arg, str):
@@ -68,16 +70,15 @@ def call_from_intension(
         target_api[1],
         target_api[2],
     )
-    return call_api(interface,
-                    target_api_full,
-                    target_api_args)
+    return call_api(interface, target_api_full, target_api_args)
+
 
 def call_api(
     interface: UWBSDPInterface,
     api: API_TYPE,
     arguments: ARGUMENT_LIST,
     timeout: float = 5.0,
-) -> Optional[Tuple[Any]]:
+) -> Optional[Tuple]:
     if len(arguments) != len(api[5]):
         raise ValueError(
             f"Number of arguments do not match. Expected {len(api[5])}, got {len(arguments)}"
@@ -92,7 +93,7 @@ def call_api(
                 content=content,
             ),
         )
-        return None
+        return tuple()
     else:
         ans = None
 
@@ -112,7 +113,7 @@ def call_api(
                 interface.unregister_interface_callback(callback)
                 return ans
         interface.unregister_interface_callback(callback)
-        return None
+        return ans
 
 
 def get_api_list(
