@@ -4,7 +4,9 @@ from typing import Any, List, Optional, Tuple, Union
 from urllib import response
 
 from smart_device_protocol.smart_device_protocol_interface import (
-    DataFrame, UWBSDPInterface)
+    DataFrame,
+    UWBSDPInterface,
+)
 
 from . import ARGUMENT_LIST, ARGUMENT_NAMES_AND_TYPES, RESPONSE_NAMES_AND_TYPES
 
@@ -35,9 +37,7 @@ def call_api(
         raise ValueError(
             f"Number of arguments do not match. Expected {len(api[5])}, got {len(arguments)}"
         )
-    content = [  # Convert arguments to the correct format
-        arguments[arguments[arg[0]]] for arg in api[5]
-    ]
+    content = [arguments[arg[0]] for arg in api[5]]
     if api[2] == SDPType.PUB:
         interface.send(
             api[0],
