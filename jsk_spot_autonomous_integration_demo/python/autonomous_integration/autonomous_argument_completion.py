@@ -12,7 +12,7 @@ def str_to_bool(s: str) -> bool:
     elif s.lower() in ["false", "0", "f", "n", "no"]:
         return False
     else:
-        raise ValueError("Input cannot be converted to bool.")
+        raise ValueError(f"Input cannot be converted to bool.: \"{s}\"")
 
 
 def generate_prompt_example(
