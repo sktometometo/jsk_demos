@@ -24,3 +24,7 @@ catkin_install_python(
   PROGRAMS node_scripts/example_autonomous_argument_completion.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
+catkin_install_python(
+  PROGRAMS node_scripts/example_call_api_from_intension.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
