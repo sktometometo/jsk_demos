@@ -7,12 +7,12 @@ from . import ARGUMENT_LIST, ARGUMENT_NAMES_AND_TYPES, RESPONSE_NAMES_AND_TYPES
 
 
 def str_to_bool(s: str) -> bool:
-    if s.lower() in ["true", "1", "t", "y", "yes"]:
+    if s.replace(" ", "").lower() in ["true", "1", "t", "y", "yes"]:
         return True
-    elif s.lower() in ["false", "0", "f", "n", "no"]:
+    elif s.replace(" ", "").lower() in ["false", "0", "f", "n", "no"]:
         return False
     else:
-        raise ValueError(f"Input cannot be converted to bool.: \"{s}\"")
+        raise ValueError(f'Input cannot be converted to bool.: "{s}"')
 
 
 def generate_prompt_example(
