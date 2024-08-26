@@ -1,14 +1,13 @@
 import time
 from enum import Enum
 from typing import Any, List, Optional, Tuple, Union
-from urllib import response
 
 from smart_device_protocol.smart_device_protocol_interface import (
-    DataFrame,
-    UWBSDPInterface,
-)
+    DataFrame, UWBSDPInterface)
 
 from . import ARGUMENT_LIST, ARGUMENT_NAMES_AND_TYPES, RESPONSE_NAMES_AND_TYPES
+from .active_api_discovery import ActiveAPIDiscovery
+from .autonomous_argument_completion import ArgumentCompletion
 
 
 class SDPType(Enum):
@@ -26,6 +25,52 @@ API_TYPE = Tuple[
     RESPONSE_NAMES_AND_TYPES,
 ]
 
+
+def call_from_intension(
+    interface: UWBSDPInterface,
+    discovery: ActiveAPIDiscovery,
+    completion: ArgumentCompletion,
+    description_intension: str,
+    arguments_intension: ARGUMENT_LIST,
+    response_names_and_types_intension: RESPONSE_NAMES_AND_TYPES,
+) -> Optional[Tuple[Any]]:
+    arguments_names_and_types = []
+    for arg_name, arg in arguments_intension.items():
+        if isinstance(arg, str):
+            arguments_names_and_types.append((arg_name, "string"))
+        elif isinstance(arg, int):
+            arguments_names_and_types.append((arg_name, "int"))
+        elif isinstance(arg, float):
+            arguments_names_and_types.append((arg_name, "float"))
+        elif isinstance(arg, bool):
+            arguments_names_and_types.append((arg_name, "bool"))
+        else:
+            raise ValueError(f"Unknown argument type: {arg}")
+    api_full_list = get_api_list(interface)
+    target_api = discovery.select_api(
+        description_intension,
+        arguments_names_and_types,
+        response_names_and_types_intension,
+        [(api[1] + ": " + api[3], api[5], api[6]) for api in api_full_list],
+    )
+    if target_api is None:
+        return None
+    target_api_full = api_full_list[
+        [(api[1] + ": " + api[3], api[5], api[6]) for api in api_full_list].index(
+            target_api
+        )
+    ]
+    target_api_args = completion.generate_arguments_for_api(
+        description_intension,
+        arguments_intension,
+        response_names_and_types_intension,
+        target_api[0],
+        target_api[1],
+        target_api[2],
+    )
+    return call_api(interface,
+                    target_api_full,
+                    target_api_args)
 
 def call_api(
     interface: UWBSDPInterface,
