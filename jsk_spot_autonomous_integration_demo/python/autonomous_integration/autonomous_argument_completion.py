@@ -13,34 +13,36 @@ def generate_prompt_example(
     arguments_intension: ARGUMENT_LIST,
     response_intension: RESPONSE_NAMES_AND_TYPES,
     description_api: str,
-    rest_args_api: ARGUMENT_LIST,
+    arguments_api: ARGUMENT_NAMES_AND_TYPES,
     response_api: RESPONSE_NAMES_AND_TYPES,
 ) -> str:
     """
     Generate a prompt example for the target API based on the given API description.
     """
-    prompt = """Description of the intension: "{}"
-        
+    prompt = """=== Intension part ===
+Description of the intension: "{}"
+
 Input arguments for the intension:
 {}
 
 Response names and types of the intension:
 {}
-        
-Description of the API: "{}" 
 
-Other input arguments for the API:
+=== API part ===
+Description of the API: "{}"
+
+Input argument names and types for the API:
 {}
 
 Response names and types of the API:
 {}
 
-Argument for API (name: "{}" and type: "{}") : """.format(
+Argument for API (name: "{}" and type: "{}") :""".format(
         description_intension,
         arguments_intension,
         response_intension,
         description_api,
-        rest_args_api,
+        arguments_api,
         response_api,
         target_api_argument_name,
         target_api_argument_type,
@@ -59,8 +61,8 @@ class ArgumentCompletion:
         target_api_argument_name: str,
         target_api_argument_type: str,
         description_api: str,
+        arguments_api: ARGUMENT_NAMES_AND_TYPES,
         response_api: RESPONSE_NAMES_AND_TYPES,
-        other_api_arguments: ARGUMENT_LIST,
         description_intension: str,
         arguments_intension: ARGUMENT_LIST,
         response_intension: RESPONSE_NAMES_AND_TYPES,
@@ -68,7 +70,7 @@ class ArgumentCompletion:
         """
         Generate an argument for the target API based on the given API description with openai API
         """
-        prompt = "Generate an argument for the target API based on the given API description.\n"
+        prompt = "Generate arguments for the target API based on the given intension by following examples.\n"
         prompt += "\n"
         prompt += "### Example\n"
         prompt += (
@@ -79,7 +81,7 @@ class ArgumentCompletion:
                 {"Temperature": 27.0, "Mode": "Cooling"},
                 [],
                 "Control the cooler",
-                {},
+                [],
                 [],
             )
             + "27\n"
@@ -94,7 +96,22 @@ class ArgumentCompletion:
                 {},
                 [],
                 "Control the lock at the box in ABCD room",
+                [],
+                [],
+            )
+            + "unlock\n"
+        )
+        prompt += "\n"
+        prompt += "### Example\n"
+        prompt += (
+            generate_prompt_example(
+                "arg0",
+                "string",
+                "Open door lock",
                 {},
+                [],
+                "SDP Lock 73B2: Key control",
+                [],
                 [],
             )
             + "unlock\n"
@@ -108,8 +125,8 @@ class ArgumentCompletion:
             arguments_intension,
             response_intension,
             description_api,
-            other_api_arguments,
-            [],
+            arguments_api,
+            response_api,
         )
         response = self.api_client.completions.create(
             model="gpt-3.5-turbo-instruct",
@@ -117,7 +134,8 @@ class ArgumentCompletion:
             max_tokens=100,
             stop=["\n"],
         )
-        print(response)
+        print(f"prompt: {prompt}")
+        print(f"response: {response}")
         return response.choices[0].text
 
     def generate_arguments_for_api(
@@ -141,8 +159,8 @@ class ArgumentCompletion:
                 target_api_argument_name,
                 target_api_argument_type,
                 description_api,
+                arguments_api,
                 response_api,
-                arguments,
                 description_intension,
                 arguments_intension,
                 response_intension,
