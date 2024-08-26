@@ -6,6 +6,15 @@ import yaml
 from . import ARGUMENT_LIST, ARGUMENT_NAMES_AND_TYPES, RESPONSE_NAMES_AND_TYPES
 
 
+def str_to_bool(s: str) -> bool:
+    if s.lower() in ["true", "1", "t", "y", "yes"]:
+        return True
+    elif s.lower() in ["false", "0", "f", "n", "no"]:
+        return False
+    else:
+        raise ValueError("Input cannot be converted to bool.")
+
+
 def generate_prompt_example(
     target_api_argument_name: str,
     target_api_argument_type: str,
@@ -134,9 +143,17 @@ class ArgumentCompletion:
             max_tokens=100,
             stop=["\n"],
         )
+        response_text = response.choices[0].text
         print(f"prompt: {prompt}")
         print(f"response: {response}")
-        return response.choices[0].text
+        if target_api_argument_type == "int":
+            return int(response_text)
+        elif target_api_argument_type == "float":
+            return float(response_text)
+        elif target_api_argument_type == "bool":
+            return str_to_bool(response_text)
+        elif target_api_argument_type == "string":
+            return response_text
 
     def generate_arguments_for_api(
         self,
