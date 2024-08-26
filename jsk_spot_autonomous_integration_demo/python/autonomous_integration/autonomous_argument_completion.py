@@ -93,7 +93,7 @@ class ArgumentCompletion:
                 "Open the lock of the box",
                 {},
                 [],
-                "Control the lock of the door",
+                "Control the lock at the box in ABCD room",
                 {},
                 [],
             )
