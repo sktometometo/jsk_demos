@@ -20,11 +20,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     rospy.init_node("example_call_api_from_intension")
-    time.sleep(5.0)
 
     completion = ArgumentCompletion(api_key=args.api_key)
     discovery = ActiveAPIDiscovery(api_key=args.api_key)
     interface = UWBSDPInterface()
+    time.sleep(10.0)
 
     if args.example_number == 0:
         example_intension_description = "Turn on the light"
