@@ -84,6 +84,22 @@ class ArgumentCompletion:
             )
             + "27\n"
         )
+        prompt += "\n"
+        prompt += "### Example\n"
+        prompt += (
+            generate_prompt_example(
+                "mode",
+                "string",
+                "Open the lock of the box",
+                {},
+                [],
+                "Control the lock of the door",
+                {},
+                [],
+            )
+            + "unlock\n"
+        )
+        prompt += "\n"
         prompt += "### Actual\n"
         prompt += generate_prompt_example(
             target_api_argument_name,
