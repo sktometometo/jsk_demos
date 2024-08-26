@@ -2,6 +2,7 @@ import time
 from enum import Enum
 from typing import Any, List, Optional, Tuple, Union
 
+import rospy
 from smart_device_protocol.smart_device_protocol_interface import (
     DataFrame,
     UWBSDPInterface,
@@ -49,19 +50,17 @@ def call_from_intension(
         else:
             raise ValueError(f"Unknown argument type: {arg}")
     api_full_list = get_api_list(interface)
+    api_short_list = [(api[1] + ": " + api[3], api[5], api[6]) for api in api_full_list]
     target_api = discovery.select_api(
         description_intension,
         arguments_names_and_types,
         response_names_and_types_intension,
-        [(api[1] + ": " + api[3], api[5], api[6]) for api in api_full_list],
+        api_short_list,
     )
     if target_api is None:
+        rospy.logerr("No suitable API found")
         return None
-    target_api_full = api_full_list[
-        [(api[1] + ": " + api[3], api[5], api[6]) for api in api_full_list].index(
-            target_api
-        )
-    ]
+    target_api_full = api_full_list[api_short_list.index(target_api)]
     target_api_args = completion.generate_arguments_for_api(
         description_intension,
         arguments_intension,
@@ -70,6 +69,9 @@ def call_from_intension(
         target_api[1],
         target_api[2],
     )
+    rospy.loginfo(f"target_api: {target_api}")
+    rospy.loginfo(f"target_api_full: {target_api_full}")
+    rospy.loginfo(f"target_api_args: {target_api_args}")
     return call_api(interface, target_api_full, target_api_args)
 
 
