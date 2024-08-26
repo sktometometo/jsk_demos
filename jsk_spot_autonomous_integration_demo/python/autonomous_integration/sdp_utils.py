@@ -59,6 +59,13 @@ def call_from_intension(
     )
     if target_api is None:
         rospy.logerr("No suitable API found")
+        rospy.logerr(f"description_intension: {description_intension}")
+        rospy.logerr(f"arguments_intension: {arguments_intension}")
+        rospy.logerr(f"arguments_names_and_types: {arguments_names_and_types}")
+        rospy.logerr(
+            f"response_names_and_types_intension: {response_names_and_types_intension}"
+        )
+        rospy.logerr(f"api_short_list: {api_short_list}")
         return None
     target_api_full = api_full_list[api_short_list.index(target_api)]
     target_api_args = completion.generate_arguments_for_api(
