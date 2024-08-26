@@ -1,6 +1,5 @@
 from typing import Any, Dict, List, Optional, Tuple
 
-from click import argument
 import openai
 import yaml
 
