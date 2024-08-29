@@ -8,9 +8,9 @@ import rospy
 import tf2_geometry_msgs
 import tf2_ros
 from geometry_msgs.msg import Point
+from jsk_recognition_msgs.msg import BoundingBoxArray
 from nav_msgs.msg import Odometry
-from smart_device_protocol.smart_device_protocol_interface import \
-    UWBSDPInterface
+from smart_device_protocol.smart_device_protocol_interface import UWBSDPInterface
 from sound_play.libsoundplay import SoundClient
 from spot_ros_client.libspotros import SpotRosClient
 from std_msgs.msg import Header
@@ -55,6 +55,14 @@ class SpotDemo:
             self._cb_odom,
         )
 
+        self._odom_to_people: List[PyKDL.Frame] = []
+        self._lock_people = threading.Lock()
+        self._sub_people_bbox = rospy.Subscriber(
+            "/spot_recognition/bbox_array",
+            BoundingBoxArray,
+            self._cb_people_bbox,
+        )
+
         self._sub_uwb_device = rospy.Subscriber(
             "/sdpuwb_devices",
             SDPUWBDeviceArray,
@@ -78,6 +86,10 @@ class SpotDemo:
                 if self._frame_id_odom is not None:
                     return copy.deepcopy(self._frame_id_odom)
             rate.sleep()
+
+    @property
+    def odom_to_people(self) -> List[PyKDL.Frame]:
+        return copy.deepcopy(self._odom_to_people)
 
     def _cb_odom(self, msg: Odometry):
         with self._lock_frame_odom_to_base:
@@ -113,6 +125,25 @@ class SpotDemo:
             tf2_ros.ExtrapolationException,
         ):
             return None
+
+    def _cb_people_bbox(self, msg: BoundingBoxArray):
+        with self._lock_people:
+            self._odom_to_people = [
+                PyKDL.Frame(
+                    PyKDL.Rotation.Quaternion(
+                        msg_box.pose.orientation.x,
+                        msg_box.pose.orientation.y,
+                        msg_box.pose.orientation.z,
+                        msg_box.pose.orientation.w,
+                    ),
+                    PyKDL.Vector(
+                        msg_box.pose.position.x,
+                        msg_box.pose.position.y,
+                        msg_box.pose.position.z,
+                    ),
+                )
+                for msg_box in msg.boxes
+            ]
 
     def _callback_uwb_device(self, msg: SDPUWBDeviceArray):
 

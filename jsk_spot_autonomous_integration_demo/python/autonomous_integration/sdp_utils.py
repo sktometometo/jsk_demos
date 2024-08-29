@@ -29,16 +29,9 @@ API_TYPE = Tuple[
 ]
 
 
-def call_from_intension(
-    interface: UWBSDPInterface,
-    discovery: ActiveAPIDiscovery,
-    completion: ArgumentCompletion,
-    description_intension: str,
-    arguments_intension: ARGUMENT_LIST,
-    response_names_and_types_intension: RESPONSE_NAMES_AND_TYPES,
-) -> Optional[Tuple]:
+def convert_args_to_argnames_and_types(args: ARGUMENT_LIST) -> ARGUMENT_NAMES_AND_TYPES:
     arguments_names_and_types = []
-    for arg_name, arg in arguments_intension.items():
+    for arg_name, arg in args.items():
         if isinstance(arg, str):
             arguments_names_and_types.append((arg_name, "string"))
         elif isinstance(arg, int):
@@ -49,6 +42,18 @@ def call_from_intension(
             arguments_names_and_types.append((arg_name, "bool"))
         else:
             raise ValueError(f"Unknown argument type: {arg}")
+    return arguments_names_and_types
+
+
+def call_from_intension(
+    interface: UWBSDPInterface,
+    discovery: ActiveAPIDiscovery,
+    completion: ArgumentCompletion,
+    description_intension: str,
+    arguments_intension: ARGUMENT_LIST,
+    response_names_and_types_intension: RESPONSE_NAMES_AND_TYPES,
+) -> Optional[Tuple]:
+    arguments_names_and_types = convert_args_to_argnames_and_types(arguments_intension)
     api_full_list = get_api_list(interface)
     api_short_list = [(api[1] + ": " + api[3], api[5], api[6]) for api in api_full_list]
     target_api = discovery.select_api(
