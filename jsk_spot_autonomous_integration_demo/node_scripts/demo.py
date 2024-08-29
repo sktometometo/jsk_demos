@@ -3,7 +3,6 @@
 import argparse
 from typing import Callable, Dict, List, Optional
 
-import PyKDL
 import rospy
 from autonomous_integration.active_api_discovery import ActiveAPIDiscovery
 from autonomous_integration.autonomous_argument_completion import ArgumentCompletion
@@ -18,7 +17,7 @@ class Demo(SpotDemo):
         self.discovery = ActiveAPIDiscovery(api_key)
         self.completion = ArgumentCompletion(api_key)
 
-    def get_people(self) -> List[PyKDL.Frame]:
+    def get_people(self) -> List:
         return self._odom_to_people
 
     def run_demo(self):
@@ -85,7 +84,7 @@ class Demo(SpotDemo):
         )
 
 
-def main():
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--api-key", type=str, required=True)
     args = parser.parse_args()
