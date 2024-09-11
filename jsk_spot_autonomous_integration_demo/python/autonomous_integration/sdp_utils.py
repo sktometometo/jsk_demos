@@ -19,13 +19,13 @@ class SDPType(Enum):
 
 
 API_TYPE = Tuple[
-    Tuple[int, int, int, int, int, int],
-    str,
-    SDPType,
-    str,
-    str,
-    ARGUMENT_NAMES_AND_TYPES,
-    RESPONSE_NAMES_AND_TYPES,
+    Tuple[int, int, int, int, int, int],  # Address
+    str,  # Device name
+    SDPType,  # Type
+    str,  # Description
+    str,  # Serialization format
+    ARGUMENT_NAMES_AND_TYPES,  # Argument names and types
+    RESPONSE_NAMES_AND_TYPES,  # Response names and types
 ]
 
 
