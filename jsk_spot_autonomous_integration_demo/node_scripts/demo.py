@@ -47,10 +47,10 @@ def convert_api_type_list_to_string(api_type_list: List[API_TYPE]) -> str:
 
 class Demo(SpotDemo):
 
-    def __init__(self, api_key: str):
+    def __init__(self):
         super().__init__()
-        self.discovery = ActiveAPIDiscovery(api_key)
-        self.completion = ArgumentCompletion(api_key)
+        self.discovery = ActiveAPIDiscovery()
+        self.completion = ArgumentCompletion()
 
         self.pub_debug_string_api_type_list = rospy.Publisher(
             "/debug_string/api_type_list", String, queue_size=10
@@ -73,17 +73,20 @@ class Demo(SpotDemo):
         dummy: bool = False,
     ):
 
-        self.spot_client.upload_graph(walk_path)
-        self.spot_client.set_localization_fiducial()
+        if not dummy:
+            self.spot_client.upload_graph(walk_path)
+            self.spot_client.set_localization_fiducial()
 
         # Enter 73B2
-        self.spot_client.navigate_to(waypoint_id_door_inside, blocking=True)
+        if not dummy:
+            self.spot_client.navigate_to(waypoint_id_door_inside, blocking=True)
 
         #
         # Turn on light
         #
         intension = "Turn on the light in the room."
         api_full_list = get_api_list(self.sdp_interface)
+        rospy.loginfo(f"api_full_list: {api_full_list}")
         self.pub_debug_string_api_type_list.publish(
             String(data=convert_api_type_list_to_string(api_full_list))
         )
@@ -233,10 +236,9 @@ class Demo(SpotDemo):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--api-key", type=str, required=True)
     parser.add_argument("--dummy", action="store_true")
     args = parser.parse_args()
 
     rospy.init_node("demo")
-    demo = Demo(args.api_key)
+    demo = Demo()
     demo.run_demo(dummy=args.dummy)
