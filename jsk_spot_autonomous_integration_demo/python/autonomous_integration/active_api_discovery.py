@@ -1,7 +1,8 @@
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
-import openai
+import rospy
+from openai_ros.srv import Embedding, EmbeddingRequest
 
 from . import ARGUMENT_NAMES_AND_TYPES, RESPONSE_NAMES_AND_TYPES
 
@@ -12,17 +13,14 @@ def cosine_similarity(vec1, vec2) -> float:
 
 class ActiveAPIDiscovery:
 
-    def __init__(self, api_key: str):
-        openai.api_key = api_key
-        self.api_client = openai.OpenAI(api_key=api_key)
-        print(f"openai.api_key: {openai.api_key}")
+    def __init__(self, service_name: str = "/openai_ros/get_embedding"):
+        self.get_embedding = rospy.ServiceProxy(service_name, Embedding)
 
     def _get_embedding(
         self,
         description: str,
         arguments: ARGUMENT_NAMES_AND_TYPES,
         responses: RESPONSE_NAMES_AND_TYPES,
-        model: str,
     ) -> np.ndarray:
         """
         Get the embedding of the given text.
@@ -30,11 +28,9 @@ class ActiveAPIDiscovery:
         text = "API description: " + description + "\n"
         text += "Arguments: " + str(arguments) + "\n"
         text += "Responses: " + str(responses)
-        res = self.api_client.embeddings.create(
-            input=[text],
-            model=model,
-        )
-        embeddings = res.data[0].embedding
+
+        res = self.get_embedding(EmbeddingRequest(prompt=text))
+        embeddings = res.embedding
         return np.array(embeddings)
 
     def _calc_semantic_similarity(
@@ -54,13 +50,11 @@ class ActiveAPIDiscovery:
                 description_api,
                 arguments_api,
                 response_api,
-                "text-embedding-3-small",
             ),
             self._get_embedding(
                 description_intension,
                 arguments_intension,
                 response_intension,
-                "text-embedding-3-small",
             ),
         )
 

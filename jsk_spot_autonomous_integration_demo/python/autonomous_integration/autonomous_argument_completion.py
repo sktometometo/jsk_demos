@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Optional, Tuple
 
-import openai
-import yaml
+import rospy
+from openai_ros.srv import Completion, CompletionRequest
 
 from . import ARGUMENT_LIST, ARGUMENT_NAMES_AND_TYPES, RESPONSE_NAMES_AND_TYPES
 
@@ -61,9 +61,8 @@ Argument for API (name: "{}" and type: "{}") :""".format(
 
 class ArgumentCompletion:
 
-    def __init__(self, api_key: str):
-        openai.api_key = api_key
-        self.api_client = openai.OpenAI(api_key=api_key)
+    def __init__(self, service_name: str = "/openai_ros/get_response"):
+        self.get_response = rospy.ServiceProxy(service_name, Completion)
 
     def _generate_argument_for_api(
         self,
@@ -137,15 +136,10 @@ class ArgumentCompletion:
             arguments_api,
             response_api,
         )
-        response = self.api_client.completions.create(
-            model="gpt-3.5-turbo-instruct",
-            prompt=prompt,
-            max_tokens=100,
-            stop=["\n"],
-        )
-        response_text = response.choices[0].text
+        res = self.get_response(CompletionRequest(prompt=prompt, stop=["\n"]))
+        response_text = res.text
         print(f"prompt: {prompt}")
-        print(f"response: {response}")
+        print(f"response: {res}")
         if target_api_argument_type == "int":
             return int(response_text)
         elif target_api_argument_type == "float":
