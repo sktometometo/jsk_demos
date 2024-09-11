@@ -1,0 +1,22 @@
+<launch>
+    <arg name="api_key" />
+    <group ns="openai">
+        <node pkg="openai_ros" type="openai_node.py" name="openai_embedding" output="screen">
+            <rosparam subst_value="true">
+                key: $(arg api_key)
+                max_tokens: 100
+                model: "text-embedding-3-small"
+                api_type: "embedding"
+            </rosparam>
+        </node>
+
+        <node pkg="openai_ros" type="openai_node.py" name="openai_completion" output="screen">
+            <rosparam subst_value="true">
+                key: $(arg api_key)
+                max_tokens: 100
+                model: "gpt-3.5-turbo-instruct"
+                api_type: "completion"
+            </rosparam>
+        </node>
+    </group>
+</launch>
