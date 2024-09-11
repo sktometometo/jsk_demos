@@ -13,5 +13,6 @@
   <exec_depend>catkin_virtualenv</exec_depend>
 
   <export>
+     <pip_requirements>requirements.txt</pip_requirements>
   </export>
 </package>

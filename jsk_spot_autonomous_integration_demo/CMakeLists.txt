@@ -3,17 +3,17 @@ project(jsk_spot_autonomous_integration_demo)
 
 find_package(catkin REQUIRED COMPONENTS catkin_virtualenv)
 
+catkin_generate_virtualenv(
+    PYTHON_INTERPRETER python3.8
+    CHECK_VENV FALSE
+    USE_SYSTEM_PACKAGES FALSE
+    ISOLATE_REQUIREMENTS TRUE
+)
+
 catkin_python_setup()
 
 catkin_package(
     CATKIN_DEPENDS catkin_virtualenv
-)
-
-catkin_generate_virtualenv(
-    INPUT_REQUIREMENTS requirements.txt
-    PYTHON_INTERPRETER python3.8
-    USE_SYSTEM_PACKAGES FALSE
-    CHECK_VENV FALSE
 )
 
 catkin_install_python(
@@ -26,5 +26,9 @@ catkin_install_python(
 )
 catkin_install_python(
   PROGRAMS node_scripts/example_call_api_from_intension.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+catkin_install_python(
+  PROGRAMS node_scripts/demo.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
