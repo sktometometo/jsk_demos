@@ -12,16 +12,14 @@ from autonomous_integration.sdp_utils import *
 from spot_demo import SpotDemo
 from std_msgs.msg import String
 
-default_7f_walk_path = "/home/spot/default_7f_with_door.walk"
-target_id_73b1 = "chief-iguana-rCeWvuq9uAAhdq7D+trwMw=="
-target_id_73b2 = "yonder-adder-cjebDHNMdwNaax8EdVqs0A=="
-target_id_73a4 = "soured-cocoon-KRBT4IqkmBwCauxpgDhFEQ=="
-start_id = "holy-puffin-dfM.pGS6xCB4m190VUNPWw=="
-goal_id = "unsold-shrew-.KEEBLDLzp+zG8MLyAWU.Q=="
-waypoint_id_73B2_door_inside = "yonder-adder-cjebDHNMdwNaax8EdVqs0A=="
-waypoint_id_breeze_way = "holy-puffin-dfM.pGS6xCB4m190VUNPWw=="
-waypoint_id_73B2_door_outside = "deific-toad-MtBK4mWxiBSG4N8xF7rYDg=="
-waypoint_id_73A4_door_outside = "ivied-mamba-exgntSAsmmo.715WHYfo7w=="
+DEFAULT_WALK_PATH = "/home/spot/default_7f_with_door.walk"
+WAYPOINT_BREEZEWAY = "holy-puffin-dfM.pGS6xCB4m190VUNPWw=="
+WAYPOINT_73B1_INSIDE = "chief-iguana-rCeWvuq9uAAhdq7D+trwMw=="
+WAYPOINT_73B1_OUTSIDE = "teary-buck-AyEZ13ivnObxX2Rn2dgLIg=="
+WAYPOINT_73B2_INSIDE = "yonder-adder-cjebDHNMdwNaax8EdVqs0A=="
+WAYPOINT_73B2_OUTSIDE = "deific-toad-MtBK4mWxiBSG4N8xF7rYDg=="
+WAYPOINT_73A4_INSIDE = "ivied-mamba-exgntSAsmmo.715WHYfo7w=="
+WAYPOINT_73A4_OUTSIDE = "soured-cocoon-KRBT4IqkmBwCauxpgDhFEQ=="
 
 
 def convert_names_and_types_to_string(names_and_types: List[Tuple[str, str]]) -> str:
@@ -64,7 +62,7 @@ class Demo(SpotDemo):
 
     def init_demo(
         self,
-        walk_path: str = default_7f_walk_path,
+        walk_path: str = DEFAULT_WALK_PATH,
         dummy: bool = False,
     ):
         if not dummy:
@@ -73,9 +71,8 @@ class Demo(SpotDemo):
 
     def run_demo(
         self,
-        walk_path: str = default_7f_walk_path,
-        waypoint_id_door_inside: str = waypoint_id_73B2_door_inside,
-        waypoint_id_door_outside: str = waypoint_id_73B2_door_outside,
+        waypoint_id_door_inside: str = WAYPOINT_73B2_INSIDE,
+        waypoint_id_door_outside: str = WAYPOINT_73B2_OUTSIDE,
         dummy: bool = False,
     ):
 
@@ -286,6 +283,7 @@ class Demo(SpotDemo):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--target", choices=["73A4", "73B1", "73B2"], default="73B2")
     parser.add_argument("--dummy", action="store_true")
     parser.add_argument("--init", action="store_true")
     args = parser.parse_args()
@@ -296,4 +294,23 @@ if __name__ == "__main__":
     if args.init:
         demo.init_demo(dummy=args.dummy)
     input("Press Enter to start the demo")
-    demo.run_demo(dummy=args.dummy)
+    if args.target == "73A4":
+        demo.run_demo(
+            waypoint_id_door_inside=WAYPOINT_73A4_INSIDE,
+            waypoint_id_door_outside=WAYPOINT_73A4_OUTSIDE,
+            dummy=args.dummy,
+        )
+    elif args.target == "73B1":
+        demo.run_demo(
+            waypoint_id_door_inside=WAYPOINT_73B1_INSIDE,
+            waypoint_id_door_outside=WAYPOINT_73B1_OUTSIDE,
+            dummy=args.dummy,
+        )
+    elif args.target == "73B2":
+        demo.run_demo(
+            waypoint_id_door_inside=WAYPOINT_73B2_INSIDE,
+            waypoint_id_door_outside=WAYPOINT_73B2_OUTSIDE,
+            dummy=args.dummy,
+        )
+    else:
+        raise ValueError(f"Invalid target: {args.target}")

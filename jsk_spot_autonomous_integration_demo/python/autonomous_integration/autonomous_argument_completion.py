@@ -139,8 +139,6 @@ class ArgumentCompletion:
         )
         res = self.get_response(CompletionRequest(prompt=prompt, stop=["\n"]))
         response_text = res.text
-        # print(f"prompt: {prompt}")
-        # print(f"response: {res}")
         if target_api_argument_type == "int":
             return int(response_text)
         elif target_api_argument_type == "float":
