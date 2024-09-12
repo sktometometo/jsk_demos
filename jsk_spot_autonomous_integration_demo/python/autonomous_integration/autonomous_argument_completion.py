@@ -61,7 +61,8 @@ Argument for API (name: "{}" and type: "{}") :""".format(
 
 class ArgumentCompletion:
 
-    def __init__(self, service_name: str = "/openai_ros/get_response"):
+    def __init__(self, service_name: str = "/openai/get_response"):
+        rospy.wait_for_service(service_name, timeout=5.0)
         self.get_response = rospy.ServiceProxy(service_name, Completion)
 
     def _generate_argument_for_api(
@@ -138,8 +139,8 @@ class ArgumentCompletion:
         )
         res = self.get_response(CompletionRequest(prompt=prompt, stop=["\n"]))
         response_text = res.text
-        print(f"prompt: {prompt}")
-        print(f"response: {res}")
+        # print(f"prompt: {prompt}")
+        # print(f"response: {res}")
         if target_api_argument_type == "int":
             return int(response_text)
         elif target_api_argument_type == "float":

@@ -13,7 +13,8 @@ def cosine_similarity(vec1, vec2) -> float:
 
 class ActiveAPIDiscovery:
 
-    def __init__(self, service_name: str = "/openai_ros/get_embedding"):
+    def __init__(self, service_name: str = "/openai/get_embedding"):
+        rospy.wait_for_service(service_name, timeout=5.)
         self.get_embedding = rospy.ServiceProxy(service_name, Embedding)
 
     def _get_embedding(

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import time
 import argparse
 from typing import Callable, Dict, List, Optional, Tuple
 
@@ -52,18 +53,23 @@ class Demo(SpotDemo):
         self.discovery = ActiveAPIDiscovery()
         self.completion = ArgumentCompletion()
 
-        self.pub_debug_string_api_type_list = rospy.Publisher(
-            "/debug_string/api_type_list", String, queue_size=10
-        )
-        self.pub_debug_string_target_api = rospy.Publisher(
-            "/debug_string/target_api", String, queue_size=10
-        )
-        self.pub_debug_string_api_call = rospy.Publisher(
-            "/debug_string/api_call", String, queue_size=10
+        self.pub_debug_string = rospy.Publisher(
+            "/debug_string",
+            String,
+            queue_size=1,
         )
 
     def get_people(self) -> List:
         return self._odom_to_people
+
+    def init_demo(
+        self,
+        walk_path: str = default_7f_walk_path,
+        dummy: bool = False,
+    ):
+        if not dummy:
+            self.spot_client.upload_graph(walk_path)
+            self.spot_client.set_localization_fiducial()
 
     def run_demo(
         self,
@@ -72,10 +78,6 @@ class Demo(SpotDemo):
         waypoint_id_door_outside: str = waypoint_id_73B2_door_outside,
         dummy: bool = False,
     ):
-
-        if not dummy:
-            self.spot_client.upload_graph(walk_path)
-            self.spot_client.set_localization_fiducial()
 
         # Enter 73B2
         if not dummy:
@@ -87,8 +89,15 @@ class Demo(SpotDemo):
         intension = "Turn on the light in the room."
         api_full_list = get_api_list(self.sdp_interface)
         rospy.loginfo(f"api_full_list: {api_full_list}")
-        self.pub_debug_string_api_type_list.publish(
-            String(data=convert_api_type_list_to_string(api_full_list))
+        self.pub_debug_string.publish(
+            String(
+                data=yaml.dump(
+                    {
+                        "string_type": "api_full_list",
+                        "data": convert_api_type_list_to_string(api_full_list),
+                    }
+                )
+            )
         )
         api_short_list = [
             (api[1] + ": " + api[3], api[5], api[6]) for api in api_full_list
@@ -96,14 +105,18 @@ class Demo(SpotDemo):
 
         target_api_short = self.discovery.select_api(intension, {}, [], api_short_list)
         target_api_full = api_full_list[api_short_list.index(target_api_short)]
-        self.pub_debug_string_target_api.publish(
+        rospy.loginfo(f"target_api: {target_api_short}")
+        self.pub_debug_string.publish(
             String(
                 data=yaml.dump(
                     {
-                        "api": convert_api_type_to_string(target_api_full),
-                        "intension": intension,
-                        "arguments": {},
-                        "response_names_and_types": [],
+                        "string_type": "target_api_selection",
+                        "data": {
+                            "api": convert_api_type_to_string(target_api_full),
+                            "intension": intension,
+                            "arguments": {},
+                            "response_names_and_types": [],
+                        },
                     }
                 )
             )
@@ -116,12 +129,16 @@ class Demo(SpotDemo):
             target_api_short[1],
             target_api_short[2],
         )
-        self.pub_debug_string_api_call.publish(
+        rospy.loginfo(f"api_calling: api: {target_api_short}, args: {target_api_args}")
+        self.pub_debug_string.publish(
             String(
                 data=yaml.dump(
                     {
-                        "api": convert_api_type_to_string(target_api_full),
-                        "arguments": target_api_args,
+                        "string_type": "api_call",
+                        "data": {
+                            "api": convert_api_type_to_string(target_api_full),
+                            "arguments": target_api_args,
+                        },
                     }
                 )
             )
@@ -138,8 +155,16 @@ class Demo(SpotDemo):
             #
             intension = "Turn off the light in the room."
             api_full_list = get_api_list(self.sdp_interface)
-            self.pub_debug_string_api_type_list.publish(
-                String(data=convert_api_type_list_to_string(api_full_list))
+            rospy.loginfo(f"api_full_list: {api_full_list}")
+            self.pub_debug_string.publish(
+                String(
+                    data=yaml.dump(
+                        {
+                            "string_type": "api_full_list",
+                            "data": convert_api_type_list_to_string(api_full_list),
+                        }
+                    )
+                )
             )
             api_short_list = [
                 (api[1] + ": " + api[3], api[5], api[6]) for api in api_full_list
@@ -149,14 +174,18 @@ class Demo(SpotDemo):
                 intension, {}, [], api_short_list
             )
             target_api_full = api_full_list[api_short_list.index(target_api_short)]
-            self.pub_debug_string_target_api.publish(
+            rospy.loginfo(f"target_api: {target_api_short}")
+            self.pub_debug_string.publish(
                 String(
                     data=yaml.dump(
                         {
-                            "api": convert_api_type_to_string(target_api_full),
-                            "intension": intension,
-                            "arguments": {},
-                            "response_names_and_types": [],
+                            "string_type": "target_api_selection",
+                            "data": {
+                                "api": convert_api_type_to_string(target_api_full),
+                                "intension": intension,
+                                "arguments": {},
+                                "response_names_and_types": [],
+                            },
                         }
                     )
                 )
@@ -169,12 +198,18 @@ class Demo(SpotDemo):
                 target_api_short[1],
                 target_api_short[2],
             )
-            self.pub_debug_string_api_call.publish(
+            rospy.loginfo(
+                f"api_calling: api: {target_api_short}, args: {target_api_args}"
+            )
+            self.pub_debug_string.publish(
                 String(
                     data=yaml.dump(
                         {
-                            "api": convert_api_type_to_string(target_api_full),
-                            "arguments": target_api_args,
+                            "string_type": "api_call",
+                            "data": {
+                                "api": convert_api_type_to_string(target_api_full),
+                                "arguments": target_api_args,
+                            },
                         }
                     )
                 )
@@ -191,23 +226,34 @@ class Demo(SpotDemo):
         #
         intension = "Lock the key of the room."
         api_full_list = get_api_list(self.sdp_interface)
-        self.pub_debug_string_api_type_list.publish(
-            String(data=convert_api_type_list_to_string(api_full_list))
+        rospy.loginfo(f"api_full_list: {api_full_list}")
+        self.pub_debug_string.publish(
+            String(
+                data=yaml.dump(
+                    {
+                        "string_type": "api_full_list",
+                        "data": convert_api_type_list_to_string(api_full_list),
+                    }
+                )
+            )
         )
         api_short_list = [
             (api[1] + ": " + api[3], api[5], api[6]) for api in api_full_list
         ]
-
         target_api_short = self.discovery.select_api(intension, {}, [], api_short_list)
         target_api_full = api_full_list[api_short_list.index(target_api_short)]
-        self.pub_debug_string_target_api.publish(
+        rospy.loginfo(f"target_api: {target_api_short}")
+        self.pub_debug_string.publish(
             String(
                 data=yaml.dump(
                     {
-                        "api": convert_api_type_to_string(target_api_full),
-                        "intension": intension,
-                        "arguments": {},
-                        "response_names_and_types": [],
+                        "string_type": "target_api_selection",
+                        "data": {
+                            "api": convert_api_type_to_string(target_api_full),
+                            "intension": intension,
+                            "arguments": {},
+                            "response_names_and_types": [],
+                        },
                     }
                 )
             )
@@ -220,12 +266,16 @@ class Demo(SpotDemo):
             target_api_short[1],
             target_api_short[2],
         )
-        self.pub_debug_string_api_call.publish(
+        rospy.loginfo(f"api_calling: api: {target_api_short}, args: {target_api_args}")
+        self.pub_debug_string.publish(
             String(
                 data=yaml.dump(
                     {
-                        "api": convert_api_type_to_string(target_api_full),
-                        "arguments": target_api_args,
+                        "string_type": "api_call",
+                        "data": {
+                            "api": convert_api_type_to_string(target_api_full),
+                            "arguments": target_api_args,
+                        },
                     }
                 )
             )
@@ -237,8 +287,13 @@ class Demo(SpotDemo):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dummy", action="store_true")
+    parser.add_argument("--init", action="store_true")
     args = parser.parse_args()
 
     rospy.init_node("demo")
     demo = Demo()
+    time.sleep(5.0)
+    if args.init:
+        demo.init_demo(dummy=args.dummy)
+    input("Press Enter to start the demo")
     demo.run_demo(dummy=args.dummy)
