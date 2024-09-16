@@ -21,8 +21,8 @@ WAYPOINT_73B1_INSIDE = "chief-iguana-rCeWvuq9uAAhdq7D+trwMw=="
 WAYPOINT_73B1_OUTSIDE = "teary-buck-AyEZ13ivnObxX2Rn2dgLIg=="
 WAYPOINT_73B2_INSIDE = "yonder-adder-cjebDHNMdwNaax8EdVqs0A=="
 WAYPOINT_73B2_OUTSIDE = "deific-toad-MtBK4mWxiBSG4N8xF7rYDg=="
-WAYPOINT_73A4_INSIDE = "ivied-mamba-exgntSAsmmo.715WHYfo7w=="
-WAYPOINT_73A4_OUTSIDE = "soured-cocoon-KRBT4IqkmBwCauxpgDhFEQ=="
+WAYPOINT_73A4_INSIDE = "soured-cocoon-KRBT4IqkmBwCauxpgDhFEQ=="
+WAYPOINT_73A4_OUTSIDE = "ivied-mamba-exgntSAsmmo.715WHYfo7w=="
 
 
 def convert_names_and_types_to_string_ready(
