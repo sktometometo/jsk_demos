@@ -14,7 +14,7 @@ def cosine_similarity(vec1, vec2) -> float:
 class ActiveAPIDiscovery:
 
     def __init__(self, service_name: str = "/openai/get_embedding"):
-        rospy.wait_for_service(service_name, timeout=5.)
+        rospy.wait_for_service(service_name, timeout=5.0)
         self.get_embedding = rospy.ServiceProxy(service_name, Embedding)
 
     def _get_embedding(
@@ -66,12 +66,11 @@ class ActiveAPIDiscovery:
         response_names_and_types_intension: RESPONSE_NAMES_AND_TYPES,
         list_api: List[Tuple[str, ARGUMENT_NAMES_AND_TYPES, RESPONSE_NAMES_AND_TYPES]],
         threshold: float = 0.5,
-    ) -> Optional[Tuple[str, ARGUMENT_NAMES_AND_TYPES, RESPONSE_NAMES_AND_TYPES]]:
+    ) -> List[Tuple[str, ARGUMENT_NAMES_AND_TYPES, RESPONSE_NAMES_AND_TYPES]]:
         """
         Select the most suitable API for the given intension and position.
         """
-        max_similarity = threshold
-        selected_api = None
+        selected_apis = []
         for (
             description_api,
             api_arguments,
@@ -86,11 +85,11 @@ class ActiveAPIDiscovery:
                 api_response,
             )
             print(f"{description_api}: similarity: {similarity}")
-            if similarity > max_similarity:
-                max_similarity = similarity
+            if similarity > threshold:
                 selected_api = (
                     description_api,
                     api_arguments,
                     api_response,
                 )
-        return selected_api
+                selected_apis.append(selected_api)
+        return selected_apis

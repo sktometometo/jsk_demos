@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
+import threading
 import time
+import copy
 import argparse
 from typing import Callable, Dict, List, Optional, Tuple
 
@@ -11,6 +13,7 @@ from autonomous_integration.autonomous_argument_completion import ArgumentComple
 from autonomous_integration.sdp_utils import *
 from spot_demo import SpotDemo
 from std_msgs.msg import String
+from uwb_localization.msg import SDPUWBDeviceArray
 
 DEFAULT_WALK_PATH = "/home/spot/default_7f_with_door.walk"
 WAYPOINT_BREEZEWAY = "holy-puffin-dfM.pGS6xCB4m190VUNPWw=="
@@ -51,11 +54,28 @@ class Demo(SpotDemo):
         self.discovery = ActiveAPIDiscovery()
         self.completion = ArgumentCompletion()
 
+        self._lock_sdpuwb = threading.Lock()
+        self._sdpuwb = SDPUWBDeviceArray()
+
         self.pub_debug_string = rospy.Publisher(
             "/debug_string",
             String,
             queue_size=1,
         )
+        self._sub_sdpuwb = rospy.Subscriber(
+            "/sdpuwb_devices",
+            SDPUWBDeviceArray,
+            self._sdpuwb_callback,
+        )
+
+    def _sdpuwb_callback(self, msg: SDPUWBDeviceArray):
+        with self._lock_sdpuwb:
+            self._sdpuwb = msg
+
+    @property
+    def sdpuwb_devices(self) -> SDPUWBDeviceArray:
+        with self._lock_sdpuwb:
+            return copy.deepcopy(self._sdpuwb)
 
     def get_people(self) -> List:
         return self._odom_to_people
@@ -100,24 +120,58 @@ class Demo(SpotDemo):
             (api[1] + ": " + api[3], api[5], api[6]) for api in api_full_list
         ]
 
-        target_api_short = self.discovery.select_api(intension, {}, [], api_short_list)
-        target_api_full = api_full_list[api_short_list.index(target_api_short)]
-        rospy.loginfo(f"target_api: {target_api_short}")
+        target_api_list_short = self.discovery.select_api(
+            intension, {}, [], api_short_list
+        )
+        target_api_list_full = [
+            api_full_list[api_short_list.index(target_api_short)]
+            for target_api_short in target_api_list_short
+        ]
+        rospy.loginfo(f"target_api: {target_api_list_short}")
         self.pub_debug_string.publish(
             String(
                 data=yaml.dump(
                     {
                         "string_type": "target_api_selection",
-                        "data": {
-                            "api": convert_api_type_to_string(target_api_full),
-                            "intension": intension,
-                            "arguments": {},
-                            "response_names_and_types": [],
-                        },
+                        "data": [
+                            {
+                                "api": convert_api_type_to_string(target_api_full),
+                                "intension": intension,
+                                "arguments": {},
+                                "response_names_and_types": [],
+                            }
+                            for target_api_full in target_api_list_full
+                        ],
                     }
                 )
             )
         )
+        # Get closest target api
+        target_api_full = None
+        distance_to_base = float("inf")
+        device_interfaces = self.sdp_interface.device_interfaces
+        for target_api_full_candidate in target_api_list_full:
+            device_name = target_api_full_candidate[1]
+            # Get dev_info for device_name from device_interfaces
+            dev_info = None
+            for addr, dev_if in device_interfaces.items():
+                if dev_if["device_name"] == device_name:
+                    dev_info = dev_if
+                    break
+            if dev_info is None:
+                continue
+            if "distance" not in dev_info or dev_info["distance"] is None:
+                continue
+            distance = dev_info["distance"]
+            if distance < distance_to_base:
+                target_api_full = target_api_full_candidate
+                distance_to_base = distance
+        if target_api_full is None:
+            rospy.logerr("No suitable API found")
+            return None
+        target_api_short = target_api_list_short[
+            target_api_list_full.index(target_api_full)
+        ]
         target_api_args = self.completion.generate_arguments_for_api(
             intension,
             {},
@@ -140,12 +194,13 @@ class Demo(SpotDemo):
                 )
             )
         )
-        if not dummy:
-            call_api(self.sdp_interface, target_api_full, target_api_args)
+        # if not dummy:
+        call_api(self.sdp_interface, target_api_full, target_api_args)
+        time.sleep(5.0)
 
         if len(self.get_people()) > 0:
-            if not dummy:
-                self.sound_client.say("There are people in the room")
+            # if not dummy:
+            self.sound_client.say("There are people in the room")
         else:
             #
             # Turn off light
@@ -167,26 +222,57 @@ class Demo(SpotDemo):
                 (api[1] + ": " + api[3], api[5], api[6]) for api in api_full_list
             ]
 
-            target_api_short = self.discovery.select_api(
+            target_api_list_short = self.discovery.select_api(
                 intension, {}, [], api_short_list
             )
-            target_api_full = api_full_list[api_short_list.index(target_api_short)]
-            rospy.loginfo(f"target_api: {target_api_short}")
+            target_api_list_full = [
+                api_full_list[api_short_list.index(target_api_short)]
+                for target_api_short in target_api_list_short
+            ]
+            rospy.loginfo(f"target_api: {target_api_list_short}")
             self.pub_debug_string.publish(
                 String(
                     data=yaml.dump(
                         {
                             "string_type": "target_api_selection",
-                            "data": {
-                                "api": convert_api_type_to_string(target_api_full),
-                                "intension": intension,
-                                "arguments": {},
-                                "response_names_and_types": [],
-                            },
+                            "data": [
+                                {
+                                    "api": convert_api_type_to_string(target_api_full),
+                                    "intension": intension,
+                                    "arguments": {},
+                                    "response_names_and_types": [],
+                                }
+                                for target_api_full in target_api_list_full
+                            ],
                         }
                     )
                 )
             )
+            target_api_full = None
+            distance_to_base = float("inf")
+            device_interfaces = self.sdp_interface.device_interfaces
+            for target_api_full_candidate in target_api_list_full:
+                device_name = target_api_full_candidate[1]
+                # Get dev_info for device_name from device_interfaces
+                dev_info = None
+                for addr, dev_if in device_interfaces.items():
+                    if dev_if["device_name"] == device_name:
+                        dev_info = dev_if
+                        break
+                if dev_info is None:
+                    continue
+                if "distance" not in dev_info or dev_info["distance"] is None:
+                    continue
+                distance = dev_info["distance"]
+                if distance < distance_to_base:
+                    target_api_full = target_api_full_candidate
+                    distance_to_base = distance
+            if target_api_full is None:
+                rospy.logerr("No suitable API found")
+                return None
+            target_api_short = target_api_list_short[
+                target_api_list_full.index(target_api_full)
+            ]
             target_api_args = self.completion.generate_arguments_for_api(
                 intension,
                 {},
@@ -211,8 +297,9 @@ class Demo(SpotDemo):
                     )
                 )
             )
-            if not dummy:
-                call_api(self.sdp_interface, target_api_full, target_api_args)
+            # if not dummy:
+            call_api(self.sdp_interface, target_api_full, target_api_args)
+            time.sleep(5.0)
 
         # Exit room
         if not dummy:
@@ -237,24 +324,70 @@ class Demo(SpotDemo):
         api_short_list = [
             (api[1] + ": " + api[3], api[5], api[6]) for api in api_full_list
         ]
-        target_api_short = self.discovery.select_api(intension, {}, [], api_short_list)
-        target_api_full = api_full_list[api_short_list.index(target_api_short)]
-        rospy.loginfo(f"target_api: {target_api_short}")
+        target_api_list_short = self.discovery.select_api(
+            intension, {}, [], api_short_list
+        )
+        target_api_list_full = [
+            api_full_list[api_short_list.index(target_api_short)]
+            for target_api_short in target_api_list_short
+        ]
+        rospy.loginfo(f"target_api: {target_api_list_short}")
         self.pub_debug_string.publish(
             String(
                 data=yaml.dump(
                     {
                         "string_type": "target_api_selection",
-                        "data": {
-                            "api": convert_api_type_to_string(target_api_full),
-                            "intension": intension,
-                            "arguments": {},
-                            "response_names_and_types": [],
-                        },
+                        "data": [
+                            {
+                                "api": convert_api_type_to_string(target_api_full),
+                                "intension": intension,
+                                "arguments": {},
+                                "response_names_and_types": [],
+                            }
+                            for target_api_full in target_api_list_full
+                        ],
                     }
                 )
             )
         )
+        target_api_full = None
+        distance_to_base = float("inf")
+        device_interfaces = self.sdp_interface.device_interfaces
+        for target_api_full_candidate in target_api_list_full:
+            device_name = target_api_full_candidate[1]
+            # Get dev_info for device_name from device_interfaces
+            dev_info = None
+            for addr, dev_if in device_interfaces.items():
+                if dev_if["device_name"] == device_name:
+                    dev_info = dev_if
+                    break
+            if dev_info is None:
+                continue
+            if "distance" not in dev_info or dev_info["distance"] is None:
+                continue
+            distance = dev_info["distance"]
+            if distance < distance_to_base:
+                target_api_full = target_api_full_candidate
+                distance_to_base = distance
+        if target_api_full is None:
+            rospy.logerr("No suitable API found")
+            return None
+        # for target_api_full_candidate in target_api_list_full:
+        #     device_name = target_api_full_candidate[1]
+        #     for device in self.sdpuwb_devices.devices:
+        #         if device.name == device_name:
+        #             distance = np.linalg.norm(
+        #                 [
+        #                     device.pose.position.x - self.frame_odom_to_base.p[0],
+        #                     device.pose.position.y - self.frame_odom_to_base.p[1],
+        #                 ]
+        #             )
+        #             if distance < distance_to_base:
+        #                 target_api_full = target_api_full_candidate
+        #                 distance_to_base = distance
+        target_api_short = target_api_list_short[
+            target_api_list_full.index(target_api_full)
+        ]
         target_api_args = self.completion.generate_arguments_for_api(
             intension,
             {},
@@ -277,8 +410,8 @@ class Demo(SpotDemo):
                 )
             )
         )
-        if not dummy:
-            call_api(self.sdp_interface, target_api_full, target_api_args)
+        # if not dummy:
+        call_api(self.sdp_interface, target_api_full, target_api_args)
 
 
 if __name__ == "__main__":

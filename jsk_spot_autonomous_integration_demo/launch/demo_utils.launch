@@ -19,4 +19,7 @@
             </rosparam>
         </node>
     </group>
+
+    <include file="$(find uwb_localization)/launch/demo_spot.launch">
+    </include>
 </launch>
