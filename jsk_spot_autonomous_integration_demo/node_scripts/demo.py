@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
+import argparse
+import copy
 import threading
 import time
-import copy
-import argparse
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import rospy
 import yaml
@@ -25,26 +25,30 @@ WAYPOINT_73A4_INSIDE = "ivied-mamba-exgntSAsmmo.715WHYfo7w=="
 WAYPOINT_73A4_OUTSIDE = "soured-cocoon-KRBT4IqkmBwCauxpgDhFEQ=="
 
 
-def convert_names_and_types_to_string(names_and_types: List[Tuple[str, str]]) -> str:
-    return yaml.dump({name: type for name, type in names_and_types})
+def convert_names_and_types_to_string_ready(
+    names_and_types: List[Tuple[str, str]]
+) -> Dict[str, str]:
+    return {name: type for name, type in names_and_types}
 
 
-def convert_api_type_to_string(api_type: API_TYPE) -> str:
-    return yaml.dump(
-        {
-            "address": list(api_type[0]),
-            "device_name": api_type[1],
-            "type": api_type[2].value,
-            "description": api_type[3],
-            "serialization_format": api_type[4],
-            "argument_names_and_types": convert_names_and_types_to_string(api_type[5]),
-            "response_names_and_types": convert_names_and_types_to_string(api_type[6]),
-        }
-    )
+def convert_api_type_to_string_ready(api_type: API_TYPE) -> Dict[str, Any]:
+    return {
+        "address": list(api_type[0]),
+        "device_name": api_type[1],
+        "type": api_type[2].value,
+        "description": api_type[3],
+        "serialization_format": api_type[4],
+        "argument_names_and_types": convert_names_and_types_to_string_ready(
+            api_type[5]
+        ),
+        "response_names_and_types": convert_names_and_types_to_string_ready(
+            api_type[6]
+        ),
+    }
 
 
-def convert_api_type_list_to_string(api_type_list: List[API_TYPE]) -> str:
-    return yaml.dump([convert_api_type_to_string(api) for api in api_type_list])
+def convert_api_type_list_to_string_ready(api_type_list: List[API_TYPE]) -> List:
+    return [convert_api_type_to_string_ready(api) for api in api_type_list]
 
 
 class Demo(SpotDemo):
@@ -111,7 +115,7 @@ class Demo(SpotDemo):
                 data=yaml.dump(
                     {
                         "string_type": "api_full_list",
-                        "data": convert_api_type_list_to_string(api_full_list),
+                        "data": convert_api_type_list_to_string_ready(api_full_list),
                     }
                 )
             )
@@ -135,7 +139,9 @@ class Demo(SpotDemo):
                         "string_type": "target_api_selection",
                         "data": [
                             {
-                                "api": convert_api_type_to_string(target_api_full),
+                                "api": convert_api_type_to_string_ready(
+                                    target_api_full
+                                ),
                                 "intension": intension,
                                 "arguments": {},
                                 "response_names_and_types": [],
@@ -187,7 +193,7 @@ class Demo(SpotDemo):
                     {
                         "string_type": "api_call",
                         "data": {
-                            "api": convert_api_type_to_string(target_api_full),
+                            "api": convert_api_type_to_string_ready(target_api_full),
                             "arguments": target_api_args,
                         },
                     }
@@ -213,7 +219,9 @@ class Demo(SpotDemo):
                     data=yaml.dump(
                         {
                             "string_type": "api_full_list",
-                            "data": convert_api_type_list_to_string(api_full_list),
+                            "data": convert_api_type_list_to_string_ready(
+                                api_full_list
+                            ),
                         }
                     )
                 )
@@ -235,15 +243,19 @@ class Demo(SpotDemo):
                     data=yaml.dump(
                         {
                             "string_type": "target_api_selection",
-                            "data": [
-                                {
-                                    "api": convert_api_type_to_string(target_api_full),
-                                    "intension": intension,
-                                    "arguments": {},
-                                    "response_names_and_types": [],
-                                }
-                                for target_api_full in target_api_list_full
-                            ],
+                            "data": {
+                                "target_apis": [
+                                    {
+                                        "api": convert_api_type_to_string_ready(
+                                            target_api_full
+                                        ),
+                                        "arguments": {},
+                                        "response_names_and_types": [],
+                                    }
+                                    for target_api_full in target_api_list_full
+                                ],
+                                "intension": intension,
+                            },
                         }
                     )
                 )
@@ -290,7 +302,9 @@ class Demo(SpotDemo):
                         {
                             "string_type": "api_call",
                             "data": {
-                                "api": convert_api_type_to_string(target_api_full),
+                                "api": convert_api_type_to_string_ready(
+                                    target_api_full
+                                ),
                                 "arguments": target_api_args,
                             },
                         }
@@ -316,7 +330,7 @@ class Demo(SpotDemo):
                 data=yaml.dump(
                     {
                         "string_type": "api_full_list",
-                        "data": convert_api_type_list_to_string(api_full_list),
+                        "data": convert_api_type_list_to_string_ready(api_full_list),
                     }
                 )
             )
@@ -339,7 +353,9 @@ class Demo(SpotDemo):
                         "string_type": "target_api_selection",
                         "data": [
                             {
-                                "api": convert_api_type_to_string(target_api_full),
+                                "api": convert_api_type_to_string_ready(
+                                    target_api_full
+                                ),
                                 "intension": intension,
                                 "arguments": {},
                                 "response_names_and_types": [],
@@ -403,7 +419,7 @@ class Demo(SpotDemo):
                     {
                         "string_type": "api_call",
                         "data": {
-                            "api": convert_api_type_to_string(target_api_full),
+                            "api": convert_api_type_to_string_ready(target_api_full),
                             "arguments": target_api_args,
                         },
                     }
