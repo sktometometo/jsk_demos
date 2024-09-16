@@ -3,6 +3,7 @@
     <arg name="use_decompress" default="true" />
     <arg name="loop" default="true" />
     <arg name="gui" default="true" />
+    <arg name="sim" default="false" />
     <arg name="loop_flag" value="--loop" if="$(arg loop)" />
     <arg name="loop_flag" value="" unless="$(arg loop)" />
     <arg name="start_time" default="0" />
@@ -10,6 +11,9 @@
     <arg name="duration" default="--duration $(arg duration_time)" if="$(eval duration_time != 0)" />
     <arg name="duration" default="" if="$(eval duration_time == 0)" />
     <arg name="skip_rosbag" default="false" />
+
+    <!-- sim time -->
+    <param name="use_sim_time" value="true" />
 
     <include file="$(find jsk_spot_startup)/launch/rosbag_play.launch">
         <arg name="rosbag" value="$(arg rosbag)" />
@@ -34,4 +38,7 @@
         type="debug_visualizer.py"
         name="debug_visualizer"
         output="screen"></node>
+
+    <include
+        file="$(find jsk_spot_startup)/launch/uwb_localization.launch"></include>
 </launch>
