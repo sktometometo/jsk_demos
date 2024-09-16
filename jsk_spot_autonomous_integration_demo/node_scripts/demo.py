@@ -11,6 +11,7 @@ import yaml
 from autonomous_integration.active_api_discovery import ActiveAPIDiscovery
 from autonomous_integration.autonomous_argument_completion import ArgumentCompletion
 from autonomous_integration.sdp_utils import *
+from numpy import rate
 from spot_demo import SpotDemo
 from std_msgs.msg import String
 from uwb_localization.msg import SDPUWBDeviceArray
@@ -92,6 +93,34 @@ class Demo(SpotDemo):
         if not dummy:
             self.spot_client.upload_graph(walk_path)
             self.spot_client.set_localization_fiducial()
+
+    def start_api_list(self):
+        self._api_list_loop_running = True
+        self._api_list_thread = threading.Thread(target=self._api_list_publish_loop)
+        self._api_list_thread.start()
+
+    def stop_api_list(self):
+        self._api_list_loop_running = False
+        self._api_list_thread.join()
+
+    def _api_list_publish_loop(self):
+        rate = rospy.Rate(1)
+        while not rospy.is_shutdown() and self._api_list_loop_running:
+            rate.sleep()
+            api_full_list = get_api_list(self.sdp_interface)
+            rospy.loginfo(f"api_full_list: {api_full_list}")
+            self.pub_debug_string.publish(
+                String(
+                    data=yaml.dump(
+                        {
+                            "string_type": "api_full_list",
+                            "data": convert_api_type_list_to_string_ready(
+                                api_full_list
+                            ),
+                        }
+                    )
+                )
+            )
 
     def run_demo(
         self,
@@ -440,6 +469,7 @@ if __name__ == "__main__":
     rospy.init_node("demo")
     demo = Demo()
     time.sleep(5.0)
+    demo.start_api_list()
     if args.init:
         demo.init_demo(dummy=args.dummy)
     input("Press Enter to start the demo")
@@ -463,3 +493,4 @@ if __name__ == "__main__":
         )
     else:
         raise ValueError(f"Invalid target: {args.target}")
+    demo.stop_api_list()
