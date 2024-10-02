@@ -1,0 +1,17 @@
+<launch>
+    <arg name="api_key" />
+    <arg name="port" />
+
+    <include file="$(find smart_device_protocol)/launch/demo.launch">
+        <arg name="port" value="$(arg port)" />
+        <arg name="tag_id" value="10" />
+    </include>
+
+    <include file="$(find jsk_spot_autonomous_integration_demo)/launch/demo_utils.launch">
+        <arg name="api_key" value="$(arg api_key)" />
+    </include>
+
+    <include file="$(find ros_speech_recognition)/launch/speech_recognition.launch">
+        <arg name="launch_sound_play" value="false" />
+    </include>
+</launch>

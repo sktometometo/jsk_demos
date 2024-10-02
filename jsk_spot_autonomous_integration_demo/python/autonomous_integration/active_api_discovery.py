@@ -66,7 +66,9 @@ class ActiveAPIDiscovery:
         response_names_and_types_intension: RESPONSE_NAMES_AND_TYPES,
         list_api: List[Tuple[str, ARGUMENT_NAMES_AND_TYPES, RESPONSE_NAMES_AND_TYPES]],
         threshold: float = 0.5,
-    ) -> List[Tuple[str, ARGUMENT_NAMES_AND_TYPES, RESPONSE_NAMES_AND_TYPES]]:
+    ) -> List[
+        Tuple[float, Tuple[str, ARGUMENT_NAMES_AND_TYPES, RESPONSE_NAMES_AND_TYPES]]
+    ]:
         """
         Select the most suitable API for the given intension and position.
         """
@@ -91,5 +93,5 @@ class ActiveAPIDiscovery:
                     api_arguments,
                     api_response,
                 )
-                selected_apis.append(selected_api)
+                selected_apis.append((similarity, selected_api))
         return selected_apis

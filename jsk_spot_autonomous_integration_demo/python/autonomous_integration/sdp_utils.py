@@ -62,7 +62,7 @@ def call_from_intension(
         response_names_and_types_intension,
         api_short_list,
     )
-    if target_api is None:
+    if len(target_api) == 0:
         rospy.logerr("No suitable API found")
         rospy.logerr(f"description_intension: {description_intension}")
         rospy.logerr(f"arguments_intension: {arguments_intension}")
@@ -113,20 +113,20 @@ def call_api(
 
         def callback(
             address: Union[List[int], Tuple[int, int, int, int, int, int]],
-            contents: List,
+            data_frame: DataFrame,
         ):
             if address == api[0]:
                 # Update ans with contents
                 nonlocal ans
-                ans = tuple(contents)
+                ans = tuple(data_frame.content)
 
         interface.register_interface_callback((api[3], api[4]), callback)
         deadline = time.time() + timeout
         while time.time() < deadline:
             if ans is not None:
-                interface.unregister_interface_callback(callback)
+                interface.unregister_interface_callback((api[3], api[4]))
                 return ans
-        interface.unregister_interface_callback(callback)
+        interface.unregister_interface_callback((api[3], api[4]))
         return ans
 
 

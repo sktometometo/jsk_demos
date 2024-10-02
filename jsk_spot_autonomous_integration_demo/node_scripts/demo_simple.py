@@ -7,17 +7,13 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 import rospy
 import yaml
 from autonomous_integration.active_api_discovery import ActiveAPIDiscovery
-from autonomous_integration.autonomous_argument_completion import \
-    ArgumentCompletion
+from autonomous_integration.autonomous_argument_completion import ArgumentCompletion
 from autonomous_integration.sdp_utils import *
-from smart_device_protocol.smart_device_protocol_interface import \
-    UWBSDPInterface
+from autonomous_integration.sdp_utils import call_api
+from smart_device_protocol.smart_device_protocol_interface import UWBSDPInterface
 from sound_play.libsoundplay import SoundClient
 from speech_recognition_msgs.msg import SpeechRecognitionCandidates
 from std_msgs.msg import Header, String
-
-from jsk_spot_autonomous_integration_demo.python.autonomous_integration.sdp_utils import \
-    call_api
 
 
 def convert_names_and_types_to_string_ready(
@@ -62,7 +58,7 @@ class Demo:
         )
 
         self.sub_stt = rospy.Subscriber(
-            "/speech_recognition_server/result",
+            "/speech_to_text",
             SpeechRecognitionCandidates,
             self.cb_stt,
         )
@@ -128,6 +124,7 @@ class Demo:
         target_api_full = None
         distance_to_base = float("inf")
         device_interfaces = self.sdp_interface.device_interfaces
+        rospy.loginfo("device_interfaces: %s", device_interfaces)
         for target_api_full_candidate in target_api_list_full:
             device_name = target_api_full_candidate[1]
             # Get dev_info for device_name from device_interfaces
@@ -137,10 +134,16 @@ class Demo:
                     dev_info = dev_if
                     break
             if dev_info is None:
+                rospy.logerr(f"Device {device_name} not found in device_interfaces")
                 continue
             if "distance" not in dev_info or dev_info["distance"] is None:
+                rospy.logerr(f"Distance for {device_name} not found")
                 continue
             distance = dev_info["distance"]
+            distance_stamp = dev_info["distance_stamp"]
+            if rospy.Time.now() - distance_stamp > rospy.Duration(10.0):
+                rospy.logerr(f"Distance for {device_name} is too old: {distance_stamp}")
+                continue
             if distance < distance_to_base:
                 target_api_full = target_api_full_candidate
                 distance_to_base = distance
