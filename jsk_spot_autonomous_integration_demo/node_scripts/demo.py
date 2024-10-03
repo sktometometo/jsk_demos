@@ -301,14 +301,16 @@ class Demo(SpotDemo):
         # Say
         self.sound_client.say("There are people in the room")
 
+        self.call_device("Turn off the light.")
+
         # Exit room
         if not dummy:
             self.spot_client.navigate_to(waypoint_id_door_outside, blocking=True)
 
-        # #
-        # # Lock the key
-        # #
-        # self.call_device("Lock the key of the room.")
+        #
+        # Lock the key
+        #
+        self.call_device("Lock the key of the room.")
 
 
 if __name__ == "__main__":
