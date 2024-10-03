@@ -309,7 +309,7 @@ class Demo(SpotDemo):
         # Say
         self.sound_client.say("There are people in the room")
 
-        self.call_device("Turn off the light.")
+        # self.call_device("Turn off the light.")
 
         # Exit room
         if not dummy:
@@ -318,7 +318,7 @@ class Demo(SpotDemo):
         #
         # Lock the key
         #
-        self.call_device("Lock the key of the room.")
+        # self.call_device("Lock the key of the room.")
 
 
 if __name__ == "__main__":
