@@ -270,8 +270,16 @@ class Demo(SpotDemo):
                 "arguments": target_api_args,
             },
         )
+        res = call_api(self.sdp_interface, target_api_full, target_api_args)
         time.sleep(5.0)
-        return call_api(self.sdp_interface, target_api_full, target_api_args)
+        self.publish_debug_data(
+            "api_response",
+            {
+                "api": convert_api_type_to_string_ready(target_api_full),
+                "response": res,
+            },
+        )
+        return res
 
     def run_demo(
         self,
