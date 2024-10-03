@@ -132,7 +132,7 @@ class Demo(SpotDemo):
         # Turn on light
         #
         api_full_list = get_api_list(self.sdp_interface)
-        rospy.loginfo(f"api_full_list: {api_full_list}")
+        # rospy.loginfo(f"api_full_list: {api_full_list}")
         self.publish_debug_data(
             "api_full_list",
             convert_api_type_list_to_string_ready(api_full_list),
@@ -184,7 +184,7 @@ class Demo(SpotDemo):
             api_full_list[api_short_list.index(target_api_short)]
             for target_api_short in target_api_list_short
         ]
-        rospy.loginfo(f"target_api: {target_api_list_short}")
+        # rospy.loginfo(f"target_api: {target_api_list_short}")
         self.publish_debug_data(
             "target_api_selection",
             [
@@ -225,7 +225,7 @@ class Demo(SpotDemo):
                 for addr, dev_if in device_interfaces.items()
             ],
         )
-        rospy.loginfo("device_interfaces: %s", device_interfaces)
+        # rospy.loginfo("device_interfaces: %s", device_interfaces)
         for target_api_full_candidate in target_api_list_full:
             device_name = target_api_full_candidate[1]
             # Get dev_info for device_name from device_interfaces
@@ -296,7 +296,7 @@ class Demo(SpotDemo):
         self.call_device("Turn on the light.")
 
         res = self.call_device("Get the number of people")
-        print(res)
+        rospy.logerr("Number of people: %s", res)
 
         # Say
         self.sound_client.say("There are people in the room")
