@@ -147,7 +147,7 @@ class Demo(SpotDemo):
             api_arguments,
             api_response,
         ) in api_short_list:
-            similarity = self._calc_semantic_similarity(
+            similarity = self.discovery._calc_semantic_similarity(
                 intension,
                 {},
                 [],
