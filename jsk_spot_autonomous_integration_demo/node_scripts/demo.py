@@ -211,13 +211,7 @@ class Demo(SpotDemo):
                 {
                     "address": addr,
                     "device_name": dev_if["device_name"],
-                    "distance": (
-                        dev_if["distance"]
-                        if "distance_stamp" in dev_if
-                        and rospy.Time.now() - dev_if["distance_stamp"]
-                        > rospy.Duration(5.0)
-                        else None
-                    ),
+                    "distance": dev_if["distance"],
                 }
                 for addr, dev_if in device_interfaces.items()
             ],
