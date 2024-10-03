@@ -215,10 +215,10 @@ class Demo(SpotDemo):
                         None
                         if dev_if["distance"] is None
                         else (
-                            dev_if["distance"]
+                            None
                             if rospy.Time.now() - dev_if["distance_stamp"]
                             > rospy.Duration(10.0)
-                            else None
+                            else dev_if["distance"]
                         )
                     ),
                 }
