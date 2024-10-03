@@ -93,6 +93,18 @@ class Demo(SpotDemo):
             self.spot_client.upload_graph(walk_path)
             self.spot_client.set_localization_fiducial()
 
+    def publish_debug_data(self, string_type: str, data):
+        self.pub_debug_string.publish(
+            String(
+                data=yaml.dump(
+                    {
+                        "string_type": string_type,
+                        "data": data,
+                    }
+                )
+            )
+        )
+
     def start_api_list(self):
         self._api_list_loop_running = True
         self._api_list_thread = threading.Thread(target=self._api_list_publish_loop)
@@ -107,18 +119,9 @@ class Demo(SpotDemo):
         while not rospy.is_shutdown() and self._api_list_loop_running:
             rate.sleep()
             api_full_list = get_api_list(self.sdp_interface)
-            # rospy.loginfo(f"api_full_list: {api_full_list}")
-            self.pub_debug_string.publish(
-                String(
-                    data=yaml.dump(
-                        {
-                            "string_type": "api_full_list",
-                            "data": convert_api_type_list_to_string_ready(
-                                api_full_list
-                            ),
-                        }
-                    )
-                )
+            self.publish_debug_data(
+                "api_full_list",
+                convert_api_type_list_to_string_ready(api_full_list),
             )
 
     def call_device(
@@ -130,21 +133,48 @@ class Demo(SpotDemo):
         #
         api_full_list = get_api_list(self.sdp_interface)
         rospy.loginfo(f"api_full_list: {api_full_list}")
-        self.pub_debug_string.publish(
-            String(
-                data=yaml.dump(
-                    {
-                        "string_type": "api_full_list",
-                        "data": convert_api_type_list_to_string_ready(api_full_list),
-                    }
-                )
-            )
+        self.publish_debug_data(
+            "api_full_list",
+            convert_api_type_list_to_string_ready(api_full_list),
         )
         api_short_list = [
             (api[1] + ": " + api[3], api[5], api[6]) for api in api_full_list
         ]
-        target_api_list_short_with_similarity = self.discovery.select_api(
-            intension, {}, [], api_short_list
+        similarity_list = []
+        target_api_list_short_with_similarity = []
+        for (
+            description_api,
+            api_arguments,
+            api_response,
+        ) in api_short_list:
+            similarity = self._calc_semantic_similarity(
+                intension,
+                {},
+                [],
+                description_api,
+                api_arguments,
+                api_response,
+            )
+            similarity_list.append(similarity)
+            if similarity > 0.5:
+                selected_api = (
+                    description_api,
+                    api_arguments,
+                    api_response,
+                )
+                target_api_list_short_with_similarity.append((similarity, selected_api))
+        self.publish_debug_data(
+            "api_similarity_list",
+            [
+                {
+                    "api": convert_api_type_to_string_ready(api_full),
+                    "intension": intension,
+                    "arguments": {},
+                    "response_names_and_types": [],
+                    "similarity": similarity,
+                }
+                for api_full, similarity in zip(api_full_list, similarity_list)
+            ],
         )
         target_api_list_short = [
             target_api_short
@@ -155,30 +185,43 @@ class Demo(SpotDemo):
             for target_api_short in target_api_list_short
         ]
         rospy.loginfo(f"target_api: {target_api_list_short}")
-        self.pub_debug_string.publish(
-            String(
-                data=yaml.dump(
-                    {
-                        "string_type": "target_api_selection",
-                        "data": [
-                            {
-                                "api": convert_api_type_to_string_ready(
-                                    target_api_full
-                                ),
-                                "intension": intension,
-                                "arguments": {},
-                                "response_names_and_types": [],
-                            }
-                            for target_api_full in target_api_list_full
-                        ],
-                    }
+        self.publish_debug_data(
+            "target_api_selection",
+            [
+                {
+                    "api": convert_api_type_to_string_ready(target_api_full),
+                    "intension": intension,
+                    "arguments": {},
+                    "response_names_and_types": [],
+                    "similarity": target_api_short_with_similarity[0],
+                }
+                for target_api_full, target_api_short_with_similarity in zip(
+                    target_api_list_full,
+                    target_api_list_short_with_similarity,
                 )
-            )
+            ],
         )
         # Get closest target api
         target_api_full = None
         distance_to_base = float("inf")
         device_interfaces = self.sdp_interface.device_interfaces
+        self.publish_debug_data(
+            "device_distances",
+            [
+                {
+                    "address": addr,
+                    "device_name": dev_if["device_name"],
+                    "distance": (
+                        dev_if["distance"]
+                        if "distance_stamp" in dev_if
+                        and rospy.Time.now() - dev_if["distance_stamp"]
+                        > rospy.Duration(5.0)
+                        else None
+                    ),
+                }
+                for addr, dev_if in device_interfaces.items()
+            ],
+        )
         rospy.loginfo("device_interfaces: %s", device_interfaces)
         for target_api_full_candidate in target_api_list_full:
             device_name = target_api_full_candidate[1]
@@ -217,18 +260,12 @@ class Demo(SpotDemo):
             target_api_short[2],
         )
         rospy.loginfo(f"api_calling: api: {target_api_short}, args: {target_api_args}")
-        self.pub_debug_string.publish(
-            String(
-                data=yaml.dump(
-                    {
-                        "string_type": "api_call",
-                        "data": {
-                            "api": convert_api_type_to_string_ready(target_api_full),
-                            "arguments": target_api_args,
-                        },
-                    }
-                )
-            )
+        self.publish_debug_data(
+            "api_call",
+            {
+                "api": convert_api_type_to_string_ready(target_api_full),
+                "arguments": target_api_args,
+            },
         )
         time.sleep(5.0)
         return call_api(self.sdp_interface, target_api_full, target_api_args)
@@ -246,6 +283,7 @@ class Demo(SpotDemo):
             time.sleep(3.0)
 
         self.call_device("Unlock the key.")
+        self.sound_client.say("There are people in the room")
 
         # Enter 73B2
         if not dummy:
@@ -253,6 +291,9 @@ class Demo(SpotDemo):
             time.sleep(3.0)
 
         self.call_device("Turn on the light.")
+
+        res = self.call_device("Get the number of people")
+        print(res)
 
         # Say
         self.sound_client.say("There are people in the room")
@@ -271,13 +312,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--target", choices=["73A4", "73B1", "73B2"], default="73B2")
     parser.add_argument("--dummy", action="store_true")
+    parser.add_argument("--api-pub-loop", action="store_true")
     parser.add_argument("--init", action="store_true")
     args = parser.parse_args()
 
     rospy.init_node("demo")
     demo = Demo()
     time.sleep(5.0)
-    demo.start_api_list()
+    if args.api_pub_loop:
+        demo.start_api_list()
     if args.init:
         demo.init_demo(dummy=args.dummy)
     input("Press Enter to start the demo")
@@ -301,4 +344,5 @@ if __name__ == "__main__":
         )
     else:
         raise ValueError(f"Invalid target: {args.target}")
-    demo.stop_api_list()
+    if args.api_pub_loop:
+        demo.stop_api_list()
