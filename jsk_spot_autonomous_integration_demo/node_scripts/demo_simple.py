@@ -92,9 +92,13 @@ class Demo:
             (api[1] + ": " + api[3], api[5], api[6]) for api in api_full_list
         ]
 
-        target_api_list_short = self.discovery.select_api(
+        target_api_list_short_with_similarity = self.discovery.select_api(
             intension, {}, [], api_short_list
         )
+        target_api_list_short = [
+            target_api_short
+            for similarity, target_api_short in target_api_list_short_with_similarity
+        ]
         target_api_list_full = [
             api_full_list[api_short_list.index(target_api_short)]
             for target_api_short in target_api_list_short
