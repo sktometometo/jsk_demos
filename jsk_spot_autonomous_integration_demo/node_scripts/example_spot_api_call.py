@@ -71,7 +71,7 @@ class Demo(SpotDemo):
             api_full_list.append(
                 (
                     (0, 0, 0, 0, 0, 0),
-                    "Spot",
+                    "Robot API",
                     SDPType.SPOT,
                     api_description,
                     serialization_format,
