@@ -9,14 +9,19 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 import numpy as np
 import rospy
 import yaml
-from autonomous_integration.active_api_discovery import (ActiveAPIDiscovery,
-                                                         cosine_similarity)
-from autonomous_integration.autonomous_argument_completion import \
-    ArgumentCompletion
+from autonomous_integration.active_api_discovery import (
+    ActiveAPIDiscovery,
+    cosine_similarity,
+)
+from autonomous_integration.autonomous_argument_completion import ArgumentCompletion
 from autonomous_integration.sdp_utils import *
 from autonomous_integration.sdp_utils import (
-    API_TYPE, SDPType, convert_type_string_to_format_char,
-    get_arguments_list_from_function, get_response_list_from_function)
+    API_TYPE,
+    SDPType,
+    convert_type_string_to_format_char,
+    get_arguments_list_from_function,
+    get_response_list_from_function,
+)
 from openai_ros.srv import Embedding, EmbeddingRequest
 from spot_demo import SpotDemo
 from std_msgs.msg import String
@@ -59,7 +64,7 @@ class Demo(SpotDemo):
 
         self._target_api = {
             "Speak": self.speak,
-            "Move to the target place, (e.g. the front of room, the inside of room, the outside of room C, etc..)": self.move_to_target,
+            "Move to the target place, (e.g. the front of room, the inside of room, the outside of room, etc..)": self.move_to_target,
         }
 
     def get_spot_api_list(self) -> List[API_TYPE]:
@@ -355,10 +360,10 @@ class Demo(SpotDemo):
         room_name: str = "73A4",
     ):
 
-        self.call_api("Move to the front of {}".format(room_name))
-        self.call_api("Move into {}".format(room_name))
-        self.call_api("Speak Hello")
-        self.call_api("Move out of {}".format(room_name))
+        self.call_api("Move to the front of room {}".format(room_name))
+        self.call_api("Move into the room {}".format(room_name))
+        self.call_api("Speak greeting")
+        self.call_api("Move out of the room {}".format(room_name))
 
 
 if __name__ == "__main__":
