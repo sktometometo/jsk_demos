@@ -6,9 +6,13 @@ import threading
 import time
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
+import numpy as np
 import rospy
 import yaml
-from autonomous_integration.active_api_discovery import ActiveAPIDiscovery
+from autonomous_integration.active_api_discovery import (
+    ActiveAPIDiscovery,
+    cosine_similarity,
+)
 from autonomous_integration.autonomous_argument_completion import ArgumentCompletion
 from autonomous_integration.sdp_utils import *
 from autonomous_integration.sdp_utils import (
@@ -18,6 +22,8 @@ from autonomous_integration.sdp_utils import (
     get_arguments_list_from_function,
     get_response_list_from_function,
 )
+from autonomous_integration.spot_auto_int_demo import SpotAutoIntegDemo
+from openai_ros.srv import Embedding, EmbeddingRequest
 from spot_demo import SpotDemo
 from std_msgs.msg import String
 from uwb_localization.msg import SDPUWBDeviceArray
@@ -34,318 +40,25 @@ WAYPOINT_73A4_OUTSIDE = "ivied-mamba-exgntSAsmmo.715WHYfo7w=="
 
 TARGET_LIST = {
     "73A4_INSIDE": WAYPOINT_73A4_INSIDE,
-    "73A4_OUTSIDE": WAYPOINT_73A4_OUTSIDE,
+    "73A4_FRONT_OUTSIDE": WAYPOINT_73A4_OUTSIDE,
     "73B1_INSIDE": WAYPOINT_73B1_INSIDE,
-    "73B1_OUTSIDE": WAYPOINT_73B1_OUTSIDE,
+    "73B1_FRONT_OUTSIDE": WAYPOINT_73B1_OUTSIDE,
     "73B2_INSIDE": WAYPOINT_73B2_INSIDE,
-    "73B2_OUTSIDE": WAYPOINT_73B2_OUTSIDE,
+    "73B2_FRONT_OUTSIDE": WAYPOINT_73B2_OUTSIDE,
 }
 
 
-class Demo(SpotDemo):
+class Demo(SpotAutoIntegDemo):
 
-    def __init__(self):
-        super().__init__()
-        self.discovery = ActiveAPIDiscovery()
-        self.completion = ArgumentCompletion()
-
-        self._lock_sdpuwb = threading.Lock()
-        self._sdpuwb = SDPUWBDeviceArray()
-
-        self.pub_debug_string = rospy.Publisher(
-            "/debug_string",
-            String,
-            queue_size=1,
-        )
-        self._sub_sdpuwb = rospy.Subscriber(
-            "/sdpuwb_devices",
-            SDPUWBDeviceArray,
-            self._sdpuwb_callback,
-        )
-
-        self._target_api = {
-            "Speak": self.speak,
-            'Move to target place, (e.g. "73B2 inside")': self.move_to_target,
-        }
-
-    def get_spot_api_list(self) -> List[API_TYPE]:
-        api_full_list: List[API_TYPE] = []
-        for api_description, api in self._target_api.items():
-            arguments_names_and_types = get_arguments_list_from_function(api)
-            response_names_and_types = get_response_list_from_function(api)
-            serialization_format = ""
-            for arg_name, arg_type in arguments_names_and_types:
-                serialization_format += convert_type_string_to_format_char(arg_type)
-            api_full_list.append(
-                (
-                    (0, 0, 0, 0, 0, 0),
-                    "Spot",
-                    SDPType.SPOT,
-                    api_description,
-                    serialization_format,
-                    arguments_names_and_types,
-                    response_names_and_types,
-                )
-            )
-        return api_full_list
-
-    def move_to_target(self, target: str) -> None:
-        self.spot_client.navigate_to(TARGET_LIST[target], blocking=True)
-
-    def speak(self, text: str) -> None:
-        self.sound_client.say(text)
-
-    def call_spot_api(
-        self,
-        api_short: API_TYPE_SHORT,
-        arguments: ARGUMENT_LIST,
-        timeout: float = 5.0,
-    ) -> Optional[Tuple]:
-        description = api_short[0]
-        res = self._target_api[description][0](**arguments)
-        return res
-
-    def _sdpuwb_callback(self, msg: SDPUWBDeviceArray):
-        with self._lock_sdpuwb:
-            self._sdpuwb = msg
-
-    @property
-    def sdpuwb_devices(self) -> SDPUWBDeviceArray:
-        with self._lock_sdpuwb:
-            return copy.deepcopy(self._sdpuwb)
-
-    def get_people(self) -> List:
-        return self._odom_to_people
+    def __init__(self, waypoint_target_list: Dict[str, str] = TARGET_LIST):
+        super().__init__(waypoint_target_list=waypoint_target_list)
 
     def init_demo(
         self,
         walk_path: str = DEFAULT_WALK_PATH,
-        dummy: bool = False,
     ):
-        if not dummy:
-            self.spot_client.upload_graph(walk_path)
-            self.spot_client.set_localization_fiducial()
-
-    def publish_debug_data(self, string_type: str, data):
-        self.pub_debug_string.publish(
-            String(
-                data=yaml.dump(
-                    {
-                        "string_type": string_type,
-                        "data": data,
-                    }
-                )
-            )
-        )
-
-    def start_api_list(self):
-        self._api_list_loop_running = True
-        self._api_list_thread = threading.Thread(target=self._api_list_publish_loop)
-        self._api_list_thread.start()
-
-    def stop_api_list(self):
-        self._api_list_loop_running = False
-        self._api_list_thread.join()
-
-    def _api_list_publish_loop(self):
-        rate = rospy.Rate(1)
-        while not rospy.is_shutdown() and self._api_list_loop_running:
-            rate.sleep()
-            api_full_list = get_api_list(self.sdp_interface)
-            self.publish_debug_data(
-                "api_full_list",
-                convert_api_type_list_to_string_ready(api_full_list),
-            )
-
-    def call_api(
-        self,
-        intension: str,
-    ) -> Optional[Tuple]:
-        api_full_list = get_api_list(self.sdp_interface)
-        spot_api_full_list = self.get_spot_api_list()
-        api_full_list += spot_api_full_list
-        self.publish_debug_data(
-            "api_full_list",
-            convert_api_type_list_to_string_ready(api_full_list),
-        )
-        api_short_list = [
-            (api[1] + ": " + api[3], api[5], api[6]) for api in api_full_list
-        ]
-        similarity_list = []
-        target_api_list_short_with_similarity = []
-        for (
-            description_api,
-            api_arguments,
-            api_response,
-        ) in api_short_list:
-            similarity = self.discovery._calc_semantic_similarity(
-                intension,
-                {},
-                [],
-                description_api,
-                api_arguments,
-                api_response,
-            )
-            similarity_list.append(similarity)
-            if similarity > 0.5:
-                selected_api = (
-                    description_api,
-                    api_arguments,
-                    api_response,
-                )
-                target_api_list_short_with_similarity.append((similarity, selected_api))
-        self.publish_debug_data(
-            "api_similarity_list",
-            [
-                {
-                    "api": convert_api_type_to_string_ready(api_full),
-                    "intension": intension,
-                    "arguments": {},
-                    "response_names_and_types": [],
-                    "similarity": similarity,
-                }
-                for api_full, similarity in zip(api_full_list, similarity_list)
-            ],
-        )
-        target_api_list_short = [
-            target_api_short
-            for similarity, target_api_short in target_api_list_short_with_similarity
-        ]
-        target_api_list_full = [
-            api_full_list[api_short_list.index(target_api_short)]
-            for target_api_short in target_api_list_short
-        ]
-        # rospy.loginfo(f"target_api: {target_api_list_short}")
-        self.publish_debug_data(
-            "target_api_selection",
-            [
-                {
-                    "api": convert_api_type_to_string_ready(target_api_full),
-                    "intension": intension,
-                    "arguments": {},
-                    "response_names_and_types": [],
-                    "similarity": target_api_short_with_similarity[0],
-                }
-                for target_api_full, target_api_short_with_similarity in zip(
-                    target_api_list_full,
-                    target_api_list_short_with_similarity,
-                )
-            ],
-        )
-        if (target_api_list_full) == 0:
-            rospy.logerr("No suitable API found")
-            return None
-        if target_api_list_full[0] == "Robot API":
-            target_api_full = target_api_list_full[0]
-            target_api_short = target_api_list_short[0]
-            target_api_args = self.completion.generate_arguments_for_api(
-                intension,
-                {},
-                [],
-                target_api_short[0],
-                target_api_short[1],
-                target_api_short[2],
-            )
-            self.publish_debug_data(
-                "api_call",
-                {
-                    "api": convert_api_type_to_string_ready(target_api_full),
-                    "arguments": target_api_args,
-                },
-            )
-            res = self.call_spot_api(target_api_short, target_api_args)
-            self.publish_debug_data(
-                "api_response",
-                {
-                    "api": convert_api_type_to_string_ready(target_api_full),
-                    "response": res,
-                },
-            )
-            return res
-        else:  # For device
-            # Get closest target api
-            target_api_full = None
-            distance_to_base = float("inf")
-            device_interfaces = self.sdp_interface.device_interfaces
-            self.publish_debug_data(
-                "device_distances",
-                [
-                    {
-                        "address": addr,
-                        "device_name": dev_if["device_name"],
-                        "distance": (
-                            None
-                            if dev_if["distance"] is None
-                            else (
-                                None
-                                if rospy.Time.now() - dev_if["distance_stamp"]
-                                > rospy.Duration(10.0)
-                                else dev_if["distance"]
-                            )
-                        ),
-                    }
-                    for addr, dev_if in device_interfaces.items()
-                ],
-            )
-            # rospy.loginfo("device_interfaces: %s", device_interfaces)
-            for target_api_full_candidate in target_api_list_full:
-                device_name = target_api_full_candidate[1]
-                # Get dev_info for device_name from device_interfaces
-                dev_info = None
-                for addr, dev_if in device_interfaces.items():
-                    if dev_if["device_name"] == device_name:
-                        dev_info = dev_if
-                        break
-                if dev_info is None:
-                    rospy.logerr(f"Device {device_name} not found in device_interfaces")
-                    continue
-                if "distance" not in dev_info or dev_info["distance"] is None:
-                    rospy.logerr(f"Distance for {device_name} not found")
-                    continue
-                distance = dev_info["distance"]
-                distance_stamp = dev_info["distance_stamp"]
-                if rospy.Time.now() - distance_stamp > rospy.Duration(10.0):
-                    rospy.logerr(
-                        f"Distance for {device_name} is too old: {distance_stamp}"
-                    )
-                    continue
-                if distance < distance_to_base:
-                    target_api_full = target_api_full_candidate
-                    distance_to_base = distance
-            if target_api_full is None:
-                rospy.logerr("No suitable API found")
-                return None
-            target_api_short = target_api_list_short[
-                target_api_list_full.index(target_api_full)
-            ]
-            target_api_args = self.completion.generate_arguments_for_api(
-                intension,
-                {},
-                [],
-                target_api_short[0],
-                target_api_short[1],
-                target_api_short[2],
-            )
-            rospy.loginfo(
-                f"api_calling: api: {target_api_short}, args: {target_api_args}"
-            )
-            self.publish_debug_data(
-                "api_call",
-                {
-                    "api": convert_api_type_to_string_ready(target_api_full),
-                    "arguments": target_api_args,
-                },
-            )
-            res = call_api(self.sdp_interface, target_api_full, target_api_args)
-            time.sleep(5.0)
-            self.publish_debug_data(
-                "api_response",
-                {
-                    "api": convert_api_type_to_string_ready(target_api_full),
-                    "response": res,
-                },
-            )
-            return res
+        self.spot_client.upload_graph(walk_path)
+        self.spot_client.set_localization_fiducial()
 
     def run_demo(
         self,
@@ -368,18 +81,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--target", choices=["73A4", "73B1", "73B2"], default="73B2")
     parser.add_argument("--dummy", action="store_true")
-    parser.add_argument("--api-pub-loop", action="store_true")
     parser.add_argument("--init", action="store_true")
     args = parser.parse_args()
 
     rospy.init_node("demo")
     demo = Demo()
     time.sleep(5.0)
-    if args.api_pub_loop:
-        demo.start_api_list()
     if args.init:
-        demo.init_demo(dummy=args.dummy)
+        demo.init_demo()
     input("Press Enter to start the demo")
     demo.run_demo(args.target)
-    if args.api_pub_loop:
-        demo.stop_api_list()
