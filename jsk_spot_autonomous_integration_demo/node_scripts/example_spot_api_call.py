@@ -120,9 +120,11 @@ class Demo(SpotDemo):
         if target_waypoint_name is None:
             rospy.logerr(f"Target not found: {target}")
             return
+        rospy.loginfo("Navigating to %s", target_waypoint_name)
         self.spot_client.navigate_to(TARGET_LIST[target_waypoint_name], blocking=True)
 
     def speak(self, text: str) -> None:
+        rospy.loginfo(f"Speaking: {text}")
         self.sound_client.say(text)
 
     def call_spot_api(
@@ -159,6 +161,7 @@ class Demo(SpotDemo):
         self,
         intension: str,
     ) -> Optional[Tuple]:
+        rospy.loginfo(f"Calling api from intension: {intension}")
         api_full_list = get_api_list(self.sdp_interface)
         spot_api_full_list = self.get_spot_api_list()
         api_full_list += spot_api_full_list
@@ -251,6 +254,9 @@ class Demo(SpotDemo):
                     "api": convert_api_type_to_string_ready(target_api_full),
                     "arguments": target_api_args,
                 },
+            )
+            rospy.loginfo(
+                f"api_calling: api: {target_api_short}, args: {target_api_args}"
             )
             res = self.call_spot_api(target_api_full, target_api_args)
             self.publish_debug_data(
