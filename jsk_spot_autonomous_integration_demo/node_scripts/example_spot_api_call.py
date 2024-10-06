@@ -196,7 +196,7 @@ class Demo(SpotDemo):
         if (target_api_list_full) == 0:
             rospy.logerr("No suitable API found")
             return None
-        if target_api_list_full[0] == "Robot API":
+        if target_api_list_full[0] == (0, 0, 0, 0, 0, 0):
             rospy.loginfo("Calling Robot API")
             target_api_full = target_api_list_full[0]
             target_api_short = target_api_list_short[0]
