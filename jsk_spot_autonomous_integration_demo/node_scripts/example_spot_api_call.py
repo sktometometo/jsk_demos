@@ -9,13 +9,19 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 import numpy as np
 import rospy
 import yaml
-from autonomous_integration.active_api_discovery import ActiveAPIDiscovery
-from autonomous_integration.autonomous_argument_completion import \
-    ArgumentCompletion
+from autonomous_integration.active_api_discovery import (
+    ActiveAPIDiscovery,
+    cosine_similarity,
+)
+from autonomous_integration.autonomous_argument_completion import ArgumentCompletion
 from autonomous_integration.sdp_utils import *
 from autonomous_integration.sdp_utils import (
-    API_TYPE, SDPType, convert_type_string_to_format_char,
-    get_arguments_list_from_function, get_response_list_from_function)
+    API_TYPE,
+    SDPType,
+    convert_type_string_to_format_char,
+    get_arguments_list_from_function,
+    get_response_list_from_function,
+)
 from openai_ros.srv import Embedding, EmbeddingRequest
 from spot_demo import SpotDemo
 from std_msgs.msg import String
@@ -98,8 +104,12 @@ class Demo(SpotDemo):
         target = None
         target_similarity = -float("inf")
         for target_name, target_waypoint in TARGET_LIST.items():
-            similarity = cosine_similarity(self._get_embedding(raw_target), self._get_embedding(target_name))
-            rospy.loginfo(f"Similarity between {raw_target} and {target_name}: {similarity}")
+            similarity = cosine_similarity(
+                self._get_embedding(raw_target), self._get_embedding(target_name)
+            )
+            rospy.loginfo(
+                f"Similarity between {raw_target} and {target_name}: {similarity}"
+            )
             if similarity > threshold and similarity > target_similarity:
                 target = target_name
                 target_similarity = similarity
