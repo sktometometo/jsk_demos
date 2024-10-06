@@ -64,7 +64,7 @@ class Demo(SpotDemo):
 
         self._target_api = {
             "Speak": self.speak,
-            "Move to target place": self.move_to_target,
+            "Move to the target place, (e.g. the front of room 73B2, the inside of room C, outside of building...)": self.move_to_target,
         }
 
     def get_spot_api_list(self) -> List[API_TYPE]:
