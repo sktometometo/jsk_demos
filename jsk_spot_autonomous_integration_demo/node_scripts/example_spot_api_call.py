@@ -93,12 +93,13 @@ class Demo(SpotDemo):
         embeddings = res.embedding
         return np.array(embeddings)
 
-    def _choose_target(self, raw_target: str, threshold: 0.5) -> Optional[str]:
+    def _choose_target(self, raw_target: str, threshold: float = 0.5) -> Optional[str]:
 
         target = None
         target_similarity = -float("inf")
         for target_name, target_waypoint in TARGET_LIST.items():
             similarity = cosine_similarity(self._get_embedding(raw_target), self._get_embedding(target_name))
+            rospy.loginfo(f"Similarity between {raw_target} and {target_name}: {similarity}")
             if similarity > threshold and similarity > target_similarity:
                 target = target_name
                 target_similarity = similarity
