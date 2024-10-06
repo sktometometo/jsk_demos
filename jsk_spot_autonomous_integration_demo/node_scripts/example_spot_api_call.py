@@ -197,6 +197,7 @@ class Demo(SpotDemo):
             rospy.logerr("No suitable API found")
             return None
         if target_api_list_full[0] == "Robot API":
+            rospy.loginfo("Calling Robot API")
             target_api_full = target_api_list_full[0]
             target_api_short = target_api_list_short[0]
             target_api_args = self.completion.generate_arguments_for_api(
@@ -224,6 +225,11 @@ class Demo(SpotDemo):
             )
             return res
         else:  # For device
+            rospy.loginfo(
+                "Calling Device API because top API is not Robot API: %s(%f)",
+                target_api_list_full[0],
+                target_api_list_short_with_similarity[0][0],
+            )
             # Get closest target api
             target_api_full = None
             distance_to_base = float("inf")
