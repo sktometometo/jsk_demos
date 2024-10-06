@@ -5,17 +5,8 @@ import time
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import rospy
-from autonomous_integration.active_api_discovery import (
-    ActiveAPIDiscovery,
-    cosine_similarity,
-)
-from autonomous_integration.autonomous_argument_completion import ArgumentCompletion
 from autonomous_integration.sdp_utils import *
 from autonomous_integration.spot_auto_int_demo import SpotAutoIntegDemo
-from openai_ros.srv import Embedding, EmbeddingRequest
-from spot_demo import SpotDemo
-from std_msgs.msg import String
-from uwb_localization.msg import SDPUWBDeviceArray
 
 DEFAULT_WALK_PATH = "/home/spot/default_7f_with_door.walk"
 WAYPOINT_BREEZEWAY = "holy-puffin-dfM.pGS6xCB4m190VUNPWw=="
