@@ -64,7 +64,7 @@ class Demo(SpotDemo):
 
         self._target_api = {
             "Speak": self.speak,
-            'Move to target place, (e.g. "73B2 inside")': self.move_to_target,
+            "Move to target place": self.move_to_target,
         }
 
     def get_spot_api_list(self) -> List[API_TYPE]:
@@ -115,10 +115,10 @@ class Demo(SpotDemo):
                 target_similarity = similarity
         return target
 
-    def move_to_target(self, target: str) -> None:
-        target_waypoint_name = self._choose_target(target)
+    def move_to_target(self, target_place: str) -> None:
+        target_waypoint_name = self._choose_target(target_place)
         if target_waypoint_name is None:
-            rospy.logerr(f"Target not found: {target}")
+            rospy.logerr(f"Target not found: {target_place}")
             return
         rospy.loginfo("Navigating to %s", target_waypoint_name)
         self.spot_client.navigate_to(TARGET_LIST[target_waypoint_name], blocking=True)
@@ -364,6 +364,7 @@ class Demo(SpotDemo):
 
         self.call_api("Move to the front of {}".format(room_name))
         self.call_api("Move into {}".format(room_name))
+        self.call_api("Speak Hello")
         self.call_api("Move out of {}".format(room_name))
 
 
