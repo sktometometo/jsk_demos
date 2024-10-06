@@ -139,11 +139,9 @@ class Demo(SpotDemo):
     def init_demo(
         self,
         walk_path: str = DEFAULT_WALK_PATH,
-        dummy: bool = False,
     ):
-        if not dummy:
-            self.spot_client.upload_graph(walk_path)
-            self.spot_client.set_localization_fiducial()
+        self.spot_client.upload_graph(walk_path)
+        self.spot_client.set_localization_fiducial()
 
     def publish_debug_data(self, string_type: str, data):
         self.pub_debug_string.publish(
@@ -188,7 +186,7 @@ class Demo(SpotDemo):
                 api_response,
             )
             similarity_list.append(similarity)
-            if similarity > 0.5:
+            if similarity > 0.45:
                 selected_api = (
                     description_api,
                     api_arguments,
