@@ -116,12 +116,11 @@ class Demo(SpotDemo):
 
     def call_spot_api(
         self,
-        api_short: API_TYPE_SHORT,
+        api_full: API_TYPE,
         arguments: ARGUMENT_LIST,
-        timeout: float = 5.0,
     ) -> Optional[Tuple]:
-        description = api_short[0]
-        res = self._target_api[description][0](**arguments)
+        description = api_full[3]
+        res = self._target_api[description](**arguments)
         return res
 
     def init_demo(
@@ -242,7 +241,7 @@ class Demo(SpotDemo):
                     "arguments": target_api_args,
                 },
             )
-            res = self.call_spot_api(target_api_short, target_api_args)
+            res = self.call_spot_api(target_api_full, target_api_args)
             self.publish_debug_data(
                 "api_response",
                 {
