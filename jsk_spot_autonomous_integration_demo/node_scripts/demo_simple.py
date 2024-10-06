@@ -7,39 +7,15 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 import rospy
 import yaml
 from autonomous_integration.active_api_discovery import ActiveAPIDiscovery
-from autonomous_integration.autonomous_argument_completion import ArgumentCompletion
+from autonomous_integration.autonomous_argument_completion import \
+    ArgumentCompletion
 from autonomous_integration.sdp_utils import *
 from autonomous_integration.sdp_utils import call_api
-from smart_device_protocol.smart_device_protocol_interface import UWBSDPInterface
+from smart_device_protocol.smart_device_protocol_interface import \
+    UWBSDPInterface
 from sound_play.libsoundplay import SoundClient
 from speech_recognition_msgs.msg import SpeechRecognitionCandidates
 from std_msgs.msg import Header, String
-
-
-def convert_names_and_types_to_string_ready(
-    names_and_types: List[Tuple[str, str]]
-) -> Dict[str, str]:
-    return {name: type for name, type in names_and_types}
-
-
-def convert_api_type_to_string_ready(api_type: API_TYPE) -> Dict[str, Any]:
-    return {
-        "address": list(api_type[0]),
-        "device_name": api_type[1],
-        "type": api_type[2].value,
-        "description": api_type[3],
-        "serialization_format": api_type[4],
-        "argument_names_and_types": convert_names_and_types_to_string_ready(
-            api_type[5]
-        ),
-        "response_names_and_types": convert_names_and_types_to_string_ready(
-            api_type[6]
-        ),
-    }
-
-
-def convert_api_type_list_to_string_ready(api_type_list: List[API_TYPE]) -> List:
-    return [convert_api_type_to_string_ready(api) for api in api_type_list]
 
 
 class Demo:
@@ -69,31 +45,65 @@ class Demo:
         ans = self.call_device(message)
         rospy.loginfo(f"Answer: {ans}")
 
-    def call_device(
-        self,
-        intension: str,
-    ) -> Optional[Tuple]:
-        #
-        # Turn on light
-        #
-        api_full_list = get_api_list(self.sdp_interface)
-        rospy.loginfo(f"api_full_list: {api_full_list}")
+    def publish_debug_data(self, string_type: str, data):
         self.pub_debug_string.publish(
             String(
                 data=yaml.dump(
                     {
-                        "string_type": "api_full_list",
-                        "data": convert_api_type_list_to_string_ready(api_full_list),
+                        "string_type": string_type,
+                        "data": data,
                     }
                 )
             )
         )
+
+    def call_device(
+        self,
+        intension: str,
+    ) -> Optional[Tuple]:
+        api_full_list = get_api_list(self.sdp_interface)
+        self.publish_debug_data(
+            "api_full_list",
+            convert_api_type_list_to_string_ready(api_full_list),
+        )
         api_short_list = [
             (api[1] + ": " + api[3], api[5], api[6]) for api in api_full_list
         ]
-
-        target_api_list_short_with_similarity = self.discovery.select_api(
-            intension, {}, [], api_short_list
+        similarity_list = []
+        target_api_list_short_with_similarity = []
+        for (
+            description_api,
+            api_arguments,
+            api_response,
+        ) in api_short_list:
+            similarity = self.discovery._calc_semantic_similarity(
+                intension,
+                {},
+                [],
+                description_api,
+                api_arguments,
+                api_response,
+            )
+            similarity_list.append(similarity)
+            if similarity > 0.5:
+                selected_api = (
+                    description_api,
+                    api_arguments,
+                    api_response,
+                )
+                target_api_list_short_with_similarity.append((similarity, selected_api))
+        self.publish_debug_data(
+            "api_similarity_list",
+            [
+                {
+                    "api": convert_api_type_to_string_ready(api_full),
+                    "intension": intension,
+                    "arguments": {},
+                    "response_names_and_types": [],
+                    "similarity": similarity,
+                }
+                for api_full, similarity in zip(api_full_list, similarity_list)
+            ],
         )
         target_api_list_short = [
             target_api_short
@@ -103,32 +113,48 @@ class Demo:
             api_full_list[api_short_list.index(target_api_short)]
             for target_api_short in target_api_list_short
         ]
-        rospy.loginfo(f"target_api: {target_api_list_short}")
-        self.pub_debug_string.publish(
-            String(
-                data=yaml.dump(
-                    {
-                        "string_type": "target_api_selection",
-                        "data": [
-                            {
-                                "api": convert_api_type_to_string_ready(
-                                    target_api_full
-                                ),
-                                "intension": intension,
-                                "arguments": {},
-                                "response_names_and_types": [],
-                            }
-                            for target_api_full in target_api_list_full
-                        ],
-                    }
+        # rospy.loginfo(f"target_api: {target_api_list_short}")
+        self.publish_debug_data(
+            "target_api_selection",
+            [
+                {
+                    "api": convert_api_type_to_string_ready(target_api_full),
+                    "intension": intension,
+                    "arguments": {},
+                    "response_names_and_types": [],
+                    "similarity": target_api_short_with_similarity[0],
+                }
+                for target_api_full, target_api_short_with_similarity in zip(
+                    target_api_list_full,
+                    target_api_list_short_with_similarity,
                 )
-            )
+            ],
         )
         # Get closest target api
         target_api_full = None
         distance_to_base = float("inf")
         device_interfaces = self.sdp_interface.device_interfaces
-        rospy.loginfo("device_interfaces: %s", device_interfaces)
+        self.publish_debug_data(
+            "device_distances",
+            [
+                {
+                    "address": addr,
+                    "device_name": dev_if["device_name"],
+                    "distance": (
+                        None
+                        if dev_if["distance"] is None
+                        else (
+                            None
+                            if rospy.Time.now() - dev_if["distance_stamp"]
+                            > rospy.Duration(10.0)
+                            else dev_if["distance"]
+                        )
+                    ),
+                }
+                for addr, dev_if in device_interfaces.items()
+            ],
+        )
+        # rospy.loginfo("device_interfaces: %s", device_interfaces)
         for target_api_full_candidate in target_api_list_full:
             device_name = target_api_full_candidate[1]
             # Get dev_info for device_name from device_interfaces
@@ -166,21 +192,23 @@ class Demo:
             target_api_short[2],
         )
         rospy.loginfo(f"api_calling: api: {target_api_short}, args: {target_api_args}")
-        self.pub_debug_string.publish(
-            String(
-                data=yaml.dump(
-                    {
-                        "string_type": "api_call",
-                        "data": {
-                            "api": convert_api_type_to_string_ready(target_api_full),
-                            "arguments": target_api_args,
-                        },
-                    }
-                )
-            )
+        self.publish_debug_data(
+            "api_call",
+            {
+                "api": convert_api_type_to_string_ready(target_api_full),
+                "arguments": target_api_args,
+            },
+        )
+        res = call_api(self.sdp_interface, target_api_full, target_api_args)
+        self.publish_debug_data(
+            "api_response",
+            {
+                "api": convert_api_type_to_string_ready(target_api_full),
+                "response": res,
+            },
         )
         time.sleep(5.0)
-        return call_api(self.sdp_interface, target_api_full, target_api_args)
+        return res
 
 
 if __name__ == "__main__":
