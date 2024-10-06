@@ -6,18 +6,17 @@ import threading
 import time
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
+import numpy as np
 import rospy
 import yaml
 from autonomous_integration.active_api_discovery import ActiveAPIDiscovery
-from autonomous_integration.autonomous_argument_completion import ArgumentCompletion
+from autonomous_integration.autonomous_argument_completion import \
+    ArgumentCompletion
 from autonomous_integration.sdp_utils import *
 from autonomous_integration.sdp_utils import (
-    API_TYPE,
-    SDPType,
-    convert_type_string_to_format_char,
-    get_arguments_list_from_function,
-    get_response_list_from_function,
-)
+    API_TYPE, SDPType, convert_type_string_to_format_char,
+    get_arguments_list_from_function, get_response_list_from_function)
+from openai_ros.srv import Embedding, EmbeddingRequest
 from spot_demo import SpotDemo
 from std_msgs.msg import String
 from uwb_localization.msg import SDPUWBDeviceArray
@@ -48,6 +47,8 @@ class Demo(SpotDemo):
         super().__init__()
         self.discovery = ActiveAPIDiscovery()
         self.completion = ArgumentCompletion()
+
+        self.get_embedding = rospy.ServiceProxy("/openai/get_embedding", Embedding)
 
         self.pub_debug_string = rospy.Publisher(
             "/debug_string",
@@ -81,8 +82,34 @@ class Demo(SpotDemo):
             )
         return api_full_list
 
+    def _get_embedding(
+        self,
+        text: str,
+    ) -> np.ndarray:
+        """
+        Get the embedding of the given text.
+        """
+        res = self.get_embedding(EmbeddingRequest(prompt=text))
+        embeddings = res.embedding
+        return np.array(embeddings)
+
+    def _choose_target(self, raw_target: str, threshold: 0.5) -> Optional[str]:
+
+        target = None
+        target_similarity = -float("inf")
+        for target_name, target_waypoint in TARGET_LIST.items():
+            similarity = cosine_similarity(self._get_embedding(raw_target), self._get_embedding(target_name))
+            if similarity > threshold and similarity > target_similarity:
+                target = target_name
+                target_similarity = similarity
+        return target
+
     def move_to_target(self, target: str) -> None:
-        self.spot_client.navigate_to(TARGET_LIST[target], blocking=True)
+        target_waypoint_name = self._choose_target(target)
+        if target_waypoint_name is None:
+            rospy.logerr(f"Target not found: {target}")
+            return
+        self.spot_client.navigate_to(TARGET_LIST[target_waypoint_name], blocking=True)
 
     def speak(self, text: str) -> None:
         self.sound_client.say(text)
