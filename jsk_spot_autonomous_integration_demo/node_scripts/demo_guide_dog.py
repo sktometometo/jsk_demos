@@ -60,7 +60,8 @@ class Demo(SpotAutoIntegDemo):
 
     def run_demo(self):
         # Init
-        ## TODO: Add the initialization process
+        self.spot_client.upload_graph(WALK_DIR_PATH_7F)
+        self.spot_client.set_localization_fiducial()
 
         # Demo
         self.call_api("Move to the front of 73B2")
