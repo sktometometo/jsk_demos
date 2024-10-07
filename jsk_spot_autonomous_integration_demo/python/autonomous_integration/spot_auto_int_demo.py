@@ -7,19 +7,14 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 import numpy as np
 import rospy
 import yaml
-from autonomous_integration.active_api_discovery import (
-    ActiveAPIDiscovery,
-    cosine_similarity,
-)
-from autonomous_integration.autonomous_argument_completion import ArgumentCompletion
+from autonomous_integration.active_api_discovery import (ActiveAPIDiscovery,
+                                                         cosine_similarity)
+from autonomous_integration.autonomous_argument_completion import \
+    ArgumentCompletion
 from autonomous_integration.sdp_utils import *
 from autonomous_integration.sdp_utils import (
-    API_TYPE,
-    SDPType,
-    convert_type_string_to_format_char,
-    get_arguments_list_from_function,
-    get_response_list_from_function,
-)
+    API_TYPE, SDPType, convert_type_string_to_format_char,
+    get_arguments_list_from_function, get_response_list_from_function)
 from openai_ros.srv import Embedding, EmbeddingRequest
 from spot_demo import SpotDemo
 from std_msgs.msg import String
@@ -208,6 +203,8 @@ class SpotAutoIntegDemo(SpotDemo):
         if (target_api_list_full) == 0:
             rospy.logerr("No suitable API found")
             return None
+        top_target_api_full = target_api_list_full[-1]
+        rospy.loginfo(f"Top API: {top_target_api_full}")
         if target_api_list_full[-1][0] == (0, 0, 0, 0, 0, 0):
             rospy.loginfo("Calling Robot API")
             target_api_full = target_api_list_full[-1]
@@ -243,7 +240,7 @@ class SpotAutoIntegDemo(SpotDemo):
             rospy.loginfo(
                 "Calling Device API because top API is not Robot API: %s(%f)",
                 target_api_list_full[-1],
-                target_api_list_short_with_similarity[0][0],
+                target_api_list_short_with_similarity[-1][0],
             )
             # Get closest target api
             target_api_full = None
