@@ -33,10 +33,12 @@ class GuideDogDistanceKeeper(SpotDemo):
                 if not acquired:
                     acquired = True
                     self._mobility_lock.acquire()
+                    rospy.loginfo("acquire")
             else:
                 if acquired:
                     acquired = False
                     self._mobility_lock.release()
+                    rospy.loginfo("release")
 
 
 if __name__ == "__main__":
