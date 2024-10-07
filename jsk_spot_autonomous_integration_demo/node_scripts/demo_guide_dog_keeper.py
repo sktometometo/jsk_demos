@@ -24,7 +24,7 @@ class GuideDogDistanceKeeper(SpotDemo):
             frames_odom_to_people = self.odom_to_people
             distance = float("inf")
             for frame_odom_to_people in frames_odom_to_people:
-                dist = (frame_odom_to_people.p - frame_odom_to_base).Norm()
+                dist = (frame_odom_to_people.p - frame_odom_to_base.p).Norm()
                 if dist < distance:
                     distance = dist
             if distance < self._distance_threshold:
