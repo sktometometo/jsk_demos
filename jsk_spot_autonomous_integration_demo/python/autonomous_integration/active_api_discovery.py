@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -73,11 +74,9 @@ class ActiveAPIDiscovery:
         Select the most suitable API for the given intension and position.
         """
         selected_apis = []
-        for (
-            description_api,
-            api_arguments,
-            api_response,
-        ) in list_api:
+
+        def compute_similarity(api_item):
+            description_api, api_arguments, api_response = api_item
             similarity = self._calc_semantic_similarity(
                 description_intension,
                 argument_names_and_types_intension,
@@ -93,5 +92,11 @@ class ActiveAPIDiscovery:
                     api_arguments,
                     api_response,
                 )
-                selected_apis.append((similarity, selected_api))
-        return selected_apis
+                return (similarity, selected_api)
+            else:
+                return None
+
+        with ThreadPoolExecutor() as executor:
+            results = executor.map(compute_similarity, list_api)
+            selected_apis = [result for result in results if result is not None]
+            return selected_apis
