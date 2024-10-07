@@ -51,7 +51,7 @@ class Demo(SpotAutoIntegDemo):
         self.call_api("Turn on the light.")
         res = self.call_api("Get the number of people")
         rospy.logerr("Number of people: %s", res)
-        self.call_api('Say "There are people in the room"')
+        self.call_api('Speak "There are people in the room"')
         # self.call_api("Turn off the light.")
         self.call_api("Move out of {}".format(room_name))
         # self.call_api("Lock the key of the room.")
