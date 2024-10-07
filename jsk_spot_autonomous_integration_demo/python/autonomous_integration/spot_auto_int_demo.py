@@ -319,7 +319,6 @@ class SpotAutoIntegDemo(SpotDemo):
                 },
             )
             res = call_api(self.sdp_interface, target_api_full, target_api_args)
-            time.sleep(5.0)
             self.publish_debug_data(
                 "api_response",
                 {

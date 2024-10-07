@@ -141,6 +141,7 @@ def call_api(
                 content=content,
             ),
         )
+        time.sleep(5.0)
         return tuple()
     else:
         ans = None
