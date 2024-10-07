@@ -30,10 +30,10 @@ class ActiveAPIDiscovery:
         text = "API description: " + description + "\n"
         text += "Arguments: " + str(arguments) + "\n"
         text += "Responses: " + str(responses)
-        rospy.loginfo(f"Requesting embedding for: {text}")
+        # rospy.loginfo(f"Requesting embedding for: {text}")
         res = self.get_embedding(EmbeddingRequest(prompt=text))
         embeddings = res.embedding
-        rospy.loginfo(f"Received embedding for {text}")
+        # rospy.loginfo(f"Received embedding for {text}")
         return np.array(embeddings)
 
     def _calc_semantic_similarity(

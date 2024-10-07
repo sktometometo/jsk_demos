@@ -1,20 +1,25 @@
 #!/usr/bin/env python
-
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 import rospy
 import yaml
-from autonomous_integration.active_api_discovery import (ActiveAPIDiscovery,
-                                                         cosine_similarity)
-from autonomous_integration.autonomous_argument_completion import \
-    ArgumentCompletion
+from autonomous_integration.active_api_discovery import (
+    ActiveAPIDiscovery,
+    cosine_similarity,
+)
+from autonomous_integration.autonomous_argument_completion import ArgumentCompletion
 from autonomous_integration.sdp_utils import *
 from autonomous_integration.sdp_utils import (
-    API_TYPE, SDPType, convert_type_string_to_format_char,
-    get_arguments_list_from_function, get_response_list_from_function)
+    API_TYPE,
+    SDPType,
+    convert_type_string_to_format_char,
+    get_arguments_list_from_function,
+    get_response_list_from_function,
+)
 from openai_ros.srv import Embedding, EmbeddingRequest
 from spot_demo import SpotDemo
 from std_msgs.msg import String
@@ -77,13 +82,26 @@ class SpotAutoIntegDemo(SpotDemo):
 
         target = None
         target_similarity = -float("inf")
-        for target_name, target_waypoint in self._waypoint_target_list.items():
+
+        def calc_similarity(target_name, target_waypoint):
             similarity = cosine_similarity(
                 self._get_embedding(raw_target), self._get_embedding(target_name)
             )
             rospy.loginfo(
                 f"Similarity between {raw_target} and {target_name}: {similarity}"
             )
+            return similarity
+
+        with ThreadPoolExecutor() as executor:
+            similarity_list = executor.map(
+                calc_similarity,
+                self._waypoint_target_list.keys(),
+                self._waypoint_target_list.values(),
+            )
+
+        for target_name, similarity in zip(
+            self._waypoint_target_list.keys(), similarity_list
+        ):
             if similarity > threshold and similarity > target_similarity:
                 target = target_name
                 target_similarity = similarity
@@ -139,11 +157,13 @@ class SpotAutoIntegDemo(SpotDemo):
         api_short_list = [
             (api[1] + ": " + api[3], api[5], api[6]) for api in api_full_list
         ]
-        similarity_list, target_api_list_short_with_similarity = self.discovery.select_api(
-            intension,
-            [],
-            [],
-            api_short_list,
+        similarity_list, target_api_list_short_with_similarity = (
+            self.discovery.select_api(
+                intension,
+                [],
+                [],
+                api_short_list,
+            )
         )
         self.publish_debug_data(
             "api_similarity_list",
