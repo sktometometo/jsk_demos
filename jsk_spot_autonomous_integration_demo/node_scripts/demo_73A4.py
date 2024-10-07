@@ -1,32 +1,12 @@
 #!/usr/bin/env python
 
 import argparse
-import copy
-import threading
 import time
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-import numpy as np
 import rospy
-import yaml
-from autonomous_integration.active_api_discovery import (
-    ActiveAPIDiscovery,
-    cosine_similarity,
-)
-from autonomous_integration.autonomous_argument_completion import ArgumentCompletion
 from autonomous_integration.sdp_utils import *
-from autonomous_integration.sdp_utils import (
-    API_TYPE,
-    SDPType,
-    convert_type_string_to_format_char,
-    get_arguments_list_from_function,
-    get_response_list_from_function,
-)
 from autonomous_integration.spot_auto_int_demo import SpotAutoIntegDemo
-from openai_ros.srv import Embedding, EmbeddingRequest
-from spot_demo import SpotDemo
-from std_msgs.msg import String
-from uwb_localization.msg import SDPUWBDeviceArray
 
 DEFAULT_WALK_PATH = "/home/spot/default_7f_with_door.walk"
 WAYPOINT_BREEZEWAY = "holy-puffin-dfM.pGS6xCB4m190VUNPWw=="
@@ -79,7 +59,7 @@ class Demo(SpotAutoIntegDemo):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--target", choices=["73A4", "73B1", "73B2"], default="73B2")
+    parser.add_argument("--target", choices=["73A4", "73B1", "73B2"], default="73A4")
     parser.add_argument("--dummy", action="store_true")
     parser.add_argument("--init", action="store_true")
     args = parser.parse_args()
