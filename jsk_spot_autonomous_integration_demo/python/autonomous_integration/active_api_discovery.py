@@ -33,7 +33,7 @@ class ActiveAPIDiscovery:
         rospy.loginfo(f"Requesting embedding for: {text}")
         res = self.get_embedding(EmbeddingRequest(prompt=text))
         embeddings = res.embedding
-        rospy.loginfo(f"Received embedding: {embeddings}")
+        rospy.loginfo(f"Received embedding for {text}")
         return np.array(embeddings)
 
     def _calc_semantic_similarity(
@@ -69,12 +69,19 @@ class ActiveAPIDiscovery:
         list_api: List[Tuple[str, ARGUMENT_NAMES_AND_TYPES, RESPONSE_NAMES_AND_TYPES]],
         threshold: float = 0.5,
     ) -> List[
-        Tuple[float, Tuple[str, ARGUMENT_NAMES_AND_TYPES, RESPONSE_NAMES_AND_TYPES]]
+        Tuple[
+            List[float],
+            List[
+                Tuple[
+                    float,
+                    Tuple[str, ARGUMENT_NAMES_AND_TYPES, RESPONSE_NAMES_AND_TYPES],
+                ]
+            ],
+        ]
     ]:
         """
         Select the most suitable API for the given intension and position.
         """
-        selected_apis = []
 
         def compute_similarity(api_item):
             description_api, api_arguments, api_response = api_item
@@ -95,9 +102,10 @@ class ActiveAPIDiscovery:
                 )
                 return (similarity, selected_api)
             else:
-                return None
+                return (similarity, None)
 
         with ThreadPoolExecutor() as executor:
             results = executor.map(compute_similarity, list_api)
-            selected_apis = [result for result in results if result is not None]
-            return selected_apis
+            selected_apis = [result for result in results if result[1] is not None]
+            similarity_list = [result[0] for result in selected_apis]
+            return similarity_list, selected_apis

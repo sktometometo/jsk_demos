@@ -139,29 +139,12 @@ class SpotAutoIntegDemo(SpotDemo):
         api_short_list = [
             (api[1] + ": " + api[3], api[5], api[6]) for api in api_full_list
         ]
-        similarity_list = []
-        target_api_list_short_with_similarity = []
-        for (
-            description_api,
-            api_arguments,
-            api_response,
-        ) in api_short_list:
-            similarity = self.discovery._calc_semantic_similarity(
-                intension,
-                {},
-                [],
-                description_api,
-                api_arguments,
-                api_response,
-            )
-            similarity_list.append(similarity)
-            if similarity > 0.45:
-                selected_api = (
-                    description_api,
-                    api_arguments,
-                    api_response,
-                )
-                target_api_list_short_with_similarity.append((similarity, selected_api))
+        similarity_list, target_api_list_short_with_similarity = self.discovery.select_api(
+            intension,
+            [],
+            [],
+            api_short_list,
+        )
         self.publish_debug_data(
             "api_similarity_list",
             [

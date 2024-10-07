@@ -4,7 +4,9 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import rospy
 from smart_device_protocol.smart_device_protocol_interface import (
-    DataFrame, UWBSDPInterface)
+    DataFrame,
+    UWBSDPInterface,
+)
 
 from . import ARGUMENT_LIST, ARGUMENT_NAMES_AND_TYPES, RESPONSE_NAMES_AND_TYPES
 from .active_api_discovery import ActiveAPIDiscovery
@@ -119,48 +121,6 @@ def convert_args_to_argnames_and_types(args: ARGUMENT_LIST) -> ARGUMENT_NAMES_AN
     return arguments_names_and_types
 
 
-def call_from_intension(
-    interface: UWBSDPInterface,
-    discovery: ActiveAPIDiscovery,
-    completion: ArgumentCompletion,
-    description_intension: str,
-    arguments_intension: ARGUMENT_LIST,
-    response_names_and_types_intension: RESPONSE_NAMES_AND_TYPES,
-) -> Optional[Tuple]:
-    arguments_names_and_types = convert_args_to_argnames_and_types(arguments_intension)
-    api_full_list = get_api_list(interface)
-    api_short_list = [(api[1] + ": " + api[3], api[5], api[6]) for api in api_full_list]
-    target_api = discovery.select_api(
-        description_intension,
-        arguments_names_and_types,
-        response_names_and_types_intension,
-        api_short_list,
-    )
-    if len(target_api) == 0:
-        rospy.logerr("No suitable API found")
-        rospy.logerr(f"description_intension: {description_intension}")
-        rospy.logerr(f"arguments_intension: {arguments_intension}")
-        rospy.logerr(f"arguments_names_and_types: {arguments_names_and_types}")
-        rospy.logerr(
-            f"response_names_and_types_intension: {response_names_and_types_intension}"
-        )
-        rospy.logerr(f"api_short_list: {api_short_list}")
-        return None
-    target_api_full = api_full_list[api_short_list.index(target_api)]
-    target_api_args = completion.generate_arguments_for_api(
-        description_intension,
-        arguments_intension,
-        response_names_and_types_intension,
-        target_api[0],
-        target_api[1],
-        target_api[2],
-    )
-    rospy.loginfo(f"target_api: {target_api}")
-    rospy.loginfo(f"target_api_full: {target_api_full}")
-    rospy.loginfo(f"target_api_args: {target_api_args}")
-    return call_api(interface, target_api_full, target_api_args)
-
-
 def call_api(
     interface: UWBSDPInterface,
     api: API_TYPE,
@@ -215,7 +175,8 @@ def convert_format_char_to_type_string(format_char: str) -> str:
         return "bool"
     else:
         raise ValueError(f"Unknown format char: {format_char}")
-    
+
+
 def convert_type_string_to_format_char(type_string: str) -> str:
     if type_string == "string":
         return "S"
@@ -247,7 +208,9 @@ def get_api_list(
             for interface in dev_inf["interfaces"]:
                 arguments_name_and_types = []
                 for i, arg_type_char in enumerate(interface[1]):
-                    arguments_name_and_types.append((f"arg{i}", convert_format_char_to_type_string(arg_type_char)))
+                    arguments_name_and_types.append(
+                        (f"arg{i}", convert_format_char_to_type_string(arg_type_char))
+                    )
                 api_list.append(
                     (
                         addr,
