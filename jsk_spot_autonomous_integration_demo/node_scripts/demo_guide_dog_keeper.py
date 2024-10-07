@@ -28,7 +28,14 @@ class GuideDogDistanceKeeper(SpotDemo):
                 if dist < distance:
                     distance = dist
             if distance < self._distance_threshold:
+                rospy.loginfo(
+                    "Person founded in {} m (threshold {})".format(
+                        distance, self._distance_threshold
+                    )
+                )
                 last_found_stamp = rospy.Time.now()
+            else:
+                rospy.loginfo("Person not found")
             if rospy.Time.now() - last_found_stamp > rospy.Duration(self._timeout):
                 if not acquired:
                     acquired = True
