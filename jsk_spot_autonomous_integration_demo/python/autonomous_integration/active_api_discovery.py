@@ -107,5 +107,6 @@ class ActiveAPIDiscovery:
         with ThreadPoolExecutor() as executor:
             results = executor.map(compute_similarity, list_api)
             selected_apis = [result for result in results if result[1] is not None]
+            selected_apis = sorted(selected_apis, lambda x: x[0])
             similarity_list = [result[0] for result in selected_apis]
             return similarity_list, selected_apis
