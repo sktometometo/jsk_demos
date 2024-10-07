@@ -40,6 +40,6 @@ class GuideDogDistanceKeeper(SpotDemo):
 
 
 if __name__ == "__main__":
-    rospy.init_node("demo")
+    rospy.init_node("demo_distance_keeper")
     node = GuideDogDistanceKeeper()
     node.spin()
