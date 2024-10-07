@@ -43,7 +43,7 @@ class SpotAutoIntegDemo(SpotDemo):
         self._waypoint_target_list = waypoint_target_list
         self._target_api = {
             "Speak": self.speak,
-            "Move to the target place, (e.g. the front of room, the inside of room, the outside of room, etc..)": self.move_to_target,
+            "Move to some place, (e.g. the front of room, the inside of room, the outside of room, the front of elevator etc..)": self.move_to_target,
         }
 
     def get_spot_api_list(self) -> List[API_TYPE]:

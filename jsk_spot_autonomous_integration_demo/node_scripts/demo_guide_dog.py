@@ -26,7 +26,7 @@ WAYPOINT_OUTSIDE_OUTSIDE_BUILDING = ""
 TARGET_LIST = {
     "73B2 inside": WAYPOINT_7F_73B2_INSIDE,
     "73B2 front outside": WAYPOINT_7F_73B2_OUTSIDE,
-    "7F elevator outside": WAYPOINT_7F_ELEVATOR_OUTSIDE,
+    "7F elevator hall": WAYPOINT_7F_ELEVATOR_OUTSIDE,
     "7F elevator inside": WAYPOINT_7F_ELEVATOR_INSIDE,
     "outside of building": WAYPOINT_OUTSIDE_OUTSIDE_BUILDING,
 }
@@ -45,8 +45,8 @@ class Demo(SpotAutoIntegDemo):
         # }
         self._target_api.update(
             {
-                "Ride on the elevator": self.ride_on_elevator,
-                "Ride off the elevator": self.ride_off_elevator,
+                "Get on the car": self.ride_on_elevator,
+                "Get off the car": self.ride_off_elevator,
             }
         )
 
@@ -61,12 +61,12 @@ class Demo(SpotAutoIntegDemo):
     def run_demo(self):
         # Demo
         self.call_api("Move to the front of 73B2")
-        self.call_api("Move to the elevator hall at 7F")
-        self.call_api("Call elevator to downstairs")
+        self.call_api("Move to the front of elevator hall at 7F")
+        #self.call_api("Call elevator to downstairs")
         self.call_api("Ride on the elevator")
-        self.call_api("Press the elevator button to 2F")
+        #self.call_api("Press the elevator button to 2F")
         self.call_api("Ride off the elevator")
-        self.call_api("Move to the out of eng. 2 building")
+        #self.call_api("Move to the out of eng. 2 building")
 
 
 if __name__ == "__main__":
