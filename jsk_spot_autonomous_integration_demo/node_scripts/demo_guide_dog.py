@@ -59,10 +59,6 @@ class Demo(SpotAutoIntegDemo):
         self.spot_client.set_localization_fiducial()
 
     def run_demo(self):
-        # Init
-        self.spot_client.upload_graph(WALK_DIR_PATH_7F)
-        self.spot_client.set_localization_fiducial()
-
         # Demo
         self.call_api("Move to the front of 73B2")
         self.call_api("Move to the elevator hall at 7F")
