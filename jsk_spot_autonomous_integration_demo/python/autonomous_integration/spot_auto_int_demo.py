@@ -203,7 +203,7 @@ class SpotAutoIntegDemo(SpotDemo):
                 )
             ],
         )
-        if (target_api_list_full) == 0:
+        if len(target_api_list_full) == 0:
             rospy.logerr("No suitable API found")
             return None
         top_target_api_full = target_api_list_full[-1]
