@@ -11,9 +11,25 @@
         <arg name="api_key" value="$(arg api_key)" />
     </include>
 
-    <include file="$(find ros_speech_recognition)/launch/speech_recognition.launch">
+    <node
+        pkg="jsk_spot_autonomous_integration_demo"
+        type="lightweight_speech_recognition.py"
+        name="lightweight_speech_recognition"
+        output="screen"
+    >
+        <param name="api_key" value="$(arg api_key)" />
+    </node>
+
+    <node
+        pkg="jsk_spot_autonomous_integration_demo"
+        type="lightweight_speech_rec_caller.py"
+        name="lightweight_speech_rec_caller"
+        output="screen"
+    ></node>
+
+    <!-- <include file="$(find ros_speech_recognition)/launch/speech_recognition.launch">
         <arg name="launch_sound_play" value="false" />
         <arg name="depth" value="8" />
         <arg name="sample_rate" value="8000" />
-    </include>
+    </include> -->
 </launch>

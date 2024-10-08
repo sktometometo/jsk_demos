@@ -7,12 +7,10 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 import rospy
 import yaml
 from autonomous_integration.active_api_discovery import ActiveAPIDiscovery
-from autonomous_integration.autonomous_argument_completion import \
-    ArgumentCompletion
+from autonomous_integration.autonomous_argument_completion import ArgumentCompletion
 from autonomous_integration.sdp_utils import *
 from autonomous_integration.sdp_utils import call_api
-from smart_device_protocol.smart_device_protocol_interface import \
-    UWBSDPInterface
+from smart_device_protocol.smart_device_protocol_interface import UWBSDPInterface
 from sound_play.libsoundplay import SoundClient
 from speech_recognition_msgs.msg import SpeechRecognitionCandidates
 from std_msgs.msg import Header, String
@@ -32,7 +30,6 @@ class Demo:
             String,
             queue_size=1,
         )
-
         self.sub_stt = rospy.Subscriber(
             "/speech_to_text",
             SpeechRecognitionCandidates,
@@ -69,29 +66,15 @@ class Demo:
         api_short_list = [
             (api[1] + ": " + api[3], api[5], api[6]) for api in api_full_list
         ]
-        similarity_list = []
-        target_api_list_short_with_similarity = []
-        for (
-            description_api,
-            api_arguments,
-            api_response,
-        ) in api_short_list:
-            similarity = self.discovery._calc_semantic_similarity(
+        rospy.loginfo(f"api_short_list: {api_short_list}")
+        similarity_list, target_api_list_short_with_similarity = (
+            self.discovery.select_api(
                 intension,
                 {},
                 [],
-                description_api,
-                api_arguments,
-                api_response,
+                api_short_list,
             )
-            similarity_list.append(similarity)
-            if similarity > 0.5:
-                selected_api = (
-                    description_api,
-                    api_arguments,
-                    api_response,
-                )
-                target_api_list_short_with_similarity.append((similarity, selected_api))
+        )
         self.publish_debug_data(
             "api_similarity_list",
             [
@@ -113,7 +96,7 @@ class Demo:
             api_full_list[api_short_list.index(target_api_short)]
             for target_api_short in target_api_list_short
         ]
-        # rospy.loginfo(f"target_api: {target_api_list_short}")
+        rospy.loginfo(f"target_api: {target_api_list_short}")
         self.publish_debug_data(
             "target_api_selection",
             [
