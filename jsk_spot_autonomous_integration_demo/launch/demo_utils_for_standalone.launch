@@ -13,5 +13,7 @@
 
     <include file="$(find ros_speech_recognition)/launch/speech_recognition.launch">
         <arg name="launch_sound_play" value="false" />
+        <arg name="depth" value="8" />
+        <arg name="sample_rate" value="8000" />
     </include>
 </launch>
