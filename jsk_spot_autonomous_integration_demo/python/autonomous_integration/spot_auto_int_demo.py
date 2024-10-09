@@ -206,12 +206,12 @@ class SpotAutoIntegDemo(SpotDemo):
         if len(target_api_list_full) == 0:
             rospy.logerr("No suitable API found")
             return None
-        top_target_api_full = target_api_list_full[-1]
+        top_target_api_full = target_api_list_full[0]
         rospy.loginfo(f"Top API: {top_target_api_full}")
-        if target_api_list_full[-1][0] == (0, 0, 0, 0, 0, 0):
+        if target_api_list_full[0][0] == (0, 0, 0, 0, 0, 0):
             rospy.loginfo("Calling Robot API")
-            target_api_full = target_api_list_full[-1]
-            target_api_short = target_api_list_short[-1]
+            target_api_full = target_api_list_full[0]
+            target_api_short = target_api_list_short[0]
             target_api_args = self.completion.generate_arguments_for_api(
                 intension,
                 {},
@@ -242,8 +242,8 @@ class SpotAutoIntegDemo(SpotDemo):
         else:  # For device
             rospy.loginfo(
                 "Calling Device API because top API is not Robot API: %s(%f)",
-                target_api_list_full[-1],
-                target_api_list_short_with_similarity[-1][0],
+                target_api_list_full[0],
+                target_api_list_short_with_similarity[0][0],
             )
             # Get closest target api
             target_api_full = None
