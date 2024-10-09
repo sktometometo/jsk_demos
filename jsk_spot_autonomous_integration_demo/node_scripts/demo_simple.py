@@ -18,11 +18,11 @@ from std_msgs.msg import Header, String
 
 class Demo:
 
-    def __init__(self):
+    def __init__(self, max_workers: int = 5):
         super().__init__()
 
         self.sdp_interface = UWBSDPInterface()
-        self.discovery = ActiveAPIDiscovery()
+        self.discovery = ActiveAPIDiscovery(max_workers=max_workers)
         self.completion = ArgumentCompletion()
 
         self.pub_debug_string = rospy.Publisher(
@@ -197,10 +197,11 @@ class Demo:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--debug", action="store_true")
+    parser.add_argument("--max_workers", type=int, default=5)
     args = parser.parse_args()
 
     rospy.init_node("demo")
-    demo = Demo()
+    demo = Demo(max_workers=args.max_workers)
     time.sleep(5.0)
     if args.debug:
         while not rospy.is_shutdown():

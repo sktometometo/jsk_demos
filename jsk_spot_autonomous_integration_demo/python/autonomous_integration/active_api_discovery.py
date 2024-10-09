@@ -14,7 +14,10 @@ def cosine_similarity(vec1, vec2) -> float:
 
 class ActiveAPIDiscovery:
 
-    def __init__(self, service_name: str = "/openai/get_embedding"):
+    def __init__(
+        self, service_name: str = "/openai/get_embedding", max_workers: int = 5
+    ):
+        self._max_workers = max_workers
         rospy.wait_for_service(service_name, timeout=5.0)
         self.get_embedding = rospy.ServiceProxy(service_name, Embedding)
 
@@ -104,7 +107,7 @@ class ActiveAPIDiscovery:
             else:
                 return (similarity, None)
 
-        with ThreadPoolExecutor() as executor:
+        with ThreadPoolExecutor(max_workers=self._max_workers) as executor:
             results = executor.map(compute_similarity, list_api)
             selected_apis = [result for result in results if result[1] is not None]
             selected_apis = sorted(selected_apis, key=lambda x: x[0])
