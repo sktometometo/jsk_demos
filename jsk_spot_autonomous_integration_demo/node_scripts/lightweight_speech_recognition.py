@@ -100,6 +100,7 @@ def send_to_whisper(filename: str, api_key: str) -> Optional[str]:
         }
         data = {
             "model": "whisper-1",
+            "language": "en",
         }
         response = requests.post(url, headers=headers, files=files, data=data)
 
