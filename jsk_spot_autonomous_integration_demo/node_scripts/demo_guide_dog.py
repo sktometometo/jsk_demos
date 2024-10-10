@@ -15,13 +15,11 @@ WAYPOINT_7F_73B2_INSIDE = "yonder-adder-cjebDHNMdwNaax8EdVqs0A=="
 WAYPOINT_7F_73B2_OUTSIDE = "deific-toad-MtBK4mWxiBSG4N8xF7rYDg=="
 WAYPOINT_7F_73A4_INSIDE = "soured-cocoon-KRBT4IqkmBwCauxpgDhFEQ=="
 WAYPOINT_7F_73A4_OUTSIDE = "ivied-mamba-exgntSAsmmo.715WHYfo7w=="
-WAYPOINT_7F_ELEVATOR_OUTSIDE = "ivied-mamba-exgntSAsmmo.715WHYfo7w=="
-WAYPOINT_7F_ELEVATOR_INSIDE = "ivied-mamba-exgntSAsmmo.715WHYfo7w=="
+WAYPOINT_7F_ELEVATOR_OUTSIDE = "filial-hydra-Uw+zYz54tA.Sw07vySSrsQ=="
+WAYPOINT_7F_ELEVATOR_INSIDE = "warped-oxen-ZirzngBcug7glDDiKZCgYQ=="
 
-WALK_DIR_PATH_OUTSIDE = ""
-WAYPOINT_OUTSIDE_ELEVATOR_OUTSIDE = ""
-WAYPOINT_OUTSIDE_ELEVATOR_INSIDE = ""
-WAYPOINT_OUTSIDE_OUTSIDE_BUILDING = ""
+WALK_DIR_PATH_OUTSIDE = "/home/spot/autowalks/20241010_2f_to_outside.walk"
+WAYPOINT_OUTSIDE_OUTSIDE_BUILDING = "pet-bonobo-HEBZBWJ61eHEUL2NsPfSlg=="
 
 TARGET_LIST = {
     "73B2 inside": WAYPOINT_7F_73B2_INSIDE,
@@ -62,11 +60,11 @@ class Demo(SpotAutoIntegDemo):
         # Demo
         self.call_api("Move to the front of 73B2")
         self.call_api("Move to the front of elevator hall at 7F")
-        #self.call_api("Call elevator to downstairs")
+        # self.call_api("Call elevator to downstairs")
         self.call_api("Ride on the elevator")
-        #self.call_api("Press the elevator button to 2F")
+        # self.call_api("Press the elevator button to 2F")
         self.call_api("Ride off the elevator")
-        #self.call_api("Move to the out of eng. 2 building")
+        # self.call_api("Move to the out of eng. 2 building")
 
 
 if __name__ == "__main__":
