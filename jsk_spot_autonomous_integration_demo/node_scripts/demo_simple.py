@@ -13,7 +13,7 @@ from autonomous_integration.sdp_utils import call_api
 from smart_device_protocol.smart_device_protocol_interface import UWBSDPInterface
 from sound_play.libsoundplay import SoundClient
 from speech_recognition_msgs.msg import SpeechRecognitionCandidates
-from std_msgs.msg import Header, String
+from std_msgs.msg import ColorRGBA, Header, String
 
 
 class Demo:
@@ -24,6 +24,9 @@ class Demo:
         self.sdp_interface = UWBSDPInterface()
         self.discovery = ActiveAPIDiscovery(max_workers=max_workers)
         self.completion = ArgumentCompletion()
+        self.pub_color = rospy.Publisher(
+            "/smart_device_protocol/led_color", ColorRGBA, queue_size=1
+        )
 
         self.pub_debug_string = rospy.Publisher(
             "/debug_string",
@@ -37,10 +40,33 @@ class Demo:
         )
 
     def cb_stt(self, msg: SpeechRecognitionCandidates):
+        self.pub_color.publish(
+            ColorRGBA(
+                r=0.0,
+                g=1.0,
+                b=1.0,
+            )
+        )
         message = msg.transcript[0]
         rospy.loginfo(f"STT: {message}")
         ans = self.call_device(message)
         rospy.loginfo(f"Answer: {ans}")
+        if ans is not None:
+            self.pub_color.publish(
+                ColorRGBA(
+                    r=0.0,
+                    g=1.0,
+                    b=0.0,
+                )
+            )
+        else:
+            self.pub_color.publish(
+                ColorRGBA(
+                    r=1.0,
+                    g=0.0,
+                    b=0.0,
+                )
+            )
 
     def publish_debug_data(self, string_type: str, data):
         self.pub_debug_string.publish(
