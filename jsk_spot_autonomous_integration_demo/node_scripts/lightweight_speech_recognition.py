@@ -10,6 +10,7 @@ import requests
 import rospy
 import webrtcvad
 from speech_recognition_msgs.msg import SpeechRecognitionCandidates
+from std_msgs.msg import ColorRGBA
 from std_srvs.srv import Trigger, TriggerRequest, TriggerResponse
 
 # OpenAIのAPIキーを設定
@@ -25,7 +26,7 @@ FRAME_SIZE = int(RATE * FRAME_DURATION / 1000)  # フレームサイズ（サン
 SILENCE_LIMIT = 1  # 無音が続く時間（秒）
 WAVE_OUTPUT_FILENAME = "output.wav"
 
-global pub
+global pub, pub_led
 
 
 def record_audio() -> Optional[str]:
@@ -117,8 +118,10 @@ def send_to_whisper(filename: str, api_key: str) -> Optional[str]:
 
 def service_callback(req: TriggerRequest) -> TriggerResponse:
     global pub, API_KEY
+    pub_led.publish(ColorRGBA(r=1.0, g=1.0, b=1.0))
     filename = record_audio()
     if not filename:
+        pub_led.publish(ColorRGBA(r=1.0, g=0.0, b=0.0))
         rospy.logerr("録音に失敗しました")
         res = TriggerResponse(success=False, message="録音に失敗しました")
         return res
@@ -128,12 +131,14 @@ def service_callback(req: TriggerRequest) -> TriggerResponse:
         rospy.loginfo(f"* 一時ファイル {filename} を削除しました")
         os.remove(filename)
     if text:
+        pub_led.publish(ColorRGBA(r=0.0, g=1.0, b=0.0))
         candidates = SpeechRecognitionCandidates()
         candidates.transcript.append(text)
         pub.publish(candidates)
         res = TriggerResponse(success=True, message="文字起こしに成功しました")
         return res
     else:
+        pub_led.publish(ColorRGBA(r=1.0, g=0.0, b=0.0))
         rospy.logerr("文字起こしに失敗しました")
         res = TriggerResponse(success=False, message="文字起こしに失敗しました")
         return res
@@ -145,7 +150,11 @@ if __name__ == "__main__":
     API_KEY = rospy.get_param("~api_key")
 
     pub = rospy.Publisher("/speech_to_text", SpeechRecognitionCandidates, queue_size=1)
+    pub_led = rospy.Publisher(
+        "/smart_device_protocol/led_color", ColorRGBA, queue_size=1
+    )
     srv = rospy.Service(
         "/run_lightweight_speech_recognition", Trigger, service_callback
     )
+    pub_led.publish(ColorRGBA(r=0.0, g=1.0, b=0.0))
     rospy.spin()
