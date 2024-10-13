@@ -39,6 +39,14 @@ class Demo:
             self.cb_stt,
         )
 
+        self.pub_color.publish(
+            ColorRGBA(
+                r=0.0,
+                g=1.0,
+                b=0.0,
+            )
+        )
+
     def cb_stt(self, msg: SpeechRecognitionCandidates):
         self.pub_color.publish(
             ColorRGBA(
