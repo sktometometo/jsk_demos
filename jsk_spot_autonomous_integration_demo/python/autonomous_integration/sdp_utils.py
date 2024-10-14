@@ -125,7 +125,7 @@ def call_api(
     interface: UWBSDPInterface,
     api: API_TYPE,
     arguments: ARGUMENT_LIST,
-    timeout: float = 5.0,
+    timeout: float = 10.0,
 ) -> Optional[Tuple]:
     if len(arguments) != len(api[5]):
         raise ValueError(
@@ -133,13 +133,15 @@ def call_api(
         )
     content = [arguments[arg[0]] for arg in api[5]]
     if api[2] == SDPType.PUB:
-        interface.send(
-            api[0],
-            DataFrame(
+        frame = DataFrame(
                 packet_description=api[3],
                 serialization_format=api[4],
                 content=content,
-            ),
+            )
+        rospy.loginfo("Sending frame: {} to {}".format(frame, api[0]))
+        interface.send(
+            api[0],
+            frame
         )
         time.sleep(5.0)
         return tuple()
@@ -161,6 +163,7 @@ def call_api(
             if ans is not None:
                 interface.unregister_interface_callback((api[3], api[4]))
                 return ans
+        rospy.logerr("timeout exceeded")
         interface.unregister_interface_callback((api[3], api[4]))
         return ans
 

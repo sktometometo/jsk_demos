@@ -24,7 +24,7 @@ WAYPOINT_OUTSIDE_OUTSIDE_BUILDING = "pet-bonobo-HEBZBWJ61eHEUL2NsPfSlg=="
 TARGET_LIST = {
     "73B2 inside": WAYPOINT_7F_73B2_INSIDE,
     "73B2 front outside": WAYPOINT_7F_73B2_OUTSIDE,
-    "7F elevator hall": WAYPOINT_7F_ELEVATOR_OUTSIDE,
+    "7F entrance hall": WAYPOINT_7F_ELEVATOR_OUTSIDE,
     "7F elevator inside": WAYPOINT_7F_ELEVATOR_INSIDE,
     "outside of building": WAYPOINT_OUTSIDE_OUTSIDE_BUILDING,
 }
@@ -49,22 +49,37 @@ class Demo(SpotAutoIntegDemo):
         )
 
     def ride_on_elevator(self) -> None:
+        rospy.logwarn("Riding on elevator")
         self.spot_client.navigate_to(WAYPOINT_7F_ELEVATOR_INSIDE)
 
     def ride_off_elevator(self) -> None:
+        rospy.logwarn("Riding off elevator")
         self.spot_client.navigate_to(WAYPOINT_7F_ELEVATOR_OUTSIDE)
         self.spot_client.upload_graph(WALK_DIR_PATH_OUTSIDE)
         self.spot_client.set_localization_fiducial()
 
     def run_demo(self):
+        # Testing
+        #time.sleep(5.)
+        #self.call_api("Move to the out of eng. 2 building")
         # Demo
         self.call_api("Move to the front of 73B2")
-        self.call_api("Move to the front of elevator hall at 7F")
-        # self.call_api("Call elevator to downstairs")
+        self.call_api("Move to the entrance hall of 7F")
+        self.call_api("Call elevator to downstairs")
+        while True:
+            status = self.call_api("Get the door status")
+            print(f"door status: {status}")
+            if isinstance(status, tuple) and len(status) > 0 and status[0] is True:
+                break
         self.call_api("Ride on the elevator")
-        # self.call_api("Press the elevator button to 2F")
+        self.call_api("Press the elevator internal panel to 2F")
+        while True:
+            current_floor = self.call_api("Get the current floor")
+            print(f"current floor: {current_floor}")
+            if isinstance(current_floor, tuple) and len(current_floor) > 0 and current_floor[0] == 2:
+                break
         self.call_api("Ride off the elevator")
-        # self.call_api("Move to the out of eng. 2 building")
+        self.call_api("Move to the out of eng. 2 building")
 
 
 if __name__ == "__main__":

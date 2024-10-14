@@ -9,7 +9,7 @@ from spot_demo import SpotDemo
 class GuideDogDistanceKeeper(SpotDemo):
 
     def __init__(self, distance_threshold: float = 5.0, timeout: float = 5.0):
-        super().__init__()
+        super().__init__(people_bbox_topic_name="/spot/tracked_world_objects")
         self._distance_threshold = distance_threshold
         self._timeout = timeout
         self._mobility_lock = ROSLock("mobility")
