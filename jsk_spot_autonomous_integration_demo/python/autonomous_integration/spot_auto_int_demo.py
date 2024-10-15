@@ -43,7 +43,7 @@ class SpotAutoIntegDemo(SpotDemo):
         self._waypoint_target_list = waypoint_target_list
         self._target_api = {
             "Speak": self.speak,
-            "Move to some place, (e.g. the front of room, the inside of room, the outside of room, the entrance hall etc..)": self.move_to_target,
+            "Move to some place, (e.g. the front of room, the entrance hall etc..)": self.move_to_target,
         }
 
     def get_spot_api_list(self) -> List[API_TYPE]:
@@ -147,6 +147,7 @@ class SpotAutoIntegDemo(SpotDemo):
         intension: str,
     ) -> Optional[Tuple]:
         rospy.loginfo(f"Calling api from intension: {intension}")
+        self.speak("Calling {}".format(intension))
         api_full_list = get_api_list(self.sdp_interface)
         spot_api_full_list = self.get_spot_api_list()
         api_full_list += spot_api_full_list
@@ -247,7 +248,6 @@ class SpotAutoIntegDemo(SpotDemo):
             )
             # Get closest target api
             target_api_full = None
-            distance_to_base = float("inf")
             device_interfaces = self.sdp_interface.device_interfaces
             self.publish_debug_data(
                 "device_distances",
@@ -270,7 +270,9 @@ class SpotAutoIntegDemo(SpotDemo):
                 ],
             )
             # rospy.loginfo("device_interfaces: %s", device_interfaces)
-            for target_api_full_candidate in target_api_list_full:
+            distance_to_base = float("inf")
+            maximum_e = -1
+            for target_api_full_candidate, api_short_with_similarity in zip(target_api_list_full, target_api_list_short_with_similarity):
                 device_name = target_api_full_candidate[1]
                 # Get dev_info for device_name from device_interfaces
                 dev_info = None
@@ -285,21 +287,28 @@ class SpotAutoIntegDemo(SpotDemo):
                     rospy.logerr(f"Distance for {device_name} not found")
                     continue
                 distance = dev_info["distance"]
+                similarity = api_short_with_similarity[0]
                 distance_stamp = dev_info["distance_stamp"]
+                e = 0.1 * (1.0 / distance) + similarity
                 if rospy.Time.now() - distance_stamp > rospy.Duration(10.0):
                     rospy.logerr(
                         f"Distance for {device_name} is too old: {distance_stamp}"
                     )
                     continue
-                if distance < distance_to_base:
+                rospy.loginfo(f"api: {api_short_with_similarity[1]}, similarity: {similarity}, distance: {distance}, e: {e}")
+                #if distance < distance_to_base:
+                #    target_api_full = target_api_full_candidate
+                #    distance_to_base = distance
+                if maximum_e < e: 
                     target_api_full = target_api_full_candidate
-                    distance_to_base = distance
+                    maximum_e = e
             if target_api_full is None:
                 rospy.logerr("No suitable API found")
                 return None
             target_api_short = target_api_list_short[
                 target_api_list_full.index(target_api_full)
             ]
+            rospy.loginfo(f"target_api_short: {target_api_short}")
             target_api_args = self.completion.generate_arguments_for_api(
                 intension,
                 {},

@@ -60,25 +60,26 @@ class Demo(SpotAutoIntegDemo):
 
     def run_demo(self):
         # Testing
-        #time.sleep(5.)
+        time.sleep(5.)
         #self.call_api("Move to the out of eng. 2 building")
+        #self.call_api("Move to the entrance hall of 7F")
         # Demo
-        self.call_api("Move to the front of 73B2")
-        self.call_api("Move to the entrance hall of 7F")
+        #self.call_api("Move to the front of 73B2")
+        #self.call_api("Move to the entrance hall of 7F")
         self.call_api("Call elevator to downstairs")
         while True:
             status = self.call_api("Get the door status")
             print(f"door status: {status}")
             if isinstance(status, tuple) and len(status) > 0 and status[0] is True:
                 break
-        self.call_api("Ride on the elevator")
+        self.call_api("Get on the elevator car")
         self.call_api("Press the elevator internal panel to 2F")
         while True:
             current_floor = self.call_api("Get the current floor")
             print(f"current floor: {current_floor}")
             if isinstance(current_floor, tuple) and len(current_floor) > 0 and current_floor[0] == 2:
                 break
-        self.call_api("Ride off the elevator")
+        self.call_api("Get off the elevator car")
         self.call_api("Move to the out of eng. 2 building")
 
 
