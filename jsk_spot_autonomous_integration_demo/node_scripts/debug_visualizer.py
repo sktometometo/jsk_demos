@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import copy
 import math
 import threading
 from dataclasses import dataclass
@@ -8,9 +9,11 @@ from typing import Any, Dict, List, Optional, Tuple
 import rospy
 import yaml
 from geometry_msgs.msg import Point
-from jsk_rviz_plugins.msg import OverlayText
-from smart_device_protocol.smart_device_protocol_interface import \
-    UWBSDPInterface
+from jsk_rviz_plugins.msg import OverlayText, Pictogram, PictogramArray
+from smart_device_protocol.smart_device_protocol_interface import (
+    DataFrame,
+    UWBSDPInterface,
+)
 from std_msgs.msg import Header, String
 from uwb_localization.msg import SDPUWBDeviceArray
 from visualization_msgs.msg import Marker, MarkerArray
@@ -34,6 +37,22 @@ class LightDeviceInfo:
         )
 
 
+@dataclass
+class LockDeviceInfo:
+    device_name: str
+    header: Header = Header()
+    position: Point = Point()
+    status: Optional[bool] = None
+
+    def is_complete(self) -> bool:
+        return all(
+            [
+                self.status is not None,
+                self.header.frame_id != "",
+            ]
+        )
+
+
 class DebugVisualizer:
 
     def __init__(self):
@@ -41,12 +60,29 @@ class DebugVisualizer:
         self.sdp_interface.register_interface_callback(
             ("Light status", "?"), self._callback_light_interface
         )
+        self.sdp_interface.register_interface_callback(
+            ("Key status", "?"),
+            self._callback_key_status,
+        )
 
         self._pub_marker_light = rospy.Publisher(
             "/light_room_device_marker_array",
             MarkerArray,
             queue_size=1,
         )
+        self._pub_marker_lock = rospy.Publisher(
+            "/lock_device_demo_marker_array",
+            MarkerArray,
+            queue_size=1,
+        )
+        self._pub_pictogram_lock = rospy.Publisher(
+            "/lock_device_demo_pictogram_array",
+            PictogramArray,
+            queue_size=1,
+        )
+
+        self.lock_device_dict: Dict[str, LockDeviceInfo] = dict()
+        self.lock_lock_device_dict = threading.Lock()
 
         self.light_device_dict: Dict[str, LightDeviceInfo] = dict()
         self.lock_light_device_dict = threading.Lock()
@@ -109,8 +145,49 @@ class DebugVisualizer:
                 self.light_device_dict[device_name].distance = distance
                 self.light_device_dict[device_name].status = status
 
+    def _callback_key_status(self, address: Tuple, data_frame: DataFrame):
+        device_interfaces = copy.deepcopy(self.sdp_interface.device_interfaces)
+        if address not in device_interfaces:
+            return
+        else:
+            device_name = device_interfaces[address]["device_name"]
+            status = data_frame.content[0]
+            with self.lock_lock_device_dict:
+                if device_name not in self.lock_device_dict:
+                    self.lock_device_dict[device_name] = LockDeviceInfo(
+                        device_name=device_name,
+                        status=status,
+                    )
+                else:
+                    self.lock_device_dict[device_name].status = status
+
     def _callback_uwb_device(self, msg: SDPUWBDeviceArray):
         rospy.logerr(f"msg: {msg}")
+        device_interfaces = copy.deepcopy(self.sdp_interface.device_interfaces)
+        dev_dict = {
+            dev_if["device_name"]: dev_if["interfaces"]
+            for addr, dev_if in device_interfaces.items()
+        }
+        for uwb_dev in msg.devices:
+            if uwb_dev.device_name not in dev_dict:
+                print(f"Device {uwb_dev.device_name} not in device_interfaces")
+                continue
+            if ("Key control", "s") not in dev_dict[uwb_dev.device_name]:
+                print(
+                    f"Device {uwb_dev.device_name} does not have key status interface: {dev_dict[uwb_dev.device_name]}"
+                )
+                continue
+            with self.lock_lock_device_dict:
+                if uwb_dev.device_name not in self.lock_device_dict:
+                    self.lock_device_dict[uwb_dev.device_name] = LockDeviceInfo(
+                        header=uwb_dev.header,
+                        position=uwb_dev.point,
+                        device_name=uwb_dev.device_name,
+                    )
+                else:
+                    self.lock_device_dict[uwb_dev.device_name].header = uwb_dev.header
+                    self.lock_device_dict[uwb_dev.device_name].position = uwb_dev.point
+
         for uwb_dev in msg.devices:
             with self.lock_light_device_dict:
                 if uwb_dev.device_name not in self.light_device_dict:
@@ -243,7 +320,7 @@ class DebugVisualizer:
                 text.text += f"{device_name}: {description}\n"
             self._pub_target_api.publish(text)
 
-    def _publish_marker(self):
+    def _publish_marker_light(self):
 
         marker_array = MarkerArray()
         with self.lock_light_device_dict:
@@ -357,6 +434,103 @@ class DebugVisualizer:
                 marker_array.markers.append(marker)
         self._pub_marker_light.publish(marker_array)
 
+    def _publish_marker_lock(self):
+
+        marker_array = MarkerArray()
+        pictogram_array = PictogramArray()
+        with self.lock_lock_device_dict:
+            for device_name, device_info in self.lock_device_dict.items():
+                if not device_info.is_complete():
+                    show = False
+                else:
+                    show = True
+                #
+                # Pin marker
+                #
+                marker = Marker()
+                marker.header = device_info.header
+                marker.id = hash(device_name) % 214748364
+                marker.type = Marker.CYLINDER
+                marker.action = Marker.ADD if show else Marker.DELETE
+                marker.pose.position.x = device_info.position.x
+                marker.pose.position.y = device_info.position.y
+                marker.pose.position.z = 0.75
+                marker.pose.orientation.w = 1.0
+                marker.scale.x = 0.1
+                marker.scale.y = 0.1
+                marker.scale.z = 1.5
+                marker.color.a = 1.0
+                marker.color.r = 25 / 255.0
+                marker.color.g = 255 / 255.0
+                marker.color.b = 240 / 255.0
+                marker_array.markers.append(marker)
+                #
+                marker = Marker()
+                marker.header = device_info.header
+                marker.id = hash(device_name) % 214748364 + 1
+                marker.type = Marker.CYLINDER
+                marker.action = Marker.ADD if show else Marker.DELETE
+                marker.pose.position.x = device_info.position.x
+                marker.pose.position.y = device_info.position.y
+                marker.pose.position.z = 1.5
+                marker.pose.orientation.y = 1.0 / math.sqrt(2)
+                marker.pose.orientation.w = 1.0 / math.sqrt(2)
+                marker.scale.x = 0.5
+                marker.scale.y = 0.5
+                marker.scale.z = 0.1
+                marker.color.a = 1.0
+                marker.color.r = 25 / 255.0
+                marker.color.g = 255 / 255.0
+                marker.color.b = 240 / 255.0
+                marker_array.markers.append(marker)
+                #
+                # Device name marker
+                #
+                marker = Marker()
+                marker.header = device_info.header
+                marker.id = hash(device_name) % 214748364 + 3
+                marker.type = Marker.TEXT_VIEW_FACING
+                marker.action = Marker.ADD if show else Marker.DELETE
+                marker.pose.position.x = device_info.position.x
+                marker.pose.position.y = device_info.position.y
+                marker.pose.position.z = 2.0
+                marker.pose.orientation.w = 1.0
+                marker.color.a = 1.0
+                marker.color.r = 1.0
+                marker.color.g = 1.0
+                marker.color.b = 1.0
+                marker.scale.z = 0.5
+                marker.text = device_name
+                marker_array.markers.append(marker)
+                #
+                # Lock Status Pictogram
+                #
+                pictogram = Pictogram()
+                pictogram.header = device_info.header
+                pictogram.pose.position.x = device_info.position.x
+                pictogram.pose.position.y = device_info.position.y - 0.5
+                pictogram.pose.position.z = 1.5
+                pictogram.pose.orientation.y = -1.0 / math.sqrt(2)
+                pictogram.pose.orientation.w = 1.0 / math.sqrt(2)
+                pictogram.mode = Pictogram.PICTOGRAM_MODE
+                pictogram.speed = 1.0
+                pictogram.size = 1.0
+                pictogram.color.a = 1.0
+                if device_info.status:
+                    pictogram.color.r = 1.0
+                    pictogram.color.g = 0
+                    pictogram.color.b = 0
+                    pictogram.character = "lock"
+                else:
+                    pictogram.color.r = 0.0
+                    pictogram.color.g = 1.0
+                    pictogram.color.b = 0.0
+                    pictogram.character = "lock-open"
+                pictogram_array.pictograms.append(pictogram)
+                pictogram_array.header = device_info.header
+        self._pub_marker_lock.publish(marker_array)
+        self._pub_pictogram_lock.publish(pictogram_array)
+
     def run(self):
 
         rate = rospy.Rate(1)
@@ -364,7 +538,8 @@ class DebugVisualizer:
             self._publish_api_list()
             self._publish_target_api()
             self._publish_api_call()
-            self._publish_marker()
+            self._publish_marker_light()
+            self._publish_marker_lock()
             rate.sleep()
 
 

@@ -12,8 +12,7 @@ Panels:
         - /BodyCameraDepthClouds1/RightDepthCloud1/Autocompute Value Bounds1
         - /BodyCameraDepthClouds1/RearDepthCloud1/Autocompute Value Bounds1
         - /SDPDeviceMarkerArray1
-        - /OverlayTextTargetAPI1
-        - /OverlayText1
+        - /PictogramArray1/Status1
       Splitter Ratio: 0.5
     Tree Height: 889
   - Class: rviz/Selection
@@ -448,8 +447,8 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 3.0880672931671143
-        Min Value: -2.96132755279541
+        Max Value: 2.9132139682769775
+        Min Value: -2.6352405548095703
         Value: true
       Axis: Z
       Channel Name: intensity
@@ -525,7 +524,7 @@ Visualization Manager:
       Marker Topic: /light_room_device_marker_array
       Name: SDPDeviceMarkerArray
       Namespaces:
-        light_room_device: true
+        {}
       Queue Size: 100
       Value: true
     - Align Bottom: false
@@ -591,6 +590,21 @@ Visualization Manager:
       text size: 12
       top: 200
       width: 450
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /lock_device_demo_marker_array
+      Name: MarkerArray
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: jsk_rviz_plugin/PictogramArray
+      Enabled: true
+      Name: PictogramArray
+      Queue Size: 10
+      Topic: /lock_device_demo_pictogram_array
+      Unreliable: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -619,7 +633,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 13.610641479492188
+      Distance: 16.827335357666016
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -635,9 +649,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.044797152280807495
+      Pitch: 0.8647967576980591
       Target Frame: body
-      Yaw: 0.7627184391021729
+      Yaw: 0.6877185106277466
     Saved: ~
 Window Geometry:
   Displays:

@@ -39,6 +39,6 @@
         name="debug_visualizer"
         output="screen"></node>
 
-    <include
-        file="$(find jsk_spot_startup)/launch/uwb_localization.launch"></include>
+    <!-- <include
+        file="$(find jsk_spot_startup)/launch/uwb_localization.launch"></include> -->
 </launch>
