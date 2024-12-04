@@ -1,28 +1,31 @@
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
-import openai
+import rospy
+from openai_ros.srv import Embedding, EmbeddingRequest
 
 from . import ARGUMENT_NAMES_AND_TYPES, RESPONSE_NAMES_AND_TYPES
 
 
 def cosine_similarity(vec1, vec2) -> float:
-    return np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
+    return float(np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2)))
 
 
 class ActiveAPIDiscovery:
 
-    def __init__(self, api_key: str):
-        openai.api_key = api_key
-        self.api_client = openai.OpenAI(api_key=api_key)
-        print(f"openai.api_key: {openai.api_key}")
+    def __init__(
+        self, service_name: str = "/openai/get_embedding", max_workers: int = 5
+    ):
+        self._max_workers = max_workers
+        rospy.wait_for_service(service_name, timeout=5.0)
+        self.get_embedding = rospy.ServiceProxy(service_name, Embedding)
 
     def _get_embedding(
         self,
         description: str,
         arguments: ARGUMENT_NAMES_AND_TYPES,
         responses: RESPONSE_NAMES_AND_TYPES,
-        model: str,
     ) -> np.ndarray:
         """
         Get the embedding of the given text.
@@ -30,11 +33,10 @@ class ActiveAPIDiscovery:
         text = "API description: " + description + "\n"
         text += "Arguments: " + str(arguments) + "\n"
         text += "Responses: " + str(responses)
-        res = self.api_client.embeddings.create(
-            input=[text],
-            model=model,
-        )
-        embeddings = res.data[0].embedding
+        # rospy.loginfo(f"Requesting embedding for: {text}")
+        res = self.get_embedding(EmbeddingRequest(prompt=text))
+        embeddings = res.embedding
+        # rospy.loginfo(f"Received embedding for {text}")
         return np.array(embeddings)
 
     def _calc_semantic_similarity(
@@ -54,13 +56,11 @@ class ActiveAPIDiscovery:
                 description_api,
                 arguments_api,
                 response_api,
-                "text-embedding-3-small",
             ),
             self._get_embedding(
                 description_intension,
                 arguments_intension,
                 response_intension,
-                "text-embedding-3-small",
             ),
         )
 
@@ -71,17 +71,23 @@ class ActiveAPIDiscovery:
         response_names_and_types_intension: RESPONSE_NAMES_AND_TYPES,
         list_api: List[Tuple[str, ARGUMENT_NAMES_AND_TYPES, RESPONSE_NAMES_AND_TYPES]],
         threshold: float = 0.5,
-    ) -> Optional[Tuple[str, ARGUMENT_NAMES_AND_TYPES, RESPONSE_NAMES_AND_TYPES]]:
+    ) -> List[
+        Tuple[
+            List[float],
+            List[
+                Tuple[
+                    float,
+                    Tuple[str, ARGUMENT_NAMES_AND_TYPES, RESPONSE_NAMES_AND_TYPES],
+                ]
+            ],
+        ]
+    ]:
         """
         Select the most suitable API for the given intension and position.
         """
-        max_similarity = threshold
-        selected_api = None
-        for (
-            description_api,
-            api_arguments,
-            api_response,
-        ) in list_api:
+
+        def compute_similarity(api_item):
+            description_api, api_arguments, api_response = api_item
             similarity = self._calc_semantic_similarity(
                 description_intension,
                 argument_names_and_types_intension,
@@ -91,11 +97,19 @@ class ActiveAPIDiscovery:
                 api_response,
             )
             print(f"{description_api}: similarity: {similarity}")
-            if similarity > max_similarity:
-                max_similarity = similarity
+            if similarity > threshold:
                 selected_api = (
                     description_api,
                     api_arguments,
                     api_response,
                 )
-        return selected_api
+                return (similarity, selected_api)
+            else:
+                return (similarity, None)
+
+        with ThreadPoolExecutor(max_workers=self._max_workers) as executor:
+            results = executor.map(compute_similarity, list_api)
+            selected_apis = [result for result in results if result[1] is not None]
+            selected_apis = sorted(selected_apis, key=lambda x: -x[0])
+            similarity_list = [result[0] for result in selected_apis]
+            return similarity_list, selected_apis

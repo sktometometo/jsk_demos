@@ -1,0 +1,37 @@
+<launch>
+    <arg name="api_key" />
+    <arg name="port" />
+    <arg name="launch_utils" default="true" />
+
+    <include file="$(find smart_device_protocol)/launch/demo.launch">
+        <arg name="port" value="$(arg port)" />
+        <arg name="tag_id" value="10" />
+    </include>
+
+    <include file="$(find jsk_spot_autonomous_integration_demo)/launch/demo_utils.launch"
+        if="$(arg launch_utils)">
+        <arg name="api_key" value="$(arg api_key)" />
+    </include>
+
+    <node
+        pkg="jsk_spot_autonomous_integration_demo"
+        type="lightweight_speech_recognition.py"
+        name="lightweight_speech_recognition"
+        output="screen"
+    >
+        <param name="api_key" value="$(arg api_key)" />
+    </node>
+
+    <node
+        pkg="jsk_spot_autonomous_integration_demo"
+        type="lightweight_speech_rec_caller.py"
+        name="lightweight_speech_rec_caller"
+        output="screen"
+    ></node>
+
+    <!-- <include file="$(find ros_speech_recognition)/launch/speech_recognition.launch">
+        <arg name="launch_sound_play" value="false" />
+        <arg name="depth" value="8" />
+        <arg name="sample_rate" value="8000" />
+    </include> -->
+</launch>

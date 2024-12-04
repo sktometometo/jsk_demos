@@ -4,6 +4,7 @@
 (ros::load-ros-package "speech_recognition_msgs")
 (ros::load-ros-package "spot_lead_demo_202403")
 (ros::load-ros-package "jsk_spot_startup")
+(ros::load-ros-package "std_srvs")
 
 (load "package://spoteus/spot-interface.l")
 (load "package://jsk_spot_startup/euslisp/look-at-client.l")
@@ -62,6 +63,10 @@
         (* -1.0 *max-rotation-speed*)))
 
 vtheta))
+
+(defun auto-dock
+  ()
+  (call-trigger-service "/spot/dock_fixed_id" :wait t))
 
 (defun calc-vx 
   (target-distance)
@@ -307,7 +312,8 @@ vtheta))
           (setq *follow-active* nil)
           (setq *look-around* nil)
           (send *ri* :stow-arm)
-          (send *ri* :dock 521)
+          ;(send *ri* :dock 521)
+          (auto-dock)
           (send *ri* :sit)
           (send *ri* :power-off)
           ))

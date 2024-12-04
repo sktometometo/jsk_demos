@@ -28,7 +28,7 @@ class TableEntry:
 
 class SpotDemo:
 
-    def __init__(self):
+    def __init__(self, people_bbox_topic_name="/spot_recognition/bbox_array"):
 
         self._reset_localize = rospy.ServiceProxy(
             "/device_localization_node/reset",
@@ -58,7 +58,7 @@ class SpotDemo:
         self._odom_to_people: List[PyKDL.Frame] = []
         self._lock_people = threading.Lock()
         self._sub_people_bbox = rospy.Subscriber(
-            "/spot_recognition/bbox_array",
+            people_bbox_topic_name,
             BoundingBoxArray,
             self._cb_people_bbox,
         )
