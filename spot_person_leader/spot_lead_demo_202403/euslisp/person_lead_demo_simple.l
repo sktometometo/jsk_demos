@@ -96,8 +96,8 @@
           (setq target-bbox bbox)))
       (if target-bbox
         (let ((target-coords-from-robot (convert-robot-based-coords (send target-bbox :pose))))
-          (move-robot target-coords-from-robot)
-          (publish-target-bbox target-coords-from-robot)
+          ;(move-robot target-coords-from-robot)
+          ;(publish-target-bbox target-coords-from-robot)
           (setq *last-target-coords-from-vision* (transform-coords *odom-vision-to-body* target-coords-from-robot))
           (setq *last-target-stamp* (ros::time-now))
           (return-from callback-bbox-array))
@@ -109,13 +109,14 @@
           (let ((last-target-coords-from-robot (transform-coords
                                                  (send *odom-vision-to-body* :inverse-transformation)
                                                  *last-target-coords-from-vision*)))
-            (move-robot last-target-coords-from-robot)
-            (publish-target-bbox last-target-coords-from-robot)
+            ;(move-robot last-target-coords-from-robot)
+            ;(publish-target-bbox last-target-coords-from-robot)
             (return-from callback-bbox-array))
           (progn
             (ros::ros-info "Target not found.")
             ;; Target not found and timeout
             (setq *last-target-stamp* nil)
+            (setq *last-target-coords-from-vision* nil)
             (setq *current-target-label* nil)))))
     ;; Choose nearest bbox to ref coords as target when target label is not set.
     (let
@@ -156,6 +157,22 @@
   (ros::subscribe "/spot/odometry" nav_msgs::Odometry #'callback-odom)
   (ros::subscribe "/spot/tracked_world_objects" jsk_recognition_msgs::BoundingBoxArray #'callback-bbox-array)
   (ros::ros-info "Initialized.")
-  (ros::spin))
+  (while (ros::ok)
+    (ros::spin-once)
+    (if (and *odom-vision-to-body*
+             *last-target-coords-from-vision*
+             *last-target-stamp*
+             (ros::time<
+               (ros::time- (ros::time-now) *last-target-stamp*)
+               (ros::time *timeout-duration*)))
+      (let ((last-target-coords-from-robot (transform-coords
+                                             (send *odom-vision-to-body* :inverse-transformation)
+                                             *last-target-coords-from-vision*)))
+        (move-robot last-target-coords-from-robot)
+        (publish-target-bbox last-target-coords-from-robot)
+        )
+      )
+    )
+  )
 
 (main)

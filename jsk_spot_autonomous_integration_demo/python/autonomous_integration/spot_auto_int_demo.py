@@ -145,9 +145,30 @@ class SpotAutoIntegDemo(SpotDemo):
     def call_api(
         self,
         intension: str,
+        workaround: Optional[Tuple[API_TYPE, ARGUMENT_LIST]] = None,
     ) -> Optional[Tuple]:
         rospy.loginfo(f"Calling api from intension: {intension}")
         self.speak("Calling {}".format(intension))
+        if workaround is not None:
+            target_api_full = workaround[0]
+            target_api_args = workaround[1]
+            self.publish_debug_data(
+                "api_call",
+                {
+                    "api": convert_api_type_to_string_ready(target_api_full),
+                    "arguments": target_api_args,
+                },
+            )
+            res = call_api(self.sdp_interface, target_api_full, target_api_args)
+            self.publish_debug_data(
+                "api_response",
+                {
+                    "api": convert_api_type_to_string_ready(target_api_full),
+                    "response": res,
+                },
+            )
+            return res
+            return
         api_full_list = get_api_list(self.sdp_interface)
         spot_api_full_list = self.get_spot_api_list()
         api_full_list += spot_api_full_list
@@ -289,7 +310,7 @@ class SpotAutoIntegDemo(SpotDemo):
                 distance = dev_info["distance"]
                 similarity = api_short_with_similarity[0]
                 distance_stamp = dev_info["distance_stamp"]
-                e = 0.1 * (1.0 / distance) + similarity
+                e = 0.05 * (1.0 / distance) + similarity
                 if rospy.Time.now() - distance_stamp > rospy.Duration(10.0):
                     rospy.logerr(
                         f"Distance for {device_name} is too old: {distance_stamp}"

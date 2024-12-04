@@ -50,11 +50,11 @@ class Demo(SpotAutoIntegDemo):
 
     def ride_on_elevator(self) -> None:
         rospy.logwarn("Riding on elevator")
-        self.spot_client.navigate_to(WAYPOINT_7F_ELEVATOR_INSIDE)
+        self.spot_client.navigate_to(WAYPOINT_7F_ELEVATOR_INSIDE, blocking=True)
 
     def ride_off_elevator(self) -> None:
         rospy.logwarn("Riding off elevator")
-        self.spot_client.navigate_to(WAYPOINT_7F_ELEVATOR_OUTSIDE)
+        self.spot_client.navigate_to(WAYPOINT_7F_ELEVATOR_OUTSIDE, blocking=True)
         self.spot_client.upload_graph(WALK_DIR_PATH_OUTSIDE)
         self.spot_client.set_localization_fiducial()
 
@@ -64,8 +64,9 @@ class Demo(SpotAutoIntegDemo):
         #self.call_api("Move to the out of eng. 2 building")
         #self.call_api("Move to the entrance hall of 7F")
         # Demo
-        #self.call_api("Move to the front of 73B2")
-        #self.call_api("Move to the entrance hall of 7F")
+        self.call_api("Move to the front of 73B2")
+        self.call_api("speak \"take you to outside\"")
+        self.call_api("Move to the entrance hall of 7F")
         self.call_api("Call elevator to downstairs")
         while True:
             status = self.call_api("Get the door status")
@@ -74,13 +75,23 @@ class Demo(SpotAutoIntegDemo):
                 break
         self.call_api("Get on the elevator car")
         self.call_api("Press the elevator internal panel to 2F")
+        current_floor = self.call_api("Get the current floor")
+        print(f"current floor: {current_floor}")
         while True:
-            current_floor = self.call_api("Get the current floor")
+            current_floor = self.call_api(
+                    "Get the current floor",
+                    workaround=(
+                            ((36, 10, 196, 248, 180, 124), 'ELEVATOR_STATUS', SDPType.SUB, 'Floor', 'i', [], [('res0', 'int')]),
+                            {},
+                            ),
+                    )
             print(f"current floor: {current_floor}")
             if isinstance(current_floor, tuple) and len(current_floor) > 0 and current_floor[0] == 2:
                 break
+        time.sleep(5.)
         self.call_api("Get off the elevator car")
         self.call_api("Move to the out of eng. 2 building")
+        self.call_api("speak \"Here is outside\"")
 
 
 if __name__ == "__main__":
