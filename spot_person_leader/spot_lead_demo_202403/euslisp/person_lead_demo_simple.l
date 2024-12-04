@@ -18,11 +18,15 @@
 (setq *timeout-duration* 1.0) ;; sec
 
 
-(defun convert-robot-based-coords (pose-vision)
+(defun convert-vision-based-pose-to-robot-based-coords (pose-vision)
   "Convert vision-based tf-pose to robot-based coordinates."
+  (convert-vision-based-coords-to-robot-based-coords (ros::tf-pose->coords pose-vision)))
+
+(defun convert-vision-based-coords-to-robot-based-coords (coords-vision)
+  "Convert vision-based coords to robot-based coordinates."
   (transform-coords
     (send *odom-vision-to-body* :inverse-transformation)
-    (ros::tf-pose->coords pose-vision)))
+    coords-vision))
 
 (defun calc-vtheta (target-direction &key (scale 1.0))
   "Calculate angular velocity (rad/sec) based on target direction (rad)."
@@ -84,6 +88,7 @@
 
 
 (defun callback-bbox-array (msg)
+  "Call back func for world object array. Calculate target label and store its coordinate on fixed frame"
   (if (or (not *odom-vision-to-body*)
           (= (length (send msg :boxes)) 0))
     (return-from callback-bbox-array))
@@ -95,7 +100,7 @@
         (if (= *current-target-label* (send bbox :label))
           (setq target-bbox bbox)))
       (if target-bbox
-        (let ((target-coords-from-robot (convert-robot-based-coords (send target-bbox :pose))))
+        (let ((target-coords-from-robot (convert-vision-based-pose-to-robot-based-coords (send target-bbox :pose))))
           ;(move-robot target-coords-from-robot)
           ;(publish-target-bbox target-coords-from-robot)
           (setq *last-target-coords-from-vision* (transform-coords *odom-vision-to-body* target-coords-from-robot))
@@ -165,9 +170,9 @@
              (ros::time<
                (ros::time- (ros::time-now) *last-target-stamp*)
                (ros::time *timeout-duration*)))
-      (let ((last-target-coords-from-robot (transform-coords
-                                             (send *odom-vision-to-body* :inverse-transformation)
-                                             *last-target-coords-from-vision*)))
+      (let ((last-target-coords-from-robot
+              (convert-vision-based-coords-to-robot-based-coords
+                *last-target-coords-from-vision*)))
         (move-robot last-target-coords-from-robot)
         (publish-target-bbox last-target-coords-from-robot)
         )
