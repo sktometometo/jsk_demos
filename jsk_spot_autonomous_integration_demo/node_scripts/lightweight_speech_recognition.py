@@ -5,17 +5,15 @@ import tempfile
 import wave
 from typing import Optional
 
-import pyaudio
 import requests
+import pyaudio
 import rospy
 import webrtcvad
 from speech_recognition_msgs.msg import SpeechRecognitionCandidates
 from std_msgs.msg import ColorRGBA
 from std_srvs.srv import Trigger, TriggerRequest, TriggerResponse
 
-# OpenAIのAPIキーを設定
-global API_KEY
-API_KEY = "your-api-key-here"  # ここにあなたのAPIキーを入力してください
+from openai import AzureOpenAI, OpenAI
 
 # 録音設定
 FORMAT = pyaudio.paInt16
@@ -26,10 +24,9 @@ FRAME_SIZE = int(RATE * FRAME_DURATION / 1000)  # フレームサイズ（サン
 SILENCE_LIMIT = 1  # 無音が続く時間（秒）
 WAVE_OUTPUT_FILENAME = "output.wav"
 
-global pub, pub_led
-
 
 def record_audio() -> Optional[str]:
+    global FORMAT, CHANNELS, RATE, FRAME_SIZE, SILENCE_LIMIT
     vad = webrtcvad.Vad(2)  # 0から3までの攻撃性レベル（0が最も低く、3が最も高い）
     p = pyaudio.PyAudio()
 
@@ -88,36 +85,27 @@ def record_audio() -> Optional[str]:
     return filename
 
 
-def send_to_whisper(filename: str, api_key: str) -> Optional[str]:
-    url = "https://api.openai.com/v1/audio/transcriptions"
-
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-    }
+def send_to_whisper_2(filename: str) -> Optional[str]:
+    global client, model_name
 
     with open(filename, "rb") as f:
-        files = {
-            "file": (filename, f, "audio/wav"),
-        }
-        data = {
-            "model": "whisper-1",
-            "language": "en",
-        }
-        response = requests.post(url, headers=headers, files=files, data=data)
-
-    if response.status_code == 200:
-        result = response.json()
-        rospy.loginfo("* 文字起こし結果: {}".format(result))
-        return result.get("text", None)
-    else:
-        rospy.logerr(
-            f"リクエストが失敗しました。ステータスコード: {response.status_code}"
+        # transcription = client.audio.translations.create(
+        #     file=f,
+        #     model=model_name,
+        #     response_format="text",
+        # )
+        transcription = client.audio.transcriptions.create(
+            file=f,
+            model=model_name,
+            language="en",
+            response_format="text",
         )
-        return None
+        rospy.loginfo("* 文字起こし結果: {}".format(transcription))
+        return transcription
 
 
 def service_callback(req: TriggerRequest) -> TriggerResponse:
-    global pub, API_KEY
+    global pub, API_KEY, pub_led
     pub_led.publish(ColorRGBA(r=1.0, g=1.0, b=1.0))
     filename = record_audio()
     if not filename:
@@ -125,7 +113,7 @@ def service_callback(req: TriggerRequest) -> TriggerResponse:
         rospy.logerr("録音に失敗しました")
         res = TriggerResponse(success=False, message="録音に失敗しました")
         return res
-    text = send_to_whisper(filename=filename, api_key=API_KEY)
+    text = send_to_whisper_2(filename=filename)
     # delete temporary file
     if filename:
         rospy.loginfo(f"* 一時ファイル {filename} を削除しました")
@@ -145,10 +133,21 @@ def service_callback(req: TriggerRequest) -> TriggerResponse:
 
 
 if __name__ == "__main__":
+    global pub, pub_led, client, model_name
     rospy.init_node("lightweight_speech_recognition", anonymous=True)
-
     API_KEY = rospy.get_param("~api_key")
-
+    use_azure = rospy.get_param("~use_azure", False)
+    model_name = rospy.get_param("~model_name", "whisper-1")
+    if use_azure:
+        rospy.loginfo("Using Azure OpenAI")
+        client = AzureOpenAI(
+            api_key=API_KEY,
+            azure_endpoint=rospy.get_param("~azure_endpoint"),
+            api_version=rospy.get_param("~azure_api_version", "2024-07-01-preview"),
+        )
+    else:
+        rospy.loginfo("Using OpenAI")
+        client = OpenAI(api_key=API_KEY)
     pub = rospy.Publisher("/speech_to_text", SpeechRecognitionCandidates, queue_size=1)
     pub_led = rospy.Publisher(
         "/smart_device_protocol/led_color", ColorRGBA, queue_size=1
