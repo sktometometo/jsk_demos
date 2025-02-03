@@ -10,6 +10,7 @@
 
   <buildtool_depend>catkin</buildtool_depend>
   <exec_depend>jsk_spot_sdp_localization_demo</exec_depend>
+  <exec_depend>smart_device_protocol</exec_depend>
   <exec_depend>scipy</exec_depend>
 
   <export>
