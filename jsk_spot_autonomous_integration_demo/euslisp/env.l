@@ -8,6 +8,8 @@
 (require "models/eng2-7f-southwing-scene.l")
 (require "models/load-irt-all-scenes.l")
 
+(load "package://jsk_spot_autonomous_integration_demo/euslisp/json-loader.l")
+
 (load "package://spoteus/spot.l")
 (load "package://pr2eus/pr2.l")
 
@@ -19,9 +21,32 @@
   (send *room73a3* :rotate 3.14 :z)
   )
 
+(defun init-auto-integ-sim-env (robot-x robot-y robot-z robot-theta functions)
+
+  (init-rooms)
+  (setq *robot* (instance spot-robot :init))
+  (send *robot* :translate (float-vector robot-x robot-y robot-z))
+  (send *robot* :rotate robot-theta :z)
+  (setq ans (list *robot* *room73b2* *room73a3* ))
+
+  (dolist (f functions)
+    (let ((device (make-sphere 500))
+          (device-position (access-alist f "position"))
+          (device-pos-x (* 1000 (elt device-position 0)))
+          (device-pos-y (* 1000 (elt device-position 1)))
+          (device-pos-z (* 1000 (elt device-position 2)))
+          (device-name (access-alist f "name"))
+          (device-description (access-alist f "description"))
+          )
+      (send device :set-color #f(1 0 0))
+      (send device :translate (float-vector device-pos-x device-pos-y device-pos-z))
+      (push device ans)
+      ))
+  ans)
+
 (defun init-scene-spatial-device ()
   (init-rooms)
-  
+
   (setq *human-01* (instance human-robot :init))
   (send *human-01* :translate #f(7000 2000 0))
   (send *human-01* :rotate -1.57 :z)

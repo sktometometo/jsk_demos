@@ -1,0 +1,40 @@
+{
+    "functions": [
+        {
+            "name": "test_function",
+            "description": "This is a test function",
+            "position": [
+                1,
+                1,
+                1
+            ],
+            "argument_names_and_types": [
+                {
+                    "name": "arg1",
+                    "type": "int"
+                },
+                {
+                    "name": "arg2",
+                    "type": "int"
+                }
+            ],
+            "response_names_and_types": [
+                {
+                    "name": "response1",
+                    "type": "int"
+                }
+            ]
+        }
+    ],
+    "conditions": [
+        {
+            "robot_position": [
+                0,
+                0,
+                0
+            ],
+            "robot_direction": 0,
+            "intension": "test_function"
+        }
+    ]
+}

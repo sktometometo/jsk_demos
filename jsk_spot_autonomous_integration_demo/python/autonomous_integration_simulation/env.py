@@ -1,17 +1,39 @@
-import yaml
-import rospkg
+import argparse
+import json
 import os
-
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Tuple
+
+import numpy as np
+import rospkg
+import rospy
 from autonomous_integration import (
     ARGUMENT_NAMES_AND_TYPES,
     RESPONSE_NAMES_AND_TYPES,
     names_and_types_from_dict,
     names_and_types_to_dict,
 )
+from autonomous_integration.active_api_discovery import ActiveAPIDiscovery
+from autonomous_integration.autonomous_argument_completion import ArgumentCompletion
 from autonomous_integration.sdp_utils import *
-from matplotlib import pyplot as plt, scale
+from matplotlib import pyplot as plt
+from matplotlib import scale
+
+
+def load_params(filepath: str):
+    with open(filepath, "r") as f:
+        data = json.load(f)
+
+    functions = [Function.from_dict(d) for d in data["functions"]]
+    conditions = [
+        (
+            d["robot_position"],
+            d["robot_direction"],
+            d["intension"],
+        )
+        for d in data["conditions"]
+    ]
+    return functions, conditions
 
 
 @dataclass
@@ -20,7 +42,7 @@ class Function:
     description: str
     argument_names_and_types: ARGUMENT_NAMES_AND_TYPES
     response_names_and_types: RESPONSE_NAMES_AND_TYPES
-    position: Tuple[float, float]
+    position: Tuple[float, float, float]
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Function":
@@ -33,7 +55,7 @@ class Function:
             response_names_and_types=names_and_types_from_dict(
                 data["response_names_and_types"]
             ),
-            position=(data["position"][0], data["position"][1]),
+            position=(data["position"][0], data["position"][1], data["position"][2]),
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -46,7 +68,7 @@ class Function:
             "response_names_and_types": names_and_types_to_dict(
                 self.response_names_and_types
             ),
-            "position": [self.position[0], self.position[1]],
+            "position": [self.position[0], self.position[1], self.position[2]],
         }
 
 
@@ -54,58 +76,13 @@ class Environment:
 
     def __init__(
         self,
-        filename: Optional[str] = None,
+        robot_position: Tuple[float, float, float],
+        robot_direction: float,
+        functions: Dict[str, Function],
     ):
-        self.functions: Dict[str, Function] = {}
-        self.robot_position: Tuple[float, float] = (0.0, 0.0)
-        self.robot_direction: float = 0.0
-        if filename is not None:
-            self.load(filename)
-
-    def load(self, filename: str):
-        with open(filename, "r") as file:
-            data = yaml.safe_load(file)
-        self.functions = {
-            function["name"]: Function.from_dict(function)
-            for function in data["functions"]
-        }
-        self.robot_position = (
-            data["robot"]["position"][0],
-            data["robot"]["position"][1],
-        )
-        self.robot_direction = data["robot"]["direction"]
-
-    def show_environment(self):
-        fig, ax = plt.subplots()
-        # Plot functions
-        for function in self.functions.values():
-            ax.text(
-                function.position[0],
-                function.position[1],
-                function.description,
-                fontsize=12,
-            )
-        ax.scatter(
-            [function.position[0] for function in self.functions.values()],
-            [function.position[1] for function in self.functions.values()],
-            marker="s",d
-        )
-        # Plot robot
-        ax.text(
-            self.robot_position[0],
-            self.robot_position[1],
-            "Robot",
-            fontsize=12,
-        )
-        ax.quiver(
-            self.robot_position[0],
-            self.robot_position[1],
-            self.robot_direction,
-            scale=10,
-        )
-        # ax.set_xlim(-10, 10)
-        # ax.set_ylim(-10, 10)
-        plt.show()
+        self.robot_position = robot_position
+        self.robot_direction = robot_direction
+        self.functions = functions
 
     def get_api_list(
         self,
@@ -114,7 +91,7 @@ class Environment:
             str,
             ARGUMENT_NAMES_AND_TYPES,
             RESPONSE_NAMES_AND_TYPES,
-            Tuple[float, float],
+            Tuple[float, float, float],
         ]
     ]:
         return [
@@ -131,12 +108,78 @@ class Environment:
 def call_device(
     environment: Environment,
     intension: str,
-):
+    max_workers: int = 4,
+) -> Optional[Tuple]:
+    discovery = ActiveAPIDiscovery(max_workers=max_workers)
+    completion = ArgumentCompletion()
+
     api_full_list = environment.get_api_list()
+    api_short_list = [(api[0], api[1], api[2]) for api in api_full_list]
+    similarity_list, target_api_list_short_with_similarity = discovery.select_api(
+        intension,
+        {},
+        [],
+        api_short_list,
+    )
+    target_api_list_short = [
+        target_api_short
+        for similarity, target_api_short in target_api_list_short_with_similarity
+    ]
+    target_api_list_full = [
+        api_full_list[api_short_list.index(target_api_short)]
+        for target_api_short in target_api_list_short
+    ]
+    #
+    target_api_full = None
+    distance_to_base = float("inf")
+    for target_api_full_candidate, similarity in zip(
+        target_api_list_full, similarity_list
+    ):
+        distance = np.linalg.norm(
+            np.array(target_api_full_candidate[3])
+            - np.array(environment.robot_position)
+        )
+        if distance < distance_to_base:
+            target_api_full = target_api_full_candidate
+            distance_to_base = distance
+    if target_api_full is None:
+        return None
+    target_api_short = api_short_list[api_full_list.index(target_api_full)]
+    target_api_args = completion.complete_arguments(
+        intension,
+        {},
+        [],
+        target_api_short[0],
+        target_api_short[1],
+        target_api_short[2],
+    )
+    # Call the dummy function
+    return target_api_full, target_api_args
 
 
-def main():
+def main(param_file: Optional[str] = None):
+    rospy.init_node("demo")
+
     package_path = rospkg.RosPack().get_path("jsk_spot_autonomous_integration_demo")
+    functions, conditions = load_params(
+        os.path.join(package_path, "config", "demo.json")
+        if param_file is None
+        else param_file
+    )
 
-    environment = Environment(os.path.join(package_path, "config", "demo.yaml"))
-    environment.show_environment()
+    for condition in conditions:
+        environment = Environment(
+            robot_position=condition[0],
+            robot_direction=condition[1],
+            functions={f.name: f for f in functions},
+        )
+        result = call_device(environment, condition[2])
+        print(result)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--param_file", type=str)
+    args = parser.parse_args()
+
+    main(args.param_file)

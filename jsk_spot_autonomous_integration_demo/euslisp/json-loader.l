@@ -3,6 +3,9 @@
   (with-open-file (strm file-path)
     (parse-json-stream strm)))
 
+(defun access-alist (alist key-str)
+  (cdr (assoc key-str alist :test 'string-equal)))
+
 (defun char2str (c)
   (concatenate string "" (vector c)))
 
