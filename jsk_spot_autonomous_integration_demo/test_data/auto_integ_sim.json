@@ -64,6 +64,13 @@
             "response_names_and_types": []
         },
         {
+            "name": "washer",
+            "description": "This is a test function",
+            "position": [ 0.6, 4.0, 0.4 ],
+            "argument_names_and_types": [],
+            "response_names_and_types": []
+        },
+        {
             "name": "lock_73a3",
             "description": "This is a test function",
             "position": [ -3.0, -0.5, 1.0 ],
