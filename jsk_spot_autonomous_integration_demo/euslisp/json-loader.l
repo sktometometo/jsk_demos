@@ -47,7 +47,7 @@
     (loop
       (skip-whitespace strm)
       (when (= (peek-char strm) #\]) (read-char strm) (return (nreverse arr)))
-      (setq arr (concatenate vector arr (vector (parse-json-stream strm))))
+      (setq arr (concatenate vector (vector (parse-json-stream strm)) arr))
       (skip-whitespace strm)
       (when (= (peek-char strm) #\,) (read-char strm))
       (skip-whitespace strm))))

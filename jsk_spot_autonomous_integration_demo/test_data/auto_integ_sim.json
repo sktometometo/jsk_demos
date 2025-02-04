@@ -1,42 +1,74 @@
 {
     "functions": [
         {
-            "name": "test_function",
+            "name": "light_73B2_kitchen",
             "description": "This is a test function",
-            "position": [
-                3,
-                0.5,
-                2
-            ],
-            "argument_names_and_types": [
-                {
-                    "name": "arg", "type": "int"
-                }
-            ],
-            "response_names_and_types": [
-                {
-                    "name": "res", "type": "int"
-                }
-            ]
+            "position": [ 3, -0.5, 2.5 ],
+            "argument_names_and_types": [{"name": "arg", "type": "int"}],
+            "response_names_and_types": [{"name": "res", "type": "int"}]
         },
         {
-            "name": "test_function",
+            "name": "light_73B2_window",
             "description": "This is a test function",
-            "position": [
-                6,
-                4,
-                1
-            ],
-            "argument_names_and_types": [
-                {
-                    "name": "arg", "type": "int"
-                }
-            ],
-            "response_names_and_types": [
-                {
-                    "name": "res", "type": "int"
-                }
-            ]
+            "position": [ 9, -0.5, 2.5 ],
+            "argument_names_and_types": [{"name": "arg", "type": "int"}],
+            "response_names_and_types": [{"name": "res", "type": "int"}]
+        },
+        {
+            "name": "gabagebox",
+            "description": "This is a test function",
+            "position": [ 2.5, 2.8, 0.6 ],
+            "argument_names_and_types": [],
+            "response_names_and_types": []
+        },
+        {
+            "name": "television",
+            "description": "This is a test function",
+            "position": [ 4.2, 3, 1 ],
+            "argument_names_and_types": [],
+            "response_names_and_types": []
+        },
+        {
+            "name": "refridgerator",
+            "description": "This is a test function",
+            "position": [ 5.5, 0.8, 1.5 ],
+            "argument_names_and_types": [],
+            "response_names_and_types": []
+        },
+        {
+            "name": "airconditioner_73b2",
+            "description": "This is a test function",
+            "position": [ 5.5, 0.0, 2.6 ],
+            "argument_names_and_types": [],
+            "response_names_and_types": []
+        },
+        {
+            "name": "lock_73b2",
+            "description": "This is a test function",
+            "position": [ 0.0, 0.0, 1.0 ],
+            "argument_names_and_types": [],
+            "response_names_and_types": []
+        },
+        {
+            "name": "ventilation",
+            "description": "This is a test function",
+            "position": [ 0.5, 1.3, 1.8 ],
+            "argument_names_and_types": [],
+            "response_names_and_types": []
+        },
+        {
+            "name": "heater",
+            "description": "This is a test function",
+            "position": [ 0.6, 1.3, 0.8 ],
+            "argument_names_and_types": [],
+            "response_names_and_types": []
+        },
+        {
+            "name": "lock_73a3",
+            "description": "This is a test function",
+            "position": [ -3.0, -0.5, 1.0 ],
+            "argument_names_and_types": [],
+            "response_names_and_types": []
         }
     ],
     "conditions": [
