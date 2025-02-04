@@ -74,8 +74,6 @@
                                                           (t (error "Invalid escape sequence: ~A" next))))))))
               (t 
                 (progn
-                  (format t "No match c: ~A~%" (char2str c))
-                  (format t "failed create (string c): ~A~%" (char2str c))
                   (setq str (concatenate string str (char2str c)))
                   )
                 ))
@@ -90,9 +88,6 @@
               (setq num-str (concatenate string num-str (char2str (read-char strm))))
               )
             (progn
-              (format t "num-str: \"~A\"~%" num-str)
-              (format t "num-str: \"~A\"~%" (str2vector num-str))
-              (format t "stringp num-str: ~A~%" (stringp num-str))
               (read (make-string-input-stream "1"))
               (read-from-string num-str)
               (setq ans (read-from-string num-str))
