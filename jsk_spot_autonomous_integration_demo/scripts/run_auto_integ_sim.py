@@ -6,6 +6,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 import rospkg
 import rospy
 from autonomous_integration_simulation.env import *
+from autonomous_integration_simulation.openai_tool_calling import call_device_openai
 
 
 def main(param_file: Optional[str] = None):
@@ -29,8 +30,9 @@ def main(param_file: Optional[str] = None):
         )
         print(environment)
         print(condition)
-        result = call_device(environment, condition[2])
-        print(result)
+        # result = call_device(environment, condition[2])
+        # print(result)
+        call_device_openai(environment, condition[2], "")
 
 
 if __name__ == "__main__":

@@ -84,6 +84,7 @@ class Environment:
     ) -> List[
         Tuple[
             str,
+            str,
             ARGUMENT_NAMES_AND_TYPES,
             RESPONSE_NAMES_AND_TYPES,
             Tuple[float, float, float],
@@ -91,6 +92,7 @@ class Environment:
     ]:
         return [
             (
+                function.name,
                 function.description,
                 function.argument_names_and_types,
                 function.response_names_and_types,
@@ -109,7 +111,7 @@ def call_device(
     completion = ArgumentCompletion()
 
     api_full_list = environment.get_api_list()
-    api_short_list = [(api[0], api[1], api[2]) for api in api_full_list]
+    api_short_list = [(api[1], api[2], api[3]) for api in api_full_list]
     print(f"api_short_list: {api_short_list}")
     similarity_list, target_api_list_short_with_similarity = discovery.select_api(
         intension,
@@ -132,7 +134,7 @@ def call_device(
         target_api_list_full, similarity_list
     ):
         distance = np.linalg.norm(
-            np.array(target_api_full_candidate[3])
+            np.array(target_api_full_candidate[4])
             - np.array(environment.robot_position)
         )
         if distance < distance_to_base:

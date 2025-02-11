@@ -2,79 +2,194 @@
     "functions": [
         {
             "name": "light_73B2_kitchen",
-            "description": "This is a test function",
-            "position": [ 3, -0.5, 2.5 ],
-            "argument_names_and_types": [{"name": "arg", "type": "int"}],
-            "response_names_and_types": [{"name": "res", "type": "int"}]
+            "description": "Turn on/off the light.",
+            "position": [
+                3,
+                -0.5,
+                2.5
+            ],
+            "argument_names_and_types": [
+                {
+                    "name": "turn",
+                    "type": "bool"
+                }
+            ],
+            "response_names_and_types": []
+        },
+        {
+            "name": "light_73B2_kitchen_status",
+            "description": "Get status of the light.",
+            "position": [
+                3,
+                -0.5,
+                2.5
+            ],
+            "argument_names_and_types": [],
+            "response_names_and_types": [
+                {
+                    "name": "status",
+                    "type": "bool"
+                }
+            ]
         },
         {
             "name": "light_73B2_window",
-            "description": "This is a test function",
-            "position": [ 9, -0.5, 2.5 ],
-            "argument_names_and_types": [{"name": "arg", "type": "int"}],
-            "response_names_and_types": [{"name": "res", "type": "int"}]
+            "description": "Turn on/off the light.",
+            "position": [
+                9,
+                -0.5,
+                2.5
+            ],
+            "argument_names_and_types": [
+                {
+                    "name": "turn",
+                    "type": "bool"
+                }
+            ],
+            "response_names_and_types": []
         },
         {
             "name": "gabagebox",
-            "description": "This is a test function",
-            "position": [ 2.5, 2.8, 0.6 ],
+            "description": "Get amount of gabage in percent",
+            "position": [
+                2.5,
+                2.8,
+                0.6
+            ],
             "argument_names_and_types": [],
-            "response_names_and_types": []
+            "response_names_and_types": [
+                {
+                    "name": "amount",
+                    "type": "int"
+                }
+            ]
         },
         {
             "name": "television",
-            "description": "This is a test function",
-            "position": [ 4.2, 3, 1 ],
-            "argument_names_and_types": [],
+            "description": "Turn on/off the tv.",
+            "position": [
+                4.2,
+                3,
+                1
+            ],
+            "argument_names_and_types": [
+                {
+                    "name": "turn",
+                    "type": "bool"
+                }
+            ],
             "response_names_and_types": []
         },
         {
-            "name": "refridgerator",
-            "description": "This is a test function",
-            "position": [ 5.5, 0.8, 1.5 ],
+            "name": "refrigerator",
+            "description": "Get status of the refrigerator.",
+            "position": [
+                5.5,
+                0.8,
+                1.5
+            ],
             "argument_names_and_types": [],
-            "response_names_and_types": []
+            "response_names_and_types": [
+                {
+                    "name": "status",
+                    "type": "string"
+                }
+            ]
         },
         {
-            "name": "airconditioner_73b2",
-            "description": "This is a test function",
-            "position": [ 5.5, 0.0, 2.6 ],
-            "argument_names_and_types": [],
+            "name": "air_conditioner_73b2",
+            "description": "Set temperature of the air conditioner.",
+            "position": [
+                5.5,
+                0.0,
+                2.6
+            ],
+            "argument_names_and_types": [
+                {
+                    "name": "temperature",
+                    "type": "int"
+                }
+            ],
             "response_names_and_types": []
         },
         {
             "name": "lock_73b2",
-            "description": "This is a test function",
-            "position": [ 0.0, 0.0, 1.0 ],
-            "argument_names_and_types": [],
+            "description": "Turn lock/unlock the key.",
+            "position": [
+                0.0,
+                0.0,
+                1.0
+            ],
+            "argument_names_and_types": [
+                {
+                    "name": "turn",
+                    "type": "bool"
+                }
+            ],
             "response_names_and_types": []
         },
         {
             "name": "ventilation",
-            "description": "This is a test function",
-            "position": [ 0.5, 1.3, 1.8 ],
-            "argument_names_and_types": [],
+            "description": "Turn on/off the ventilation.",
+            "position": [
+                0.5,
+                1.3,
+                1.8
+            ],
+            "argument_names_and_types": [
+                {
+                    "name": "turn",
+                    "type": "bool"
+                }
+            ],
             "response_names_and_types": []
         },
         {
             "name": "heater",
-            "description": "This is a test function",
-            "position": [ 0.6, 1.3, 0.8 ],
-            "argument_names_and_types": [],
+            "description": "Set intensity of the heater. (0-10)",
+            "position": [
+                0.6,
+                1.3,
+                0.8
+            ],
+            "argument_names_and_types": [
+                {
+                    "name": "intensity",
+                    "type": "int"
+                }
+            ],
             "response_names_and_types": []
         },
         {
             "name": "washer",
-            "description": "This is a test function",
-            "position": [ 0.6, 4.0, 0.4 ],
+            "description": "Get remaining time of the washer.",
+            "position": [
+                0.6,
+                4.0,
+                0.4
+            ],
             "argument_names_and_types": [],
-            "response_names_and_types": []
+            "response_names_and_types": [
+                {
+                    "name": "time",
+                    "type": "float"
+                }
+            ]
         },
         {
             "name": "lock_73a3",
-            "description": "This is a test function",
-            "position": [ -3.0, -0.5, 1.0 ],
-            "argument_names_and_types": [],
+            "description": "Turn lock/unlock the key.",
+            "position": [
+                -3.0,
+                -0.5,
+                1.0
+            ],
+            "argument_names_and_types": [
+                {
+                    "name": "turn",
+                    "type": "bool"
+                }
+            ],
             "response_names_and_types": []
         }
     ],
@@ -86,7 +201,7 @@
                 0.5
             ],
             "robot_direction": 0,
-            "intension": "test_function"
+            "intension": "Unlock the door."
         }
     ]
 }
