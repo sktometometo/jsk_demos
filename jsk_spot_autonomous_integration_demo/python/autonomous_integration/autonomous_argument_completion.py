@@ -137,7 +137,7 @@ class ArgumentCompletion:
             arguments_api,
             response_api,
         )
-        res = self.get_response(CompletionRequest(prompt=prompt, stop=["\n"]))
+        res = self.get_response(CompletionRequest(prompt=prompt))
         response_text = res.text
         rospy.loginfo(f"response_text: {response_text}")
         if target_api_argument_type == "int":

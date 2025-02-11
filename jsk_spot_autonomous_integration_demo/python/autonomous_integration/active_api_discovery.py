@@ -4,6 +4,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 import numpy as np
 import rospy
 from openai_ros.srv import Embedding, EmbeddingRequest
+from pyexpat import model
 
 from . import ARGUMENT_NAMES_AND_TYPES, RESPONSE_NAMES_AND_TYPES
 
@@ -15,9 +16,13 @@ def cosine_similarity(vec1, vec2) -> float:
 class ActiveAPIDiscovery:
 
     def __init__(
-        self, service_name: str = "/openai/get_embedding", max_workers: int = 5
+        self,
+        service_name: str = "/openai/get_embedding",
+        max_workers: int = 5,
+        embedding_model: str = "text-embedding-3-small",
     ):
         self._max_workers = max_workers
+        self._embedding_model = embedding_model
         rospy.wait_for_service(service_name, timeout=5.0)
         self.get_embedding = rospy.ServiceProxy(service_name, Embedding)
 
@@ -34,7 +39,7 @@ class ActiveAPIDiscovery:
         text += "Arguments: " + str(arguments) + "\n"
         text += "Responses: " + str(responses)
         # rospy.loginfo(f"Requesting embedding for: {text}")
-        res = self.get_embedding(EmbeddingRequest(prompt=text))
+        res = self.get_embedding(EmbeddingRequest(input=text, model=self._embedding_model))
         embeddings = res.embedding
         # rospy.loginfo(f"Received embedding for {text}")
         return np.array(embeddings)
@@ -51,6 +56,9 @@ class ActiveAPIDiscovery:
         """
         Calculate the semantic distance between two descriptions.
         """
+        print(
+            f"Calculating similarity between {description_intension} and {description_api}"
+        )
         return cosine_similarity(
             self._get_embedding(
                 description_api,
