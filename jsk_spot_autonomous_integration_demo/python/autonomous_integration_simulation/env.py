@@ -1,12 +1,9 @@
-import argparse
 import json
 import os
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
-import rospkg
-import rospy
 from autonomous_integration import (
     ARGUMENT_NAMES_AND_TYPES,
     RESPONSE_NAMES_AND_TYPES,
@@ -16,8 +13,6 @@ from autonomous_integration import (
 from autonomous_integration.active_api_discovery import ActiveAPIDiscovery
 from autonomous_integration.autonomous_argument_completion import ArgumentCompletion
 from autonomous_integration.sdp_utils import *
-from matplotlib import pyplot as plt
-from matplotlib import scale
 
 
 def load_params(filepath: str):
@@ -115,6 +110,7 @@ def call_device(
 
     api_full_list = environment.get_api_list()
     api_short_list = [(api[0], api[1], api[2]) for api in api_full_list]
+    print(f"api_short_list: {api_short_list}")
     similarity_list, target_api_list_short_with_similarity = discovery.select_api(
         intension,
         {},
@@ -145,7 +141,7 @@ def call_device(
     if target_api_full is None:
         return None
     target_api_short = api_short_list[api_full_list.index(target_api_full)]
-    target_api_args = completion.complete_arguments(
+    target_api_args = completion.generate_arguments_for_api(
         intension,
         {},
         [],
@@ -155,31 +151,3 @@ def call_device(
     )
     # Call the dummy function
     return target_api_full, target_api_args
-
-
-def main(param_file: Optional[str] = None):
-    rospy.init_node("demo")
-
-    package_path = rospkg.RosPack().get_path("jsk_spot_autonomous_integration_demo")
-    functions, conditions = load_params(
-        os.path.join(package_path, "config", "demo.json")
-        if param_file is None
-        else param_file
-    )
-
-    for condition in conditions:
-        environment = Environment(
-            robot_position=condition[0],
-            robot_direction=condition[1],
-            functions={f.name: f for f in functions},
-        )
-        result = call_device(environment, condition[2])
-        print(result)
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--param_file", type=str)
-    args = parser.parse_args()
-
-    main(args.param_file)

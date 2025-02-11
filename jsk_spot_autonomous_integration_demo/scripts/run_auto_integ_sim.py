@@ -1,0 +1,41 @@
+#!/usr/bin/env python
+
+import argparse
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
+import rospkg
+import rospy
+from autonomous_integration_simulation.env import *
+
+
+def main(param_file: Optional[str] = None):
+    rospy.init_node("demo")
+
+    package_path = rospkg.RosPack().get_path("jsk_spot_autonomous_integration_demo")
+    functions, conditions = load_params(
+        os.path.join(package_path, "config", "demo.json")
+        if param_file is None
+        else param_file
+    )
+
+    print(functions)
+    print(conditions)
+
+    for condition in conditions:
+        environment = Environment(
+            robot_position=condition[0],
+            robot_direction=condition[1],
+            functions={f.name: f for f in functions},
+        )
+        print(environment)
+        print(condition)
+        result = call_device(environment, condition[2])
+        print(result)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--param_file", type=str)
+    args = parser.parse_args()
+
+    main(args.param_file)
