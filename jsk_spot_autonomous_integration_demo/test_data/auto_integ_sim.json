@@ -196,12 +196,39 @@
     "conditions": [
         {
             "robot_position": [
-                1.0,
+                -1.0,
                 0,
                 0.5
             ],
             "robot_direction": 0,
             "intension": "Unlock the door."
+        },
+        {
+            "robot_position": [
+                1.5,
+                1.5,
+                0.5
+            ],
+            "robot_direction": 3.14,
+            "intension": "Heat the pan"
+        },
+        {
+            "robot_position": [
+                1.5,
+                1.5,
+                0.5
+            ],
+            "robot_direction": 3.14,
+            "intension": "Start ventilation."
+        },
+        {
+            "robot_position": [
+                2.0,
+                0,
+                0.5
+            ],
+            "robot_direction": 0,
+            "intension": "Turn on the light."
         }
     ]
 }
