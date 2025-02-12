@@ -53,7 +53,7 @@
             "description": "Get amount of gabage in percent",
             "position": [
                 2.5,
-                2.8,
+                2.5,
                 0.6
             ],
             "argument_names_and_types": [],
@@ -165,7 +165,7 @@
             "description": "Get remaining time of the washer.",
             "position": [
                 0.6,
-                4.0,
+                3.3,
                 0.4
             ],
             "argument_names_and_types": [],
@@ -196,7 +196,7 @@
     "conditions": [
         {
             "robot_position": [
-                -1.0,
+                -0.8,
                 0,
                 0.5
             ],
@@ -205,8 +205,17 @@
         },
         {
             "robot_position": [
+                -2.2,
+                -0.5,
+                0.5
+            ],
+            "robot_direction": 3.14,
+            "intension": "Unlock the door."
+        },
+        {
+            "robot_position": [
                 1.5,
-                1.5,
+                1.2,
                 0.5
             ],
             "robot_direction": 3.14,
@@ -215,11 +224,65 @@
         {
             "robot_position": [
                 1.5,
-                1.5,
+                1.2,
                 0.5
             ],
             "robot_direction": 3.14,
             "intension": "Start ventilation."
+        },
+        {
+            "robot_position": [
+                1.5,
+                3.3,
+                0.5
+            ],
+            "robot_direction": 3.14,
+            "intension": "Get remaining time of washer."
+        },
+        {
+            "robot_position": [
+                1.5,
+                2.5,
+                0.5
+            ],
+            "robot_direction": 0,
+            "intension": "Get amount of gabage."
+        },
+        {
+            "robot_position": [
+                3.5,
+                1.0,
+                0.5
+            ],
+            "robot_direction": 1.3,
+            "intension": "Turn off the TV."
+        },
+        {
+            "robot_position": [
+                4.5,
+                0.9,
+                0.5
+            ],
+            "robot_direction": 0,
+            "intension": "Check the temperature of the refrigerator."
+        },
+        {
+            "robot_position": [
+                4.5,
+                0.0,
+                0.5
+            ],
+            "robot_direction": 0,
+            "intension": "Set the air conditioner to 20.0."
+        },
+        {
+            "robot_position": [
+                9.0,
+                1.0,
+                0.5
+            ],
+            "robot_direction": -1.4,
+            "intension": "Turn on the light."
         },
         {
             "robot_position": [

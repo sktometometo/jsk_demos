@@ -28,8 +28,8 @@
            (conditions (cdr params))
            )
         (show-env conditions functions)
-        (setq gl::*perspective-far* 50000.0)
-        (setq gl::*perspective-near* 0.1)
+        ;(setq gl::*perspective-far* 50000.0)
+        ;(setq gl::*perspective-near* 0.1)
         ))
 
 (main)
