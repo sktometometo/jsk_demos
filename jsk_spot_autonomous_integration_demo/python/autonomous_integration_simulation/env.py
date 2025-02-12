@@ -25,6 +25,7 @@ def load_params(filepath: str):
             d["robot_position"],
             d["robot_direction"],
             d["intension"],
+            d["id"],
         )
         for d in data["conditions"]
     ]

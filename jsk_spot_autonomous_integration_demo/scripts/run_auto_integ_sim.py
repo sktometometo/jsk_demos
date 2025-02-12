@@ -20,7 +20,10 @@ def main(param_file: Optional[str] = None):
         else param_file
     )
 
+    print("=== Functions ===")
     print(functions)
+
+    print("=== Conditions ===")
     print(conditions)
 
     for condition in conditions:
@@ -29,10 +32,8 @@ def main(param_file: Optional[str] = None):
             robot_direction=condition[1],
             functions={f.name: f for f in functions},
         )
-        print(environment)
-        print(condition)
         result = call_device(environment, condition[2])
-        print(result)
+        print(f"{condition[3]}: {result}")
 
 
 if __name__ == "__main__":
