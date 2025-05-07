@@ -107,7 +107,7 @@
             "argument_names_and_types": [
                 {
                     "name": "temperature",
-                    "type": "int"
+                    "type": "float"
                 }
             ],
             "response_names_and_types": []

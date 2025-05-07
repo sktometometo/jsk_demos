@@ -56,9 +56,9 @@ class ActiveAPIDiscovery:
         """
         Calculate the semantic distance between two descriptions.
         """
-        print(
-            f"Calculating similarity between {description_intension} and {description_api}"
-        )
+        # print(
+        #     f"Calculating similarity between {description_intension} and {description_api}"
+        # )
         return cosine_similarity(
             self._get_embedding(
                 description_api,
@@ -104,7 +104,7 @@ class ActiveAPIDiscovery:
                 api_arguments,
                 api_response,
             )
-            print(f"{description_api}: similarity: {similarity}")
+            # print(f"{description_api}: similarity: {similarity}")
             if similarity > threshold:
                 selected_api = (
                     description_api,

@@ -15,7 +15,7 @@ def main(param_file: Optional[str] = None):
 
     package_path = rospkg.RosPack().get_path("jsk_spot_autonomous_integration_demo")
     functions, conditions = load_params(
-        os.path.join(package_path, "config", "demo.json")
+        os.path.join(package_path, "test_data", "auto_integ_sim.json")
         if param_file is None
         else param_file
     )

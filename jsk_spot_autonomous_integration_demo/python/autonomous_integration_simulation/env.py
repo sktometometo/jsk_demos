@@ -4,14 +4,13 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
-from autonomous_integration import (
-    ARGUMENT_NAMES_AND_TYPES,
-    RESPONSE_NAMES_AND_TYPES,
-    names_and_types_from_dict,
-    names_and_types_to_dict,
-)
+from autonomous_integration import (ARGUMENT_NAMES_AND_TYPES,
+                                    RESPONSE_NAMES_AND_TYPES,
+                                    names_and_types_from_dict,
+                                    names_and_types_to_dict)
 from autonomous_integration.active_api_discovery import ActiveAPIDiscovery
-from autonomous_integration.autonomous_argument_completion import ArgumentCompletion
+from autonomous_integration.autonomous_argument_completion import \
+    ArgumentCompletion
 from autonomous_integration.sdp_utils import *
 
 
@@ -113,7 +112,7 @@ def call_device(
 
     api_full_list = environment.get_api_list()
     api_short_list = [(api[1], api[2], api[3]) for api in api_full_list]
-    print(f"api_short_list: {api_short_list}")
+    # print(f"api_short_list: {api_short_list}")
     similarity_list, target_api_list_short_with_similarity = discovery.select_api(
         intension,
         {},
@@ -128,6 +127,7 @@ def call_device(
         api_full_list[api_short_list.index(target_api_short)]
         for target_api_short in target_api_list_short
     ]
+    print(f"Candidate APIs: {target_api_list_full}")
     #
     target_api_full = None
     distance_to_base = float("inf")
