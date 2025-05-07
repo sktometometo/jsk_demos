@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
+import yaml
 from autonomous_integration import (ARGUMENT_NAMES_AND_TYPES,
                                     RESPONSE_NAMES_AND_TYPES,
                                     names_and_types_from_dict,
@@ -111,7 +112,7 @@ def call_device(
     completion = ArgumentCompletion()
 
     api_full_list = environment.get_api_list()
-    api_short_list = [(api[1], api[2], api[3]) for api in api_full_list]
+    api_short_list = [(api[0], api[1], api[2], api[3]) for api in api_full_list]
     # print(f"api_short_list: {api_short_list}")
     similarity_list, target_api_list_short_with_similarity = discovery.select_api(
         intension,
@@ -127,10 +128,12 @@ def call_device(
         api_full_list[api_short_list.index(target_api_short)]
         for target_api_short in target_api_list_short
     ]
-    print(f"Candidate APIs: {target_api_list_full}")
+    candidates_api_list = [{"name": api[0], "similarity": sim} for api, sim in zip(target_api_list_short, similarity_list)]
+    # print(f"Candidate APIs: {yaml.dump(candidates_api_list, indent=2)}")
     #
     target_api_full = None
     distance_to_base = float("inf")
+    cost_for_base = 0
     for target_api_full_candidate, similarity in zip(
         target_api_list_full, similarity_list
     ):
@@ -138,9 +141,12 @@ def call_device(
             np.array(target_api_full_candidate[4])
             - np.array(environment.robot_position)
         )
-        if distance < distance_to_base:
+        cost = 1.0 / distance + similarity
+        # if distance < distance_to_base:
+        if cost > cost_for_base:
             target_api_full = target_api_full_candidate
-            distance_to_base = distance
+            # distance_to_base = distance
+            cost_for_base = cost
     if target_api_full is None:
         return None
     target_api_short = api_short_list[api_full_list.index(target_api_full)]
@@ -148,9 +154,9 @@ def call_device(
         intension,
         {},
         [],
-        target_api_short[0],
         target_api_short[1],
         target_api_short[2],
+        target_api_short[3],
     )
     # Call the dummy function
     return target_api_full, target_api_args

@@ -1,4 +1,4 @@
-gimport json
+import json
 import os
 from curses import raw
 from dataclasses import dataclass

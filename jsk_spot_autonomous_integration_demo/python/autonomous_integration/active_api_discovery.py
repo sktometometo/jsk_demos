@@ -77,7 +77,7 @@ class ActiveAPIDiscovery:
         description_intension: str,
         argument_names_and_types_intension: ARGUMENT_NAMES_AND_TYPES,
         response_names_and_types_intension: RESPONSE_NAMES_AND_TYPES,
-        list_api: List[Tuple[str, ARGUMENT_NAMES_AND_TYPES, RESPONSE_NAMES_AND_TYPES]],
+        list_api: List[Tuple[str, str, ARGUMENT_NAMES_AND_TYPES, RESPONSE_NAMES_AND_TYPES]],
         threshold: float = 0.5,
     ) -> List[
         Tuple[
@@ -85,7 +85,7 @@ class ActiveAPIDiscovery:
             List[
                 Tuple[
                     float,
-                    Tuple[str, ARGUMENT_NAMES_AND_TYPES, RESPONSE_NAMES_AND_TYPES],
+                    Tuple[str, str, ARGUMENT_NAMES_AND_TYPES, RESPONSE_NAMES_AND_TYPES],
                 ]
             ],
         ]
@@ -95,7 +95,7 @@ class ActiveAPIDiscovery:
         """
 
         def compute_similarity(api_item):
-            description_api, api_arguments, api_response = api_item
+            api_name, description_api, api_arguments, api_response = api_item
             similarity = self._calc_semantic_similarity(
                 description_intension,
                 argument_names_and_types_intension,
@@ -107,6 +107,7 @@ class ActiveAPIDiscovery:
             # print(f"{description_api}: similarity: {similarity}")
             if similarity > threshold:
                 selected_api = (
+                    api_name,
                     description_api,
                     api_arguments,
                     api_response,
